@@ -336,6 +336,49 @@ body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--tx);min-heig
 
 
 
+<!-- DCA TRACKER -->
+<div class="sec"><div class="ld" style="background:var(--ac);box-shadow:0 0 5px var(--ac)"></div>
+  <div class="lt">Inversión acumulada <span>DCA mes a mes</span></div>
+</div>
+<div class="card">
+  <div class="card-body">
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px">
+      <div style="background:var(--s2);border-radius:7px;padding:10px;text-align:center">
+        <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu);text-transform:uppercase;margin-bottom:4px">Base inicial</div>
+        <div id="dca-base-val" style="font-size:14px;font-weight:800;color:var(--ac)">—</div>
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);margin-top:2px">ene–mar 2026</div>
+      </div>
+      <div style="background:var(--s2);border-radius:7px;padding:10px;text-align:center">
+        <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu);text-transform:uppercase;margin-bottom:4px">DCA desde abril</div>
+        <div id="dca-aportado" style="font-size:14px;font-weight:800;color:var(--gr)">—</div>
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);margin-top:2px">acumulado tracker</div>
+      </div>
+      <div style="background:var(--s2);border-radius:7px;padding:10px;text-align:center">
+        <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu);text-transform:uppercase;margin-bottom:4px">Total invertido</div>
+        <div id="dca-total" style="font-size:14px;font-weight:800;color:var(--go)">—</div>
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);margin-top:2px">base + DCA</div>
+      </div>
+    </div>
+    <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);margin-bottom:5px">
+      Capital invertido antes del tracker (ene–mar 2026, solo se ingresa una vez):
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+      <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--mu)">$</span>
+      <input type="number" id="dca-base-inp" step="10" min="0" placeholder="8950"
+        style="background:var(--s3);border:1px solid rgba(61,184,245,.3);color:var(--ac);
+        font-family:'DM Mono',monospace;font-size:13px;font-weight:700;
+        padding:5px 9px;border-radius:6px;flex:1;text-align:right"
+        onchange="saveDCABase(this.value)">
+    </div>
+    <div style="border-top:1px solid var(--bd);padding-top:10px;">
+      <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);margin-bottom:7px">
+        Aportado desde abril en adelante (del historial):
+      </div>
+      <div id="dca-hist-list"></div>
+    </div>
+  </div>
+</div>
+
 <div class="foot">Budget Tracker GT · Guardado automático · Exporta para sincronizar entre dispositivos</div>
 </div>
 

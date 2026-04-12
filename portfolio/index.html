@@ -333,17 +333,28 @@ td:first-child{text-align:left;}
 </div>
 <div class="card" id="dist-card">
   <div class="card-body">
+    <!-- Toggle -->
+    <div style="display:flex;gap:6px;margin-bottom:14px;">
+      <button id="dist-btn-activo" onclick="setDistView('activo')"
+        style="font-family:'DM Mono',monospace;font-size:9px;padding:4px 10px;border-radius:5px;
+        cursor:pointer;transition:all .18s;border:1px solid var(--pu);background:var(--pu);color:#fff;">
+        Por activo
+      </button>
+      <button id="dist-btn-capa" onclick="setDistView('capa')"
+        style="font-family:'DM Mono',monospace;font-size:9px;padding:4px 10px;border-radius:5px;
+        cursor:pointer;transition:all .18s;border:1px solid var(--bd2);background:transparent;color:var(--mu);">
+        Por capa
+      </button>
+    </div>
     <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;">
-      <!-- Donut canvas -->
       <div style="position:relative;flex-shrink:0;">
         <canvas id="dist-canvas" width="160" height="160"></canvas>
-        <div id="dist-center" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
           text-align:center;pointer-events:none;">
           <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu);text-transform:uppercase;letter-spacing:.05em">total</div>
           <div id="dist-total-lbl" style="font-size:13px;font-weight:800;color:var(--tx);letter-spacing:-.5px">—</div>
         </div>
       </div>
-      <!-- Leyenda -->
       <div id="dist-legend" style="flex:1;min-width:160px;display:flex;flex-direction:column;gap:5px;"></div>
     </div>
   </div>
@@ -784,60 +795,79 @@ body{font-family:"Segoe UI",Arial,sans-serif;background:#f7f8fc;color:#1a202c;pa
 
 
 // ── DISTRIBUCIÓN DONUT ──────────────────────────────────────────
+let distView = 'activo';
+
+function setDistView(v){
+  distView = v;
+  const ba = document.getElementById('dist-btn-activo');
+  const bc = document.getElementById('dist-btn-capa');
+  if(ba) { ba.style.background=v==='activo'?'var(--pu)':'transparent'; ba.style.color=v==='activo'?'#fff':'var(--mu)'; ba.style.borderColor=v==='activo'?'var(--pu)':'var(--bd2)'; }
+  if(bc) { bc.style.background=v==='capa'?'var(--ac)':'transparent'; bc.style.color=v==='capa'?'#fff':'var(--mu)'; bc.style.borderColor=v==='capa'?'var(--ac)':'var(--bd2)'; }
+  renderDist();
+}
+
 function renderDist(){
-  const canvas=document.getElementById('dist-canvas');
-  const legend=document.getElementById('dist-legend');
-  const totalLbl=document.getElementById('dist-total-lbl');
+  const canvas  = document.getElementById('dist-canvas');
+  const legend  = document.getElementById('dist-legend');
+  const totalLbl= document.getElementById('dist-total-lbl');
   if(!canvas||!legend) return;
 
-  const all=[...L1,...L2,...BROKER];
-  const items=all.map(a=>({
-    tick:a.tick, col:a.col,
-    val:(a.price||0)*a.qty
-  })).filter(x=>x.val>0).sort((a,b)=>b.val-a.val);
-
-  const tot=items.reduce((s,x)=>s+x.val,0);
+  const all = [...L1,...L2,...BROKER];
+  const tot = all.reduce((s,a)=>s+(a.price||0)*a.qty, 0);
   if(tot<=0) return;
+  totalLbl.textContent = '$'+tot.toLocaleString('en-US',{maximumFractionDigits:0});
 
-  // Actualizar label centro
-  totalLbl.textContent='$'+tot.toLocaleString('en-US',{maximumFractionDigits:0});
+  let items;
+  if(distView === 'activo'){
+    items = all.map(a=>({
+      label: a.tick, col: a.col,
+      val: (a.price||0)*a.qty
+    })).filter(x=>x.val>0).sort((a,b)=>b.val-a.val);
+  } else {
+    const v1 = L1.reduce((s,a)=>s+(a.price||0)*a.qty,0);
+    const v2 = L2.reduce((s,a)=>s+(a.price||0)*a.qty,0);
+    const vB = BROKER.reduce((s,a)=>s+(a.price||0)*a.qty,0);
+    items = [
+      {label:'Capa 1 · Sólidos',      col:'#3db8f5', val:v1, sub:'HYPE · ONDO'},
+      {label:'Capa 2 · Explosivos',   col:'#9d7ff0', val:v2, sub:'PHA · AKT · TAI · G'},
+      {label:'Broker / Institucional', col:'#f5b731', val:vB, sub:'STRC · MSTR · BTC'},
+    ].filter(x=>x.val>0);
+  }
 
   // Dibujar donut
-  const ctx=canvas.getContext('2d');
-  const cx=80,cy=80,R=72,r=44;
+  const ctx = canvas.getContext('2d');
+  const cx=80, cy=80, R=72, r=44;
   ctx.clearRect(0,0,160,160);
-
-  let angle=-Math.PI/2;
-  const GAP=0.025;
+  let angle = -Math.PI/2;
+  const GAP = distView==='activo' ? 0.025 : 0.04;
   items.forEach(item=>{
-    const slice=(item.val/tot)*(Math.PI*2)-GAP;
+    const slice = (item.val/tot)*(Math.PI*2) - GAP;
     ctx.beginPath();
     ctx.moveTo(cx,cy);
     ctx.arc(cx,cy,R,angle,angle+slice);
     ctx.closePath();
-    ctx.fillStyle=item.col;
+    ctx.fillStyle = item.col;
     ctx.fill();
-    angle+=slice+GAP;
+    angle += slice + GAP;
   });
-
-  // Hueco central
   ctx.beginPath();
   ctx.arc(cx,cy,r,0,Math.PI*2);
-  ctx.fillStyle='#0d1117';
+  ctx.fillStyle = '#0d1117';
   ctx.fill();
 
   // Leyenda
-  const fm=n=>'$'+n.toLocaleString('en-US',{maximumFractionDigits:0});
-  legend.innerHTML=items.map(item=>{
-    const pct=((item.val/tot)*100).toFixed(1);
-    const barW=Math.max(4,Math.round((item.val/tot)*100));
+  const fm = n => '$'+n.toLocaleString('en-US',{maximumFractionDigits:0});
+  legend.innerHTML = items.map(item=>{
+    const pct = ((item.val/tot)*100).toFixed(1);
+    const barW = Math.max(4, Math.round((item.val/tot)*100));
     return `<div style="display:flex;align-items:center;gap:7px;">
       <div style="width:8px;height:8px;border-radius:2px;flex-shrink:0;background:${item.col}"></div>
       <div style="flex:1;min-width:0;">
-        <div style="display:flex;justify-content:space-between;margin-bottom:2px;">
-          <span style="font-family:'DM Mono',monospace;font-size:10px;font-weight:600;color:var(--tx)">${item.tick}</span>
+        <div style="display:flex;justify-content:space-between;margin-bottom:1px;">
+          <span style="font-family:'DM Mono',monospace;font-size:10px;font-weight:600;color:var(--tx)">${item.label}</span>
           <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--mu)">${fm(item.val)} <span style="color:${item.col}">${pct}%</span></span>
         </div>
+        ${item.sub?`<div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu2);margin-bottom:2px">${item.sub}</div>`:''}
         <div style="background:var(--s3);border-radius:2px;height:3px;overflow:hidden;">
           <div style="width:${barW}%;height:100%;background:${item.col};border-radius:2px;"></div>
         </div>

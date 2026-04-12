@@ -1,0 +1,1164 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<title>Asistente Personal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#0c0c0e;--bg2:#141416;--bg3:#1a1a1e;--bg4:#222228;
+  --border:#252528;--border2:#2e2e34;
+  --text:#f0f0f4;--sub:#888;--muted:#555;--faint:#333;
+  --orange:#ff6b2b;--blue:#4a9eff;--purple:#b06aff;
+  --pink:#ff5fac;--green:#00d084;--amber:#ffb300;--red:#ff4444;
+  --font-display:'Syne',sans-serif;--font:'DM Sans',sans-serif;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font);}
+button{font-family:var(--font);cursor:pointer;border:none;}
+input,textarea,select{font-family:var(--font);}
+details summary{list-style:none;cursor:pointer;}
+details summary::-webkit-details-marker{display:none;}
+
+#root{display:flex;flex-direction:column;min-height:100vh;max-width:640px;margin:0 auto;}
+
+/* ─── HEADER ─────────────────────────────────────────── */
+.header{
+  padding:20px 20px 0;
+  background:var(--bg);
+  position:sticky;top:0;z-index:100;
+}
+.header-top{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:16px;
+}
+.brand{display:flex;align-items:center;gap:12px;}
+.brand-icon{
+  width:40px;height:40px;border-radius:12px;
+  background:linear-gradient(135deg,var(--orange),var(--purple));
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--font-display);font-weight:800;font-size:20px;color:#fff;
+  flex-shrink:0;box-shadow:0 4px 16px rgba(255,107,43,.3);
+}
+.brand-info{}
+.brand-name{font-family:var(--font-display);font-weight:800;font-size:20px;letter-spacing:-.3px;line-height:1;}
+.brand-date{font-size:12px;color:var(--muted);margin-top:2px;}
+
+.header-actions{display:flex;gap:8px;}
+.hbtn{
+  display:flex;align-items:center;gap:7px;
+  padding:8px 14px;border-radius:10px;
+  background:var(--bg3);border:1px solid var(--border2);
+  color:var(--sub);font-size:13px;font-weight:600;
+  transition:all .15s;white-space:nowrap;
+}
+.hbtn:hover{background:var(--bg4);color:var(--text);}
+.hbtn-icon{font-size:16px;}
+.hbtn-label{display:none;}
+@media(min-width:400px){.hbtn-label{display:inline;}}
+.hbtn-alert{background:#1a1200;border-color:var(--amber);color:var(--amber);}
+.hbtn-alert:hover{background:#2a1e00;}
+
+/* ─── NAV TABS ───────────────────────────────────────── */
+.nav-scroll{
+  display:flex;gap:4px;overflow-x:auto;padding:0 0 12px;
+  scrollbar-width:none;
+}
+.nav-scroll::-webkit-scrollbar{display:none;}
+.tab{
+  flex-shrink:0;display:flex;align-items:center;gap:6px;
+  padding:8px 14px;border-radius:10px;
+  background:transparent;color:var(--muted);
+  font-size:13px;font-weight:600;position:relative;
+  transition:all .15s;
+}
+.tab.active{background:var(--bg3);color:var(--text);}
+.tab-emoji{font-size:15px;}
+.tab-badge{
+  background:var(--orange);color:#fff;
+  font-size:10px;font-weight:800;border-radius:999px;
+  padding:1px 5px;min-width:16px;text-align:center;
+}
+.header-sep{height:1px;background:var(--border);margin:0 -20px;}
+
+/* ─── MAIN ───────────────────────────────────────────── */
+.main{flex:1;padding:0 16px 100px;}
+
+/* ─── PANELS ─────────────────────────────────────────── */
+.panel{
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:0 0 14px 14px;margin:0 0 16px;
+  padding:16px;
+}
+.panel-title{font-size:12px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:12px;}
+
+/* email / backup dropdown */
+.dropdown-wrap{position:relative;}
+.dropdown{
+  position:absolute;top:calc(100% + 6px);right:0;
+  background:#18181c;border:1px solid var(--border2);
+  border-radius:14px;padding:14px;min-width:200px;
+  z-index:200;box-shadow:0 12px 40px rgba(0,0,0,.7);
+}
+.drop-title{font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;}
+.drop-opt{
+  display:flex;align-items:center;gap:10;width:100%;
+  padding:11px 13px;border-radius:9px;
+  background:var(--bg3);color:var(--text);
+  font-size:14px;font-weight:600;margin-bottom:6px;text-align:left;
+  transition:background .12s;
+}
+.drop-opt:last-child{margin-bottom:0;}
+.drop-opt:hover{background:var(--bg4);}
+.drop-sep{height:1px;background:var(--border);margin:8px 0;}
+
+/* backup panel */
+.bk-panel{background:var(--bg2);border-bottom:1px solid var(--border);padding:16px 20px;}
+.bk-alert-msg{font-size:13px;color:var(--amber);font-weight:700;margin-bottom:10px;}
+.bk-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;}
+.bk-btn{
+  background:var(--bg3);border:1px solid var(--border2);
+  border-radius:10px;color:var(--text);
+  padding:11px 10px;font-size:13px;font-weight:600;text-align:center;
+  transition:background .12s;
+}
+.bk-btn:hover{background:var(--bg4);}
+label.bk-btn{cursor:pointer;display:block;}
+.bk-btn-green{background:#061a10;border-color:var(--green);color:var(--green);}
+.bk-btn-drive{background:#061428;border:1px solid var(--blue);color:var(--blue);}
+.bk-btn-drive:hover{background:#0a1e38;}
+.bk-btn-drive:disabled{opacity:.5;cursor:default;}
+.bk-btn-green:hover{background:#0a2416;}
+.bk-close{background:none;border:none;color:var(--muted);font-size:12px;display:block;margin:8px auto 0;padding:4px 12px;}
+.notif-on{font-size:12px;color:var(--green);margin-top:6px;text-align:center;}
+
+/* ─── SECTION CONTENT ────────────────────────────────── */
+.sec{padding-top:16px;}
+.sec-head{font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin:20px 0 10px;}
+
+/* ─── CARDS ──────────────────────────────────────────── */
+.card{
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:14px;padding:14px 16px;margin-bottom:10px;
+  display:flex;align-items:flex-start;gap:14px;
+}
+.card-left{flex:1;min-width:0;}
+.card-right{display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex-shrink:0;}
+.card-title{font-weight:600;font-size:15px;line-height:1.35;margin-bottom:4px;}
+.card-sub{font-size:12px;color:var(--sub);line-height:1.4;margin-bottom:4px;}
+.card-meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;}
+
+/* check button */
+.check-area{
+  width:28px;height:28px;border-radius:8px;flex-shrink:0;
+  border:2px solid var(--border2);background:transparent;
+  color:#fff;font-size:14px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .15s;margin-top:2px;
+}
+.check-area:hover{border-color:var(--green);}
+.check-area.done{background:var(--green);border-color:var(--green);}
+
+/* delete */
+.del-btn{
+  background:none;border:none;color:var(--faint);
+  font-size:20px;line-height:1;padding:0;
+  transition:color .12s;
+}
+.del-btn:hover{color:var(--red);}
+
+/* chips */
+.chip{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:11px;font-weight:600;padding:3px 8px;
+  border-radius:6px;color:#ddd;
+}
+.chip-red{background:#3a0a0a;}
+.chip-amber{background:#2a1800;}
+.chip-blue{background:#0a1a30;}
+.chip-green{background:#062010;}
+.chip-purple{background:#1a0a30;}
+.chip-gray{background:#1a1a20;}
+
+/* ─── TAREAS ─────────────────────────────────────────── */
+.task-card{transition:opacity .2s;}
+.task-card.faded{opacity:.38;}
+.task-card.faded .card-title{text-decoration:line-through;color:var(--muted);}
+
+/* ─── PAGOS ──────────────────────────────────────────── */
+.amount{font-size:22px;font-weight:800;color:var(--blue);line-height:1;margin-bottom:4px;}
+.paid-btn{
+  background:#062010;border:1px solid var(--green);
+  border-radius:8px;color:var(--green);
+  padding:6px 12px;font-size:12px;font-weight:700;
+  white-space:nowrap;transition:all .12s;
+}
+.paid-btn:hover{background:#0a2818;}
+.undo-btn{background:none;border:none;color:var(--muted);font-size:14px;padding:4px;}
+
+/* ─── METAS ──────────────────────────────────────────── */
+.meta-card{flex-direction:column;gap:12px;}
+.meta-header{display:flex;justify-content:space-between;align-items:flex-start;width:100%;}
+.progress-wrap{width:100%;height:6px;background:var(--bg4);border-radius:3px;overflow:hidden;}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--purple),var(--pink));border-radius:3px;transition:width .3s;}
+.progress-row{display:flex;align-items:center;gap:12px;width:100%;}
+.progress-pct{color:var(--purple);font-weight:800;font-size:14px;min-width:36px;text-align:right;}
+input[type=range]{width:100%;accent-color:var(--purple);margin:0;}
+
+/* ─── HÁBITOS ────────────────────────────────────────── */
+.hab-card{flex-direction:column;gap:12px;}
+.hab-header{display:flex;align-items:center;justify-content:space-between;width:100%;}
+.hab-info{display:flex;align-items:center;gap:12px;flex:1;min-width:0;}
+.hab-dots{display:flex;gap:4px;width:100%;}
+.hab-dot{flex:1;height:22px;border-radius:5px;transition:background .2s;cursor:default;}
+.hab-dot-label{font-size:9px;color:var(--muted);text-align:center;margin-top:2px;}
+.hab-footer{display:flex;align-items:center;gap:8px;width:100%;}
+.streak{font-size:12px;color:var(--amber);}
+.week-pct{font-size:11px;color:var(--muted);margin-left:auto;}
+
+/* ─── NOTAS ──────────────────────────────────────────── */
+.notes-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;padding-top:16px;}
+.note-card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:8px;}
+.note-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;}
+.note-title{font-weight:600;font-size:14px;flex:1;}
+.note-actions{display:flex;gap:4px;}
+.sm-btn{background:none;border:none;color:var(--muted);font-size:14px;padding:2px 5px;}
+.note-body{font-size:13px;color:var(--sub);line-height:1.6;min-height:60px;cursor:text;white-space:pre-wrap;word-break:break-word;}
+.note-ta{width:100%;min-height:80px;background:var(--bg);border:1px solid var(--border2);border-radius:8px;color:var(--text);padding:10px;font-size:13px;resize:vertical;outline:none;}
+.note-footer{font-size:11px;color:var(--faint);}
+
+/* ─── HOY ────────────────────────────────────────────── */
+.all-clear{
+  display:flex;flex-direction:column;align-items:center;
+  justify-content:center;min-height:320px;text-align:center;gap:8px;
+}
+.all-clear-emoji{font-size:56px;}
+.all-clear-title{font-family:var(--font-display);font-weight:800;font-size:22px;}
+.all-clear-sub{color:var(--muted);font-size:14px;}
+
+/* ─── FAB ────────────────────────────────────────────── */
+.fab{
+  position:fixed;bottom:80px;right:20px;
+  width:54px;height:54px;border-radius:16px;
+  color:#fff;font-size:28px;font-weight:300;
+  box-shadow:0 6px 24px rgba(0,0,0,.5);
+  z-index:90;display:flex;align-items:center;justify-content:center;
+  transition:transform .12s;
+}
+.fab:active{transform:scale(.92);}
+
+/* ─── BOTTOM NAV ─────────────────────────────────────── */
+.bottom-nav{
+  position:fixed;bottom:0;left:50%;transform:translateX(-50%);
+  width:100%;max-width:640px;
+  background:rgba(14,14,16,.95);backdrop-filter:blur(12px);
+  border-top:1px solid var(--border);
+  display:flex;z-index:100;
+  padding-bottom:env(safe-area-inset-bottom,0);
+}
+.nav-item{
+  flex:1;display:flex;flex-direction:column;align-items:center;
+  gap:3px;padding:10px 4px 8px;background:none;border:none;
+  position:relative;
+}
+.nav-emoji{font-size:18px;line-height:1;}
+.nav-label{font-size:10px;line-height:1;}
+.nav-badge{
+  position:absolute;top:6px;right:calc(50% - 16px);
+  font-size:9px;border-radius:999px;padding:1px 5px;
+  color:#fff;font-weight:800;
+}
+
+/* ─── MODAL ──────────────────────────────────────────── */
+.overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.82);
+  display:flex;align-items:flex-end;justify-content:center;z-index:999;
+}
+.modal{
+  background:var(--bg2);border:1px solid var(--border2);
+  border-radius:20px 20px 0 0;
+  padding:24px 20px 40px;
+  width:100%;max-width:640px;max-height:92vh;overflow-y:auto;
+}
+.modal-title{font-family:var(--font-display);font-weight:800;font-size:20px;margin-bottom:18px;}
+.form-grid{display:flex;flex-direction:column;gap:14px;}
+.form-group{display:flex;flex-direction:column;gap:6px;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.form-label{font-size:12px;font-weight:600;color:var(--muted);letter-spacing:.3px;}
+.form-input{
+  background:var(--bg);border:1px solid var(--border2);
+  border-radius:10px;padding:12px 14px;
+  color:var(--text);font-size:15px;outline:none;width:100%;
+  transition:border-color .15s;
+}
+.form-input:focus{border-color:var(--border2);}
+.form-btns{display:flex;gap:10px;margin-top:6px;}
+.btn-prim{flex:1;border:none;border-radius:12px;padding:14px;color:#fff;font-weight:700;font-size:15px;font-family:var(--font);}
+.btn-sec{flex:1;background:var(--bg3);border:1px solid var(--border2);border-radius:12px;padding:14px;color:var(--sub);font-weight:600;font-size:15px;font-family:var(--font);}
+.btn-danger{flex:1;background:#4a0a0a;border:none;border-radius:12px;padding:14px;color:var(--red);font-weight:700;font-size:15px;font-family:var(--font);}
+.confirm-msg{font-size:17px;font-weight:600;text-align:center;padding:8px 0 20px;color:var(--text);}
+
+/* ─── TOAST ──────────────────────────────────────────── */
+.toast{
+  position:fixed;bottom:92px;left:50%;transform:translateX(-50%);
+  border:1px solid;border-radius:12px;padding:10px 22px;
+  font-size:14px;font-weight:600;z-index:9999;white-space:nowrap;
+  pointer-events:none;animation:toastIn .2s ease;
+}
+@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(8px);}to{opacity:1;transform:translateX(-50%) translateY(0);}}
+.toast-ok{background:#06200e;border-color:var(--green);color:var(--green);}
+.toast-err{background:#2a0606;border-color:var(--red);color:var(--red);}
+
+.empty{color:var(--faint);font-size:15px;text-align:center;padding:60px 0;}
+.done-summary{color:var(--muted);font-size:13px;font-weight:600;padding:8px 0;}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://accounts.google.com/gsi/client" async></script>
+<script src="https://apis.google.com/js/api.js" async></script>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script type="text/babel">
+const {useState,useEffect,useRef} = React;
+
+const STORAGE_KEY="asistente_v3", BACKUP_KEY="asistente_last_backup";
+const DRIVE_CLIENT_ID="625753563994-ckkovl3isvbmajduferhvhcf4qr3lqsc.apps.googleusercontent.com";
+const DRIVE_SCOPE="https://www.googleapis.com/auth/drive.appdata";
+const DRIVE_FILE="asistente_data.json";
+let _driveToken=null;
+
+async function driveGetToken(){
+  if(_driveToken)return _driveToken;
+  return new Promise((res,rej)=>{
+    if(typeof google==="undefined"||!google.accounts){rej("Google SDK no cargado");return;}
+    const client=google.accounts.oauth2.initTokenClient({
+      client_id:DRIVE_CLIENT_ID,
+      scope:DRIVE_SCOPE,
+      callback:(resp)=>{
+        if(resp.error){rej(resp.error);return;}
+        _driveToken=resp.access_token;
+        setTimeout(()=>{_driveToken=null;},3500000);
+        res(resp.access_token);
+      }
+    });
+    client.requestAccessToken();
+  });
+}
+
+async function driveFindFile(token){
+  const r=await fetch(`https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name='${DRIVE_FILE}'&fields=files(id)`,
+    {headers:{Authorization:`Bearer ${token}`}});
+  const j=await r.json();
+  return j.files&&j.files.length>0?j.files[0].id:null;
+}
+
+async function driveSave(data){
+  const token=await driveGetToken();
+  const json=JSON.stringify({...data,savedAt:new Date().toISOString()},null,2);
+  const blob=new Blob([json],{type:"application/json"});
+  let fileId=await driveFindFile(token);
+  if(!fileId){
+    const meta=await fetch("https://www.googleapis.com/drive/v3/files",{
+      method:"POST",headers:{Authorization:`Bearer ${token}`,"Content-Type":"application/json"},
+      body:JSON.stringify({name:DRIVE_FILE,parents:["appDataFolder"]})
+    });
+    const j=await meta.json(); fileId=j.id;
+  }
+  await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`,
+    {method:"PATCH",headers:{Authorization:`Bearer ${token}`,"Content-Type":"application/json"},body:blob});
+}
+
+async function driveLoad(){
+  const token=await driveGetToken();
+  const fileId=await driveFindFile(token);
+  if(!fileId)return null;
+  const r=await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
+    {headers:{Authorization:`Bearer ${token}`}});
+  return await r.json();
+}
+const SECTIONS=["hoy","tareas","pagos","metas","hábitos","notas"];
+const MONTHS=["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+const DAYS=["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
+
+const S_META={
+  hoy:     {label:"Hoy",     emoji:"⚡",color:"#f59e0b"},
+  tareas:  {label:"Tareas",  emoji:"✓", color:"#ff6b2b"},
+  pagos:   {label:"Pagos",   emoji:"$", color:"#4a9eff"},
+  metas:   {label:"Metas",   emoji:"◎", color:"#b06aff"},
+  hábitos: {label:"Hábitos", emoji:"↺", color:"#ff5fac"},
+  notas:   {label:"Notas",   emoji:"≡", color:"#00d084"},
+};
+
+const uid=()=>Math.random().toString(36).slice(2,9);
+const today=()=>new Date().toISOString().split("T")[0];
+const fmt=iso=>{if(!iso)return"";const[y,m,d]=iso.split("-");return`${+d} ${MONTHS[+m-1]} ${y}`;};
+const daysUntil=iso=>{if(!iso)return null;return Math.ceil((new Date(iso)-new Date(today()))/86400000);};
+
+// compare datetime (date + optional time) to now
+function minsUntil(date,time){
+  if(!date)return null;
+  const dt=new Date(`${date}T${time||"23:59"}:00`);
+  return Math.ceil((dt-new Date())/60000);
+}
+function isUrgentTask(x){
+  if(x.done)return false;
+  if(!x.dueDate)return false;
+  const d=daysUntil(x.dueDate);
+  return d<=0; // today or overdue
+}
+
+function loadData(){try{const r=localStorage.getItem(STORAGE_KEY);return r?JSON.parse(r):null;}catch{return null;}}
+function saveData(d){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(d));}catch{}}
+function emptyData(){return{tareas:[],pagos:[],metas:[],notas:[],hábitos:[]};}
+
+// notifs
+async function requestNotifPermission(){
+  if(!("Notification"in window))return false;
+  if(Notification.permission==="granted")return true;
+  return(await Notification.requestPermission())==="granted";
+}
+let _fired={};
+function fireNotif(title,body){
+  const k=title+body;if(_fired[k])return;_fired[k]=true;
+  setTimeout(()=>{delete _fired[k];},3600000);
+  try{new Notification(title,{body});}catch{}
+}
+function checkNotifs(data){
+  if(!("Notification"in window)||Notification.permission!=="granted")return;
+  const t=today();
+  data.tareas.filter(x=>!x.done&&x.dueDate).forEach(x=>{
+    const d=daysUntil(x.dueDate);
+    if(d===0)fireNotif("⚡ Tarea vence HOY",x.title);
+    if(d===1)fireNotif("⏰ Tarea vence mañana",x.title);
+    if(d<0)fireNotif("🚨 Tarea vencida",`${x.title} — venció hace ${-d}d`);
+  });
+  data.pagos.filter(x=>!x.paid&&x.dueDate).forEach(x=>{
+    const d=daysUntil(x.dueDate);
+    if(d===0)fireNotif("💸 Pago vence HOY",`${x.title}${x.amount?` — $${x.amount}`:""}`);
+    if(d===1)fireNotif("💳 Pago vence mañana",`${x.title}${x.amount?` — $${x.amount}`:""}`);
+    if(d<0&&d>=-3)fireNotif("🚨 Pago VENCIDO",`${x.title} venció hace ${-d}d`);
+  });
+}
+
+// email
+function buildEmail(data){
+  const t=today(),lines=["=== RESUMEN DE HOY ===\n"];
+  const urgT=data.tareas.filter(x=>!x.done&&x.dueDate&&daysUntil(x.dueDate)<=1);
+  const urgP=data.pagos.filter(x=>!x.paid&&x.dueDate&&daysUntil(x.dueDate)<=1);
+  const habP=data.hábitos.filter(x=>!x.checks?.[t]);
+  const allT=data.tareas.filter(x=>!x.done);
+  if(urgT.length){lines.push("📌 TAREAS URGENTES:");urgT.forEach(x=>lines.push(`  • ${x.title}${x.dueTime?` a las ${x.dueTime}`:""} (${daysUntil(x.dueDate)===0?"HOY":"mañana"})`));lines.push("");}
+  if(urgP.length){lines.push("💸 PAGOS URGENTES:");urgP.forEach(x=>lines.push(`  • ${x.title}${x.amount?` $${x.amount}`:""}`));lines.push("");}
+  if(habP.length){lines.push("↺ HÁBITOS PENDIENTES:");habP.forEach(x=>lines.push(`  • ${x.title}`));lines.push("");}
+  if(allT.length){lines.push(`✓ TODAS LAS TAREAS (${allT.length}):`);allT.forEach(x=>lines.push(`  • ${x.title}${x.dueDate?` — ${fmt(x.dueDate)}${x.dueTime?` ${x.dueTime}`:""}`:""}`));lines.push("");}
+  lines.push(`Asistente Personal — ${fmt(t)}`);
+  return lines.join("\n");
+}
+
+// ── APP ───────────────────────────────────────────────────────────────────────
+function App(){
+  const [data,setData]=useState(()=>loadData()||emptyData());
+  const [section,setSection]=useState("hoy");
+  const [modal,setModal]=useState(null);
+  const [delConf,setDelConf]=useState(null);
+  const [editModal,setEditModal]=useState(null);
+  const [toast,setToast]=useState(null);
+  const [notifOn,setNotifOn]=useState(()=>typeof Notification!=="undefined"&&Notification.permission==="granted");
+  const [showEmail,setShowEmail]=useState(false);
+  const [showBk,setShowBk]=useState(false);
+  const [bkAlert,setBkAlert]=useState(false);
+  const [driveStatus,setDriveStatus]=useState("idle"); // idle | saving | loading | ok | err
+  const [driveMsg,setDriveMsg]=useState("");
+
+  useEffect(()=>{saveData(data);},[data]);
+  useEffect(()=>{
+    const last=localStorage.getItem(BACKUP_KEY);
+    if(!last){localStorage.setItem(BACKUP_KEY,today());return;}
+    if(Math.ceil((new Date(today())-new Date(last))/86400000)>=7)setBkAlert(true);
+  },[]);
+  useEffect(()=>{if(notifOn)checkNotifs(data);},[data,notifOn]);
+
+  const showToast=(msg,type="ok")=>{setToast({msg,type});setTimeout(()=>setToast(null),2400);};
+  function mutate(fn){setData(d=>{const nd=fn({...d});saveData(nd);return nd;});}
+  const addItem=(sec,item)=>{mutate(d=>{d[sec]=[...d[sec],{...item,id:uid(),createdAt:today()}];return d;});showToast("Guardado ✓");};
+  const updateItem=(sec,id,u)=>{mutate(d=>{d[sec]=d[sec].map(i=>i.id===id?{...i,...u}:i);return d;});};
+  const deleteItem=(sec,id)=>{mutate(d=>{d[sec]=d[sec].filter(i=>i.id!==id);return d;});showToast("Eliminado");};
+  const saveEdit=(sec,id,updates)=>{mutate(d=>{d[sec]=d[sec].map(i=>i.id===id?{...i,...updates}:i);return d;});showToast("Actualizado ✓");setEditModal(null);};
+
+  function exportData(){
+    const blob=new Blob([JSON.stringify({...data,exportedAt:new Date().toISOString()},null,2)],{type:"application/json"});
+    const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`asistente-${today()}.json`;a.click();
+    localStorage.setItem(BACKUP_KEY,today());setBkAlert(false);setShowBk(false);showToast("Backup descargado ✓");
+  }
+  function importData(e){
+    const file=e.target.files?.[0];if(!file)return;
+    const r=new FileReader();
+    r.onload=ev=>{
+      try{
+        const p=JSON.parse(ev.target.result);
+        if(!["tareas","pagos","metas","notas","hábitos"].every(k=>Array.isArray(p[k])))throw new Error();
+        mutate(()=>({tareas:p.tareas,pagos:p.pagos,metas:p.metas,notas:p.notas,hábitos:p.hábitos}));
+        showToast("Datos importados ✓");setShowBk(false);
+      }catch{showToast("Archivo inválido","err");}
+    };
+    r.readAsText(file);e.target.value="";
+  }
+  async function enableNotifs(){
+    const ok=await requestNotifPermission();
+    if(ok){setNotifOn(true);checkNotifs(data);showToast("Notificaciones activas ✓");}
+    else showToast("Permiso denegado","err");
+  }
+  function openEmail(p){
+    const body=encodeURIComponent(buildEmail(data)),subj=encodeURIComponent(`📋 Mis pendientes — ${fmt(today())}`);
+    const url=p==="gmail"?`https://mail.google.com/mail/?view=cm&fs=1&su=${subj}&body=${body}`:`https://outlook.live.com/mail/0/deeplink/compose?subject=${subj}&body=${body}`;
+    window.open(url,"_blank");setShowEmail(false);
+  }
+  async function driveSaveHandler(){
+    setDriveStatus("saving");setDriveMsg("Guardando en Drive...");
+    try{
+      await driveSave(data);
+      localStorage.setItem(BACKUP_KEY,today());setBkAlert(false);
+      setDriveStatus("ok");setDriveMsg("Guardado en Drive ✓");
+      showToast("Guardado en Drive ✓");
+    }catch(e){
+      setDriveStatus("err");setDriveMsg("Error: "+String(e));
+      showToast("Error al guardar en Drive","err");
+    }
+  }
+  async function driveLoadHandler(){
+    setDriveStatus("loading");setDriveMsg("Cargando desde Drive...");
+    try{
+      const p=await driveLoad();
+      if(!p)throw new Error("No hay datos en Drive todavía");
+      if(!["tareas","pagos","metas","notas","hábitos"].every(k=>Array.isArray(p[k])))throw new Error("Formato inválido");
+      mutate(()=>({tareas:p.tareas,pagos:p.pagos,metas:p.metas,notas:p.notas,hábitos:p.hábitos}));
+      setDriveStatus("ok");setDriveMsg("Datos cargados desde Drive ✓");
+      showToast("Datos cargados desde Drive ✓");setShowBk(false);
+    }catch(e){
+      setDriveStatus("err");setDriveMsg("Error: "+String(e));
+      showToast("Error al cargar desde Drive","err");
+    }
+  }
+
+  const now=new Date();
+  const dateStr=`${DAYS[now.getDay()]} ${now.getDate()} de ${MONTHS[now.getMonth()]}`;
+  const aC=S_META[section].color;
+
+  const counts={
+    hoy:    data.tareas.filter(x=>isUrgentTask(x)).length+data.pagos.filter(x=>!x.paid&&x.dueDate&&daysUntil(x.dueDate)<=0).length,
+    tareas: data.tareas.filter(x=>!x.done).length,
+    pagos:  data.pagos.filter(x=>!x.paid).length,
+    metas:  data.metas.length,
+    hábitos:data.hábitos.filter(x=>!x.checks?.[today()]).length,
+    notas:  data.notas.length,
+  };
+
+  const sp=sec=>({update:(id,u)=>updateItem(sec,id,u),del:id=>setDelConf({sec,id}),edit:item=>setEditModal({sec,item})});
+
+  return(
+    <div id="root">
+      {/* HEADER */}
+      <header className="header">
+        <div className="header-top">
+          <div className="brand">
+            <div className="brand-icon">A</div>
+            <div className="brand-info">
+              <div className="brand-name">Asistente</div>
+              <div className="brand-date">{dateStr}</div>
+            </div>
+          </div>
+          <div className="header-actions">
+            {bkAlert&&<button className="hbtn hbtn-alert" onClick={()=>{setShowBk(v=>!v);setShowEmail(false);}}>
+              <span className="hbtn-icon">💾</span><span className="hbtn-label">Backup</span>
+            </button>}
+            <div className="dropdown-wrap">
+              <button className="hbtn" onClick={()=>{setShowEmail(v=>!v);setShowBk(false);}}>
+                <span className="hbtn-icon">✉</span><span className="hbtn-label">Email</span>
+              </button>
+              {showEmail&&(
+                <div className="dropdown">
+                  <div className="drop-title">Enviar resumen por</div>
+                  <button className="drop-opt" onClick={()=>openEmail("gmail")}>📧 Gmail</button>
+                  <button className="drop-opt" onClick={()=>openEmail("outlook")}>📨 Outlook</button>
+                </div>
+              )}
+            </div>
+            <div className="dropdown-wrap">
+              <button className="hbtn" onClick={()=>{setShowBk(v=>!v);setShowEmail(false);}}>
+                <span className="hbtn-icon">⇅</span><span className="hbtn-label">Backup</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* TABS */}
+        <div className="nav-scroll">
+          {SECTIONS.map(s=>{
+            const m=S_META[s],active=s===section;
+            return(
+              <button key={s} className={`tab${active?" active":""}`}
+                style={active?{color:m.color}:{}} onClick={()=>setSection(s)}>
+                <span className="tab-emoji">{m.emoji}</span>
+                {m.label}
+                {counts[s]>0&&<span className="tab-badge" style={{background:active?m.color:"#333"}}>{counts[s]}</span>}
+              </button>
+            );
+          })}
+        </div>
+        <div className="header-sep"/>
+      </header>
+
+      {/* BACKUP PANEL */}
+      {showBk&&(
+        <div className="bk-panel">
+          {bkAlert&&<div className="bk-alert-msg">⚠️ Han pasado 7+ días sin backup</div>}
+          <div style={{fontWeight:700,fontSize:15,marginBottom:4}}>Respaldo de datos</div>
+
+          <div style={{fontSize:12,color:"var(--muted)",marginBottom:12}}>Google Drive guarda automáticamente en tu cuenta — solo tú puedes verlo.</div>
+
+          {/* Drive buttons */}
+          <div className="bk-grid" style={{marginBottom:8}}>
+            <button className="bk-btn bk-btn-drive" onClick={driveSaveHandler}
+              disabled={driveStatus==="saving"}>
+              {driveStatus==="saving"?"⏳ Guardando…":"☁ Guardar en Drive"}
+            </button>
+            <button className="bk-btn bk-btn-drive" onClick={driveLoadHandler}
+              disabled={driveStatus==="loading"}>
+              {driveStatus==="loading"?"⏳ Cargando…":"☁ Cargar desde Drive"}
+            </button>
+          </div>
+          {driveMsg&&<div style={{fontSize:12,color:driveStatus==="ok"?"var(--green)":driveStatus==="err"?"var(--red)":"var(--muted)",marginBottom:8}}>{driveMsg}</div>}
+
+          <div style={{height:1,background:"var(--border)",margin:"8px 0"}}/>
+
+          {/* Manual backup */}
+          <div style={{fontSize:12,color:"var(--muted)",marginBottom:8}}>Backup manual (.json):</div>
+          <div className="bk-grid" style={{marginBottom:8}}>
+            <button className="bk-btn" onClick={exportData}>⬇ Descargar</button>
+            <label className="bk-btn">⬆ Importar<input type="file" accept=".json" style={{display:"none"}} onChange={importData}/></label>
+          </div>
+
+          {!notifOn
+            ?<button className="bk-btn bk-btn-green" style={{width:"100%"}} onClick={enableNotifs}>🔔 Activar notificaciones del navegador</button>
+            :<div className="notif-on">🔔 Notificaciones activas ✓</div>
+          }
+          <button className="bk-close" onClick={()=>setShowBk(false)}>Cerrar</button>
+        </div>
+      )}
+
+      {/* MAIN */}
+      <main className="main">
+        {section==="hoy"    &&<HoyView    data={data} update={updateItem} del={(s,id)=>setDelConf({sec:s,id})}/>}
+        {section==="tareas" &&<TareasView  items={data.tareas}  {...sp("tareas")}/>}
+        {section==="pagos"  &&<PagosView   items={data.pagos}   {...sp("pagos")}/>}
+        {section==="metas"  &&<MetasView   items={data.metas}   {...sp("metas")}/>}
+        {section==="hábitos"&&<HabitosView items={data.hábitos} {...sp("hábitos")}/>}
+        {section==="notas"  &&<NotasView   items={data.notas}   {...sp("notas")}/>}
+      </main>
+
+      {section!=="hoy"&&<button className="fab" style={{background:aC}} onClick={()=>setModal(section)}>+</button>}
+
+      {/* BOTTOM NAV — mobile only ghost to not overlap */}
+      <nav className="bottom-nav">
+        {SECTIONS.map(s=>{
+          const m=S_META[s],active=s===section;
+          return(
+            <button key={s} className="nav-item" onClick={()=>setSection(s)}>
+              <span className="nav-emoji" style={{color:active?m.color:"#555"}}>{m.emoji}</span>
+              <span className="nav-label" style={{color:active?m.color:"#555",fontWeight:active?700:400}}>{m.label}</span>
+              {counts[s]>0&&<span className="nav-badge" style={{background:active?m.color:"#2a2a2a"}}>{counts[s]}</span>}
+            </button>
+          );
+        })}
+      </nav>
+
+      {modal&&<Modal onClose={()=>setModal(null)}><AddForm section={modal} onSave={item=>{addItem(modal,item);setModal(null);}} onCancel={()=>setModal(null)}/></Modal>}
+      {editModal&&<Modal onClose={()=>setEditModal(null)}><EditForm sec={editModal.sec} item={editModal.item} onSave={(id,u)=>saveEdit(editModal.sec,id,u)} onCancel={()=>setEditModal(null)}/></Modal>}
+      {delConf&&<Modal onClose={()=>setDelConf(null)}>
+        <div className="confirm-msg">¿Eliminar este elemento?</div>
+        <div className="form-btns">
+          <button className="btn-sec" onClick={()=>setDelConf(null)}>Cancelar</button>
+          <button className="btn-danger" onClick={()=>{deleteItem(delConf.sec,delConf.id);setDelConf(null);}}>Eliminar</button>
+        </div>
+      </Modal>}
+      {toast&&<div className={`toast toast-${toast.type}`}>{toast.msg}</div>}
+    </div>
+  );
+}
+
+// ── HOY — DASHBOARD COMPLETO ──────────────────────────────────────────────────
+function HoyView({data,update,del}){
+  const t=today();
+
+  // Urgentes (vencidas o vencen hoy)
+  const urgT=data.tareas.filter(x=>!x.done&&x.dueDate&&daysUntil(x.dueDate)<=0)
+    .sort((a,b)=>a.dueDate.localeCompare(b.dueDate));
+  const urgP=data.pagos.filter(x=>!x.paid&&x.dueDate&&daysUntil(x.dueDate)<=0)
+    .sort((a,b)=>a.dueDate.localeCompare(b.dueDate));
+
+  // Próximos (1–7 días)
+  const proxT=data.tareas.filter(x=>!x.done&&x.dueDate&&daysUntil(x.dueDate)>0&&daysUntil(x.dueDate)<=7)
+    .sort((a,b)=>a.dueDate.localeCompare(b.dueDate)).slice(0,5);
+  const proxP=data.pagos.filter(x=>!x.paid&&x.dueDate&&daysUntil(x.dueDate)>0&&daysUntil(x.dueDate)<=7)
+    .sort((a,b)=>a.dueDate.localeCompare(b.dueDate)).slice(0,3);
+
+  // Sin fecha (siempre pendientes)
+  const sinFecha=data.tareas.filter(x=>!x.done&&!x.dueDate);
+
+  // Hábitos
+  const habP=data.hábitos.filter(x=>!x.checks?.[t]);
+  const habD=data.hábitos.filter(x=>x.checks?.[t]);
+
+  const hayUrgentes=urgT.length>0||urgP.length>0;
+  const hayProximos=proxT.length>0||proxP.length>0;
+  const todoVacio=!hayUrgentes&&!hayProximos&&sinFecha.length===0&&habP.length===0;
+
+  return(
+    <div className="sec">
+
+      {/* ── Estadísticas rápidas ── */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:20}}>
+        <StatBox n={data.tareas.filter(x=>!x.done).length} label="Tareas" color="var(--orange)"/>
+        <StatBox n={data.pagos.filter(x=>!x.paid).length} label="Pagos" color="var(--blue)"/>
+        <StatBox n={`${habD.length}/${data.hábitos.length}`} label="Hábitos" color="var(--pink)"/>
+      </div>
+
+      {todoVacio&&(
+        <div className="all-clear">
+          <div className="all-clear-emoji">✨</div>
+          <div className="all-clear-title">¡Todo al día!</div>
+          <div className="all-clear-sub">Sin pendientes urgentes.</div>
+        </div>
+      )}
+
+      {/* ── URGENTES ── */}
+      {hayUrgentes&&<>
+        <div className="sec-head" style={{color:"var(--red)"}}>🚨 Urgente — hoy o vencido</div>
+        {urgT.map(x=>{const d=daysUntil(x.dueDate);return(
+          <div key={x.id} className="card" style={{borderLeft:`3px solid ${d<0?"var(--red)":"var(--orange)"}`}}>
+            <button className="check-area" onClick={()=>update("tareas",x.id,{done:true})}>○</button>
+            <div className="card-left">
+              <div className="card-title">{x.title}</div>
+              {x.note&&<div className="card-sub">{x.note}</div>}
+              <div className="card-meta">
+                <span className={`chip ${d<0?"chip-red":"chip-amber"}`}>{d<0?`Venció hace ${-d}d`:"HOY"}</span>
+                {x.dueTime&&<span className="chip chip-gray">🕐 {x.dueTime}</span>}
+                <span className="chip chip-gray" style={{opacity:.6}}>Tarea</span>
+              </div>
+            </div>
+            <button className="del-btn" onClick={()=>del("tareas",x.id)}>×</button>
+          </div>
+        );})}
+        {urgP.map(x=>{const d=daysUntil(x.dueDate);return(
+          <div key={x.id} className="card" style={{borderLeft:`3px solid ${d<0?"var(--red)":"var(--blue)"}`}}>
+            <div className="card-left">
+              <div className="card-title">{x.title}</div>
+              {x.amount&&<div className="amount">${x.amount}</div>}
+              <div className="card-meta">
+                <span className={`chip ${d<0?"chip-red":"chip-amber"}`}>{d<0?`Venció hace ${-d}d`:"HOY"}</span>
+                <span className="chip chip-blue" style={{opacity:.6}}>Pago</span>
+              </div>
+            </div>
+            <div style={{display:"flex",flexDirection:"column",gap:8,alignItems:"flex-end"}}>
+              <button className="del-btn" onClick={()=>del("pagos",x.id)}>×</button>
+              <button className="paid-btn" onClick={()=>update("pagos",x.id,{paid:true})}>Pagado ✓</button>
+            </div>
+          </div>
+        );})}
+      </>}
+
+      {/* ── PRÓXIMOS 7 DÍAS ── */}
+      {hayProximos&&<>
+        <div className="sec-head" style={{color:"var(--amber)"}}>📅 Próximos 7 días</div>
+        {proxT.map(x=>{const d=daysUntil(x.dueDate);return(
+          <div key={x.id} className="card" style={{borderLeft:"3px solid var(--amber)"}}>
+            <button className="check-area" onClick={()=>update("tareas",x.id,{done:true})}>○</button>
+            <div className="card-left">
+              <div className="card-title">{x.title}</div>
+              {x.note&&<div className="card-sub">{x.note}</div>}
+              <div className="card-meta">
+                <span className="chip chip-amber">{d===1?"Mañana":`En ${d}d — ${fmt(x.dueDate)}`}</span>
+                {x.dueTime&&<span className="chip chip-gray">🕐 {x.dueTime}</span>}
+              </div>
+            </div>
+            <button className="del-btn" onClick={()=>del("tareas",x.id)}>×</button>
+          </div>
+        );})}
+        {proxP.map(x=>{const d=daysUntil(x.dueDate);return(
+          <div key={x.id} className="card" style={{borderLeft:"3px solid var(--blue)"}}>
+            <div className="card-left">
+              <div className="card-title">{x.title}</div>
+              {x.amount&&<div style={{color:"var(--blue)",fontWeight:700}}>${x.amount}</div>}
+              <div className="card-meta">
+                <span className="chip chip-blue">{d===1?"Mañana":`En ${d}d — ${fmt(x.dueDate)}`}</span>
+                <span className="chip chip-gray" style={{opacity:.6}}>Pago</span>
+              </div>
+            </div>
+            <div style={{display:"flex",flexDirection:"column",gap:8,alignItems:"flex-end"}}>
+              <button className="del-btn" onClick={()=>del("pagos",x.id)}>×</button>
+              <button className="paid-btn" onClick={()=>update("pagos",x.id,{paid:true})}>Pagado ✓</button>
+            </div>
+          </div>
+        );})}
+      </>}
+
+      {/* ── TAREAS SIN FECHA ── */}
+      {sinFecha.length>0&&<>
+        <div className="sec-head" style={{color:"var(--muted)"}}>📋 Pendientes sin fecha ({sinFecha.length})</div>
+        {sinFecha.map(x=>(
+          <div key={x.id} className="card">
+            <button className="check-area" onClick={()=>update("tareas",x.id,{done:true})}>○</button>
+            <div className="card-left">
+              <div className="card-title">{x.title}</div>
+              {x.note&&<div className="card-sub">{x.note}</div>}
+            </div>
+            <button className="del-btn" onClick={()=>del("tareas",x.id)}>×</button>
+          </div>
+        ))}
+      </>}
+
+      {/* ── HÁBITOS ── */}
+      {data.hábitos.length>0&&<>
+        <div className="sec-head" style={{color:"var(--pink)"}}>↺ Hábitos hoy — {habD.length}/{data.hábitos.length}</div>
+        {habP.map(x=>(
+          <div key={x.id} className="card" style={{borderLeft:"3px solid #ff5fac"}}>
+            <button className="check-area" onClick={()=>update("hábitos",x.id,{checks:{...(x.checks||{}),[t]:true}})}>○</button>
+            <div className="card-left"><div className="card-title">{x.title}</div></div>
+            <button className="del-btn" onClick={()=>del("hábitos",x.id)}>×</button>
+          </div>
+        ))}
+        {habD.map(x=>(
+          <div key={x.id} className="card" style={{opacity:.4,borderLeft:"3px solid var(--green)"}}>
+            <button className="check-area done" onClick={()=>update("hábitos",x.id,{checks:{...(x.checks||{}),[t]:false}})}>✓</button>
+            <div className="card-left"><div className="card-title" style={{textDecoration:"line-through"}}>{x.title}</div></div>
+          </div>
+        ))}
+      </>}
+    </div>
+  );
+}
+
+function StatBox({n,label,color}){
+  return(
+    <div style={{background:"var(--bg2)",border:"1px solid var(--border)",borderRadius:12,padding:"12px 10px",textAlign:"center"}}>
+      <div style={{fontSize:24,fontWeight:800,color,lineHeight:1}}>{n}</div>
+      <div style={{fontSize:11,color:"var(--muted)",marginTop:4}}>{label}</div>
+    </div>
+  );
+}
+
+// ── TAREAS ────────────────────────────────────────────────────────────────────
+function TareasView({items,update,del,edit}){
+  const pend=items.filter(x=>!x.done).sort((a,b)=>{
+    const da=a.dueDate||"z",db=b.dueDate||"z";
+    if(da!==db)return da.localeCompare(db);
+    return(a.dueTime||"99").localeCompare(b.dueTime||"99");
+  });
+  const done=items.filter(x=>x.done);
+  return(
+    <div className="sec">
+      {items.length===0&&<div className="empty">Sin tareas. Toca + para agregar.</div>}
+      {pend.map(x=>{
+        const d=x.dueDate?daysUntil(x.dueDate):null;
+        const urgent=d!==null&&d<=0;
+        return(
+          <div key={x.id} className="card" style={urgent?{borderLeft:"3px solid var(--orange)"}:{}}>
+            <button className="check-area" onClick={()=>update(x.id,{done:true})}>○</button>
+            <div className="card-left" onClick={()=>edit(x)} style={{cursor:"pointer"}}>
+              <div className="card-title">{x.title}</div>
+              {x.note&&<div className="card-sub">{x.note}</div>}
+              {(x.dueDate||x.dueTime)&&(
+                <div className="card-meta">
+                  {x.dueDate&&<span className={`chip ${d<0?"chip-red":d===0?"chip-amber":d===1?"chip-amber":"chip-blue"}`}>
+                    {d<0?`Venció hace ${-d}d`:d===0?"HOY":d===1?"Mañana":fmt(x.dueDate)}
+                  </span>}
+                  {x.dueTime&&<span className="chip chip-gray">🕐 {x.dueTime}</span>}
+                </div>
+              )}
+              <div style={{fontSize:11,color:"var(--faint)",marginTop:4}}>Toca para editar</div>
+            </div>
+            <button className="del-btn" onClick={()=>del(x.id)}>×</button>
+          </div>
+        );
+      })}
+      {done.length>0&&(
+        <details>
+          <summary className="done-summary">Completadas ({done.length})</summary>
+          <div style={{marginTop:8}}>
+            {done.map(x=>(
+              <div key={x.id} className="card task-card faded">
+                <button className="check-area done" onClick={()=>update(x.id,{done:false})}>✓</button>
+                <div className="card-left"><div className="card-title">{x.title}</div></div>
+                <button className="del-btn" onClick={()=>del(x.id)}>×</button>
+              </div>
+            ))}
+          </div>
+        </details>
+      )}
+    </div>
+  );
+}
+
+// ── PAGOS ─────────────────────────────────────────────────────────────────────
+function PagosView({items,update,del,edit}){
+  const pend=items.filter(x=>!x.paid).sort((a,b)=>(a.dueDate||"z").localeCompare(b.dueDate||"z"));
+  const paid=items.filter(x=>x.paid);
+  return(
+    <div className="sec">
+      {items.length===0&&<div className="empty">Sin pagos. Toca + para agregar.</div>}
+      {pend.map(x=>{const d=x.dueDate?daysUntil(x.dueDate):null;return(
+        <div key={x.id} className="card" style={{borderLeft:`3px solid ${d!==null&&d<0?"var(--red)":d!==null&&d<=3?"var(--amber)":"var(--blue)"}`}}>
+          <div className="card-left" onClick={()=>edit(x)} style={{cursor:"pointer"}}>
+            <div className="card-title">{x.title}</div>
+            {x.amount&&<div className="amount">${x.amount}</div>}
+            {x.note&&<div className="card-sub">{x.note}</div>}
+            {x.dueDate&&(
+              <div className="card-meta">
+                <span className={`chip ${d<0?"chip-red":d<=1?"chip-amber":d<=3?"chip-amber":"chip-blue"}`}>
+                  {d<0?`Venció hace ${-d}d`:d===0?"HOY":d===1?"Mañana":`Vence ${fmt(x.dueDate)}`}
+                </span>
+              </div>
+            )}
+          </div>
+          <div className="card-right">
+            <button className="del-btn" onClick={()=>del(x.id)}>×</button>
+            <button className="paid-btn" onClick={()=>update(x.id,{paid:true})}>Pagado ✓</button>
+          </div>
+        </div>
+      );})}
+      {paid.length>0&&(
+        <details style={{marginTop:8}}>
+          <summary className="done-summary">Pagados ({paid.length})</summary>
+          <div style={{marginTop:8}}>
+            {paid.map(x=>(
+              <div key={x.id} className="card task-card faded">
+                <div className="card-left">
+                  <div className="card-title">{x.title}</div>
+                  {x.amount&&<div style={{color:"var(--muted)",fontSize:14}}>${x.amount}</div>}
+                </div>
+                <div style={{display:"flex",gap:6}}>
+                  <button className="undo-btn" onClick={()=>update(x.id,{paid:false})}>↩</button>
+                  <button className="del-btn" onClick={()=>del(x.id)}>×</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </details>
+      )}
+    </div>
+  );
+}
+
+// ── METAS ─────────────────────────────────────────────────────────────────────
+function MetasView({items,update,del,edit}){
+  return(
+    <div className="sec">
+      {items.length===0&&<div className="empty">Sin metas. Toca + para agregar.</div>}
+      {items.map(x=>(
+        <div key={x.id} className="card meta-card">
+          <div className="meta-header">
+            <div style={{flex:1,cursor:"pointer"}} onClick={()=>edit(x)}>
+              <div className="card-title">{x.title}</div>
+              {x.note&&<div className="card-sub">{x.note}</div>}
+              {x.dueDate&&<div className="card-meta"><span className="chip chip-purple">Meta: {fmt(x.dueDate)}</span></div>}
+            </div>
+            <button className="del-btn" onClick={()=>del(x.id)}>×</button>
+          </div>
+          <div className="progress-row">
+            <div className="progress-wrap"><div className="progress-fill" style={{width:`${x.progress||0}%`}}/></div>
+            <span className="progress-pct">{x.progress||0}%</span>
+          </div>
+          <input type="range" min={0} max={100} value={x.progress||0}
+            onChange={e=>update(x.id,{progress:parseInt(e.target.value)})}
+            style={{width:"100%",accentColor:"var(--purple)",margin:0}}/>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── HÁBITOS ───────────────────────────────────────────────────────────────────
+function HabitosView({items,update,del,edit}){
+  const t=today();
+  const last7=Array.from({length:7},(_,i)=>{const d=new Date();d.setDate(d.getDate()-(6-i));return d.toISOString().split("T")[0];});
+  const dayLabels=last7.map(d=>DAYS[new Date(d+"T12:00:00").getDay()]);
+  return(
+    <div className="sec">
+      {items.length===0&&<div className="empty">Sin hábitos. Toca + para agregar.</div>}
+      {items.map(x=>{
+        const checks=x.checks||{},doneToday=!!checks[t];
+        let streak=0;for(let i=last7.length-1;i>=0;i--){if(checks[last7[i]])streak++;else break;}
+        const pct=Math.round(last7.filter(d=>checks[d]).length/7*100);
+        return(
+          <div key={x.id} className="card hab-card" style={{borderLeft:`3px solid ${doneToday?"var(--green)":"var(--border2)"}`}}>
+            <div className="hab-header">
+              <div className="hab-info">
+                <button className={`check-area${doneToday?" done":""}`}
+                  onClick={()=>update(x.id,{checks:{...checks,[t]:!doneToday}})}>
+                  {doneToday?"✓":""}
+                </button>
+                <div style={{cursor:"pointer"}} onClick={()=>edit(x)}>
+                  <div className="card-title">{x.title}</div>
+                  {x.note&&<div className="card-sub">{x.note}</div>}
+                </div>
+              </div>
+              <button className="del-btn" onClick={()=>del(x.id)}>×</button>
+            </div>
+            <div>
+              <div className="hab-dots">
+                {last7.map((d,i)=>(
+                  <div key={d} style={{flex:1,textAlign:"center"}}>
+                    <div className="hab-dot" style={{background:checks[d]?"var(--green)":"var(--bg4)"}} title={d}/>
+                    <div className="hab-dot-label">{dayLabels[i]}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="hab-footer">
+              {streak>0&&<span className="streak">🔥 {streak}d racha</span>}
+              <span className="week-pct">{pct}% esta semana</span>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── NOTAS ─────────────────────────────────────────────────────────────────────
+function NotasView({items,update,del}){
+  const [editing,setEditing]=useState(null);
+  return(
+    <div className="notes-grid">
+      {items.length===0&&<div style={{gridColumn:"1/-1"}} className="empty">Sin notas. Toca + para agregar.</div>}
+      {items.map(x=>(
+        <div key={x.id} className="note-card">
+          <div className="note-top">
+            <div className="note-title">{x.title}</div>
+            <div className="note-actions">
+              <button className="sm-btn" onClick={()=>setEditing(editing===x.id?null:x.id)}>✎</button>
+              <button className="del-btn" onClick={()=>del(x.id)}>×</button>
+            </div>
+          </div>
+          {editing===x.id
+            ?<textarea autoFocus className="note-ta" value={x.note||""} onChange={e=>update(x.id,{note:e.target.value})} onBlur={()=>setEditing(null)}/>
+            :<div className="note-body" onClick={()=>setEditing(x.id)}>{x.note||<span style={{color:"var(--faint)"}}>Toca para escribir…</span>}</div>
+          }
+          <div className="note-footer">{fmt(x.createdAt)}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── ADD FORM ──────────────────────────────────────────────────────────────────
+function AddForm({section,onSave,onCancel}){
+  const [f,setF]=useState({title:"",note:"",dueDate:"",dueTime:"",amount:"",progress:0});
+  const set=(k,v)=>setF(p=>({...p,[k]:v}));
+  const color=S_META[section].color;
+  const hasDeadline=section==="tareas"||section==="pagos"||section==="metas";
+  return(
+    <div className="form-grid">
+      <div className="modal-title" style={{color}}>{S_META[section].emoji} {S_META[section].label}</div>
+      <div className="form-group">
+        <label className="form-label">Título *</label>
+        <input className="form-input" placeholder="¿Qué es?" value={f.title} onChange={e=>set("title",e.target.value)} autoFocus/>
+      </div>
+      {section!=="notas"&&<div className="form-group">
+        <label className="form-label">Nota / detalle</label>
+        <input className="form-input" placeholder="Opcional" value={f.note} onChange={e=>set("note",e.target.value)}/>
+      </div>}
+      {hasDeadline&&<div className="form-row">
+        <div className="form-group">
+          <label className="form-label">{section==="pagos"?"Fecha de vencimiento":"Fecha límite"}</label>
+          <input className="form-input" type="date" value={f.dueDate} onChange={e=>set("dueDate",e.target.value)}/>
+        </div>
+        {section!=="pagos"&&<div className="form-group">
+          <label className="form-label">Hora (opcional)</label>
+          <input className="form-input" type="time" value={f.dueTime} onChange={e=>set("dueTime",e.target.value)}/>
+        </div>}
+      </div>}
+      {section==="pagos"&&<div className="form-group">
+        <label className="form-label">Monto</label>
+        <input className="form-input" type="number" placeholder="0.00" value={f.amount} onChange={e=>set("amount",e.target.value)}/>
+      </div>}
+      {section==="metas"&&<div className="form-group">
+        <label className="form-label">Progreso inicial: {f.progress}%</label>
+        <input type="range" min={0} max={100} value={f.progress} onChange={e=>set("progress",+e.target.value)} style={{width:"100%",accentColor:color}}/>
+      </div>}
+      <div className="form-btns">
+        <button className="btn-sec" onClick={onCancel}>Cancelar</button>
+        <button className="btn-prim" style={{background:color}} onClick={()=>{if(!f.title.trim())return;onSave(f);}}>Guardar</button>
+      </div>
+    </div>
+  );
+}
+
+// ── EDIT FORM ─────────────────────────────────────────────────────────────────
+function EditForm({sec,item,onSave,onCancel}){
+  const [f,setF]=useState({
+    title:  item.title||"",
+    note:   item.note||"",
+    dueDate:item.dueDate||"",
+    dueTime:item.dueTime||"",
+    amount: item.amount||"",
+    progress:item.progress||0,
+  });
+  const set=(k,v)=>setF(p=>({...p,[k]:v}));
+  const color=S_META[sec].color;
+  const hasDeadline=sec==="tareas"||sec==="pagos"||sec==="metas";
+  return(
+    <div className="form-grid">
+      <div className="modal-title" style={{color}}>✎ Editar — {S_META[sec].label}</div>
+      <div className="form-group">
+        <label className="form-label">Título *</label>
+        <input className="form-input" value={f.title} onChange={e=>set("title",e.target.value)} autoFocus/>
+      </div>
+      {sec!=="notas"&&<div className="form-group">
+        <label className="form-label">Nota / detalle</label>
+        <input className="form-input" placeholder="Opcional" value={f.note} onChange={e=>set("note",e.target.value)}/>
+      </div>}
+      {hasDeadline&&<div className="form-row">
+        <div className="form-group">
+          <label className="form-label">{sec==="pagos"?"Fecha de vencimiento":"Fecha límite"}</label>
+          <input className="form-input" type="date" value={f.dueDate} onChange={e=>set("dueDate",e.target.value)}/>
+        </div>
+        {sec!=="pagos"&&<div className="form-group">
+          <label className="form-label">Hora (opcional)</label>
+          <input className="form-input" type="time" value={f.dueTime} onChange={e=>set("dueTime",e.target.value)}/>
+        </div>}
+      </div>}
+      {sec==="pagos"&&<div className="form-group">
+        <label className="form-label">Monto</label>
+        <input className="form-input" type="number" placeholder="0.00" value={f.amount} onChange={e=>set("amount",e.target.value)}/>
+      </div>}
+      {sec==="metas"&&<div className="form-group">
+        <label className="form-label">Progreso: {f.progress}%</label>
+        <input type="range" min={0} max={100} value={f.progress} onChange={e=>set("progress",+e.target.value)} style={{width:"100%",accentColor:color}}/>
+      </div>}
+      <div className="form-btns">
+        <button className="btn-sec" onClick={onCancel}>Cancelar</button>
+        <button className="btn-prim" style={{background:color}} onClick={()=>{if(!f.title.trim())return;onSave(item.id,f);}}>Guardar cambios</button>
+      </div>
+    </div>
+  );
+}
+
+function Modal({children,onClose}){
+  return(
+    <div className="overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
+      <div className="modal">{children}</div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>

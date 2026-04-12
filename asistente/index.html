@@ -323,6 +323,33 @@ input[type=range]{width:100%;accent-color:var(--purple);margin:0;}
 .toast-err{background:#2a0606;border-color:var(--red);color:var(--red);}
 
 .empty{color:var(--faint);font-size:15px;text-align:center;padding:60px 0;}
+.stat-box{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px 10px;text-align:center;}
+.stat-box.urgent{border-color:var(--red);background:#1a0505;}
+.stat-box.warn{border-color:var(--amber);background:#1a1000;}
+.urgency-banner{
+  background:#1a0505;border:1px solid var(--red);border-radius:12px;
+  padding:12px 16px;margin-bottom:10px;
+  display:flex;align-items:center;gap:10px;
+  font-weight:700;font-size:14px;color:var(--red);
+}
+.prox-banner{
+  background:#120f00;border:1px solid var(--amber);border-radius:12px;
+  padding:12px 16px;margin-bottom:10px;
+  display:flex;align-items:center;gap:10px;
+  font-weight:700;font-size:14px;color:var(--amber);
+}
+.card-overdue{border-left:3px solid var(--red)!important;background:#120505!important;}
+.card-today{border-left:3px solid var(--orange)!important;}
+.card-soon{border-left:3px solid var(--amber)!important;}
+.dias-badge{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:36px;height:36px;border-radius:8px;
+  font-weight:800;font-size:13px;flex-shrink:0;
+}
+.dias-badge.over{background:#3a0a0a;color:var(--red);}
+.dias-badge.hoy{background:#2a1400;color:var(--orange);}
+.dias-badge.soon{background:#1a1200;color:var(--amber);}
+.dias-badge.ok{background:#0a1a0a;color:var(--green);}
 .done-summary{color:var(--muted);font-size:13px;font-weight:600;padding:8px 0;}
 </style>
 </head>
@@ -433,27 +460,31 @@ async function requestNotifPermission(){
   if(Notification.permission==="granted")return true;
   return(await Notification.requestPermission())==="granted";
 }
-let _fired={};
-function fireNotif(title,body){
-  const k=title+body;if(_fired[k])return;_fired[k]=true;
-  setTimeout(()=>{delete _fired[k];},3600000);
-  try{new Notification(title,{body});}catch{}
-}
+let _summaryFired=false;
 function checkNotifs(data){
   if(!("Notification"in window)||Notification.permission!=="granted")return;
+  if(_summaryFired)return;
   const t=today();
-  data.tareas.filter(x=>!x.done&&x.dueDate).forEach(x=>{
-    const d=daysUntil(x.dueDate);
-    if(d===0)fireNotif("⚡ Tarea vence HOY",x.title);
-    if(d===1)fireNotif("⏰ Tarea vence mañana",x.title);
-    if(d<0)fireNotif("🚨 Tarea vencida",`${x.title} — venció hace ${-d}d`);
-  });
-  data.pagos.filter(x=>!x.paid&&x.dueDate).forEach(x=>{
-    const d=daysUntil(x.dueDate);
-    if(d===0)fireNotif("💸 Pago vence HOY",`${x.title}${x.amount?` — $${x.amount}`:""}`);
-    if(d===1)fireNotif("💳 Pago vence mañana",`${x.title}${x.amount?` — $${x.amount}`:""}`);
-    if(d<0&&d>=-3)fireNotif("🚨 Pago VENCIDO",`${x.title} venció hace ${-d}d`);
-  });
+  const tareasUrgentes=data.tareas.filter(x=>!x.done&&x.dueDate&&daysUntil(x.dueDate)<=0).length;
+  const tareasPronto=data.tareas.filter(x=>!x.done&&x.dueDate&&daysUntil(x.dueDate)>0&&daysUntil(x.dueDate)<=3).length;
+  const pagosUrgentes=data.pagos.filter(x=>!x.paid&&x.dueDate&&daysUntil(x.dueDate)<=0).length;
+  const pagosPronto=data.pagos.filter(x=>!x.paid&&x.dueDate&&daysUntil(x.dueDate)>0&&daysUntil(x.dueDate)<=3).length;
+  const habPend=data.hábitos.filter(x=>!x.checks?.[t]).length;
+  const sinFecha=data.tareas.filter(x=>!x.done&&!x.dueDate).length;
+
+  const partes=[];
+  if(tareasUrgentes>0)partes.push(`🚨 ${tareasUrgentes} tarea${tareasUrgentes>1?"s":""} vencida${tareasUrgentes>1?"s":""}`);
+  if(pagosUrgentes>0)partes.push(`💸 ${pagosUrgentes} pago${pagosUrgentes>1?"s":""} vencido${pagosUrgentes>1?"s":""}`);
+  if(tareasPronto>0)partes.push(`⏰ ${tareasPronto} tarea${tareasPronto>1?"s":""} en 3 días`);
+  if(pagosPronto>0)partes.push(`💳 ${pagosPronto} pago${pagosPronto>1?"s":""} en 3 días`);
+  if(habPend>0)partes.push(`↺ ${habPend} hábito${habPend>1?"s":""} pendiente${habPend>1?"s":""}`);
+  if(sinFecha>0)partes.push(`📋 ${sinFecha} tarea${sinFecha>1?"s":""} sin fecha`);
+
+  if(partes.length===0)return;
+  _summaryFired=true;
+  try{
+    new Notification("📋 Tu día de un vistazo",{body:partes.join("  ·  ")});
+  }catch{}
 }
 
 // email
@@ -706,39 +737,48 @@ function App(){
 // ── HOY — DASHBOARD COMPLETO ──────────────────────────────────────────────────
 function HoyView({data,update,del}){
   const t=today();
-
-  // Urgentes (vencidas o vencen hoy)
-  const urgT=data.tareas.filter(x=>!x.done&&x.dueDate&&daysUntil(x.dueDate)<=0)
-    .sort((a,b)=>a.dueDate.localeCompare(b.dueDate));
-  const urgP=data.pagos.filter(x=>!x.paid&&x.dueDate&&daysUntil(x.dueDate)<=0)
-    .sort((a,b)=>a.dueDate.localeCompare(b.dueDate));
-
-  // Próximos (1–7 días)
-  const proxT=data.tareas.filter(x=>!x.done&&x.dueDate&&daysUntil(x.dueDate)>0&&daysUntil(x.dueDate)<=7)
-    .sort((a,b)=>a.dueDate.localeCompare(b.dueDate)).slice(0,5);
-  const proxP=data.pagos.filter(x=>!x.paid&&x.dueDate&&daysUntil(x.dueDate)>0&&daysUntil(x.dueDate)<=7)
-    .sort((a,b)=>a.dueDate.localeCompare(b.dueDate)).slice(0,3);
-
-  // Sin fecha (siempre pendientes)
+  const urgT=data.tareas.filter(x=>!x.done&&x.dueDate&&daysUntil(x.dueDate)<=0).sort((a,b)=>a.dueDate.localeCompare(b.dueDate));
+  const urgP=data.pagos.filter(x=>!x.paid&&x.dueDate&&daysUntil(x.dueDate)<=0).sort((a,b)=>a.dueDate.localeCompare(b.dueDate));
+  const proxT=data.tareas.filter(x=>!x.done&&x.dueDate&&daysUntil(x.dueDate)>0&&daysUntil(x.dueDate)<=3).sort((a,b)=>a.dueDate.localeCompare(b.dueDate));
+  const proxP=data.pagos.filter(x=>!x.paid&&x.dueDate&&daysUntil(x.dueDate)>0&&daysUntil(x.dueDate)<=3).sort((a,b)=>a.dueDate.localeCompare(b.dueDate));
+  const mas7T=data.tareas.filter(x=>!x.done&&x.dueDate&&daysUntil(x.dueDate)>3&&daysUntil(x.dueDate)<=7).sort((a,b)=>a.dueDate.localeCompare(b.dueDate)).slice(0,3);
   const sinFecha=data.tareas.filter(x=>!x.done&&!x.dueDate);
-
-  // Hábitos
   const habP=data.hábitos.filter(x=>!x.checks?.[t]);
   const habD=data.hábitos.filter(x=>x.checks?.[t]);
-
-  const hayUrgentes=urgT.length>0||urgP.length>0;
-  const hayProximos=proxT.length>0||proxP.length>0;
-  const todoVacio=!hayUrgentes&&!hayProximos&&sinFecha.length===0&&habP.length===0;
+  const totalUrgentes=urgT.length+urgP.length;
+  const totalProx=proxT.length+proxP.length;
+  const todoVacio=totalUrgentes===0&&totalProx===0&&sinFecha.length===0&&habP.length===0&&mas7T.length===0;
 
   return(
     <div className="sec">
-
-      {/* ── Estadísticas rápidas ── */}
-      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:20}}>
-        <StatBox n={data.tareas.filter(x=>!x.done).length} label="Tareas" color="var(--orange)"/>
-        <StatBox n={data.pagos.filter(x=>!x.paid).length} label="Pagos" color="var(--blue)"/>
-        <StatBox n={`${habD.length}/${data.hábitos.length}`} label="Hábitos" color="var(--pink)"/>
+      {/* Stats */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:16}}>
+        <StatBox n={data.tareas.filter(x=>!x.done).length} label="Tareas" color="var(--orange)"
+          urgent={urgT.length>0} warn={urgT.length===0&&proxT.length>0}/>
+        <StatBox n={data.pagos.filter(x=>!x.paid).length} label="Pagos" color="var(--blue)"
+          urgent={urgP.length>0} warn={urgP.length===0&&proxP.length>0}/>
+        <StatBox n={`${habD.length}/${data.hábitos.length}`} label="Hábitos hoy" color="var(--pink)"
+          warn={habP.length>0}/>
       </div>
+
+      {/* Banner urgente */}
+      {totalUrgentes>0&&(
+        <div className="urgency-banner">
+          <span style={{fontSize:22}}>🚨</span>
+          <div>
+            <div>{totalUrgentes} elemento{totalUrgentes>1?"s":""} vencido{totalUrgentes>1?"s":""} o que vence{totalUrgentes===1?"":"n"} HOY</div>
+            <div style={{fontSize:12,fontWeight:400,color:"var(--muted)",marginTop:2}}>Requiere{totalUrgentes===1?"":"n"} atención inmediata</div>
+          </div>
+        </div>
+      )}
+
+      {/* Banner próximos */}
+      {totalUrgentes===0&&totalProx>0&&(
+        <div className="prox-banner">
+          <span style={{fontSize:20}}>⏰</span>
+          <div>{totalProx} elemento{totalProx>1?"s":""} vence{totalProx===1?"":"n"} en los próximos 3 días</div>
+        </div>
+      )}
 
       {todoVacio&&(
         <div className="all-clear">
@@ -748,35 +788,35 @@ function HoyView({data,update,del}){
         </div>
       )}
 
-      {/* ── URGENTES ── */}
-      {hayUrgentes&&<>
-        <div className="sec-head" style={{color:"var(--red)"}}>🚨 Urgente — hoy o vencido</div>
+      {/* URGENTES */}
+      {totalUrgentes>0&&<>
+        <div className="sec-head" style={{color:"var(--red)"}}>Vencido o vence hoy</div>
         {urgT.map(x=>{const d=daysUntil(x.dueDate);return(
-          <div key={x.id} className="card" style={{borderLeft:`3px solid ${d<0?"var(--red)":"var(--orange)"}`}}>
-            <button className="check-area" onClick={()=>update("tareas",x.id,{done:true})}>○</button>
+          <div key={x.id} className={`card ${d<0?"card-overdue":"card-today"}`}>
+            <DiasBadge d={d}/>
             <div className="card-left">
               <div className="card-title">{x.title}</div>
               {x.note&&<div className="card-sub">{x.note}</div>}
               <div className="card-meta">
-                <span className={`chip ${d<0?"chip-red":"chip-amber"}`}>{d<0?`Venció hace ${-d}d`:"HOY"}</span>
                 {x.dueTime&&<span className="chip chip-gray">🕐 {x.dueTime}</span>}
-                <span className="chip chip-gray" style={{opacity:.6}}>Tarea</span>
+                <span className="chip chip-gray" style={{opacity:.5}}>Tarea</span>
               </div>
             </div>
-            <button className="del-btn" onClick={()=>del("tareas",x.id)}>×</button>
+            <div style={{display:"flex",flexDirection:"column",gap:6,alignItems:"flex-end"}}>
+              <button className="del-btn" onClick={()=>del("tareas",x.id)}>×</button>
+              <button className="check-area" style={{fontSize:13,width:32,height:32}} onClick={()=>update("tareas",x.id,{done:true})}>✓</button>
+            </div>
           </div>
         );})}
         {urgP.map(x=>{const d=daysUntil(x.dueDate);return(
-          <div key={x.id} className="card" style={{borderLeft:`3px solid ${d<0?"var(--red)":"var(--blue)"}`}}>
+          <div key={x.id} className={`card ${d<0?"card-overdue":"card-today"}`}>
+            <DiasBadge d={d}/>
             <div className="card-left">
               <div className="card-title">{x.title}</div>
-              {x.amount&&<div className="amount">${x.amount}</div>}
-              <div className="card-meta">
-                <span className={`chip ${d<0?"chip-red":"chip-amber"}`}>{d<0?`Venció hace ${-d}d`:"HOY"}</span>
-                <span className="chip chip-blue" style={{opacity:.6}}>Pago</span>
-              </div>
+              {x.amount&&<div style={{color:"var(--blue)",fontWeight:800,fontSize:18}}>${x.amount}</div>}
+              <div className="card-meta"><span className="chip chip-gray" style={{opacity:.5}}>Pago</span></div>
             </div>
-            <div style={{display:"flex",flexDirection:"column",gap:8,alignItems:"flex-end"}}>
+            <div style={{display:"flex",flexDirection:"column",gap:6,alignItems:"flex-end"}}>
               <button className="del-btn" onClick={()=>del("pagos",x.id)}>×</button>
               <button className="paid-btn" onClick={()=>update("pagos",x.id,{paid:true})}>Pagado ✓</button>
             </div>
@@ -784,34 +824,29 @@ function HoyView({data,update,del}){
         );})}
       </>}
 
-      {/* ── PRÓXIMOS 7 DÍAS ── */}
-      {hayProximos&&<>
-        <div className="sec-head" style={{color:"var(--amber)"}}>📅 Próximos 7 días</div>
+      {/* PRÓXIMOS 3 DÍAS */}
+      {totalProx>0&&<>
+        <div className="sec-head" style={{color:"var(--amber)"}}>Próximos 3 días</div>
         {proxT.map(x=>{const d=daysUntil(x.dueDate);return(
-          <div key={x.id} className="card" style={{borderLeft:"3px solid var(--amber)"}}>
-            <button className="check-area" onClick={()=>update("tareas",x.id,{done:true})}>○</button>
+          <div key={x.id} className="card card-soon">
+            <DiasBadge d={d}/>
             <div className="card-left">
               <div className="card-title">{x.title}</div>
               {x.note&&<div className="card-sub">{x.note}</div>}
-              <div className="card-meta">
-                <span className="chip chip-amber">{d===1?"Mañana":`En ${d}d — ${fmt(x.dueDate)}`}</span>
-                {x.dueTime&&<span className="chip chip-gray">🕐 {x.dueTime}</span>}
-              </div>
+              {x.dueTime&&<div className="card-meta"><span className="chip chip-gray">🕐 {x.dueTime}</span></div>}
             </div>
             <button className="del-btn" onClick={()=>del("tareas",x.id)}>×</button>
           </div>
         );})}
         {proxP.map(x=>{const d=daysUntil(x.dueDate);return(
-          <div key={x.id} className="card" style={{borderLeft:"3px solid var(--blue)"}}>
+          <div key={x.id} className="card card-soon">
+            <DiasBadge d={d}/>
             <div className="card-left">
               <div className="card-title">{x.title}</div>
               {x.amount&&<div style={{color:"var(--blue)",fontWeight:700}}>${x.amount}</div>}
-              <div className="card-meta">
-                <span className="chip chip-blue">{d===1?"Mañana":`En ${d}d — ${fmt(x.dueDate)}`}</span>
-                <span className="chip chip-gray" style={{opacity:.6}}>Pago</span>
-              </div>
+              <div className="card-meta"><span className="chip chip-gray" style={{opacity:.5}}>Pago</span></div>
             </div>
-            <div style={{display:"flex",flexDirection:"column",gap:8,alignItems:"flex-end"}}>
+            <div style={{display:"flex",flexDirection:"column",gap:6,alignItems:"flex-end"}}>
               <button className="del-btn" onClick={()=>del("pagos",x.id)}>×</button>
               <button className="paid-btn" onClick={()=>update("pagos",x.id,{paid:true})}>Pagado ✓</button>
             </div>
@@ -819,9 +854,24 @@ function HoyView({data,update,del}){
         );})}
       </>}
 
-      {/* ── TAREAS SIN FECHA ── */}
+      {/* ESTA SEMANA */}
+      {mas7T.length>0&&<>
+        <div className="sec-head" style={{color:"var(--muted)"}}>Esta semana</div>
+        {mas7T.map(x=>{const d=daysUntil(x.dueDate);return(
+          <div key={x.id} className="card">
+            <DiasBadge d={d}/>
+            <div className="card-left">
+              <div className="card-title">{x.title}</div>
+              {x.note&&<div className="card-sub">{x.note}</div>}
+            </div>
+            <button className="del-btn" onClick={()=>del("tareas",x.id)}>×</button>
+          </div>
+        );})}
+      </>}
+
+      {/* SIN FECHA */}
       {sinFecha.length>0&&<>
-        <div className="sec-head" style={{color:"var(--muted)"}}>📋 Pendientes sin fecha ({sinFecha.length})</div>
+        <div className="sec-head" style={{color:"var(--muted)"}}>Pendientes sin fecha ({sinFecha.length})</div>
         {sinFecha.map(x=>(
           <div key={x.id} className="card">
             <button className="check-area" onClick={()=>update("tareas",x.id,{done:true})}>○</button>
@@ -834,9 +884,9 @@ function HoyView({data,update,del}){
         ))}
       </>}
 
-      {/* ── HÁBITOS ── */}
+      {/* HÁBITOS */}
       {data.hábitos.length>0&&<>
-        <div className="sec-head" style={{color:"var(--pink)"}}>↺ Hábitos hoy — {habD.length}/{data.hábitos.length}</div>
+        <div className="sec-head" style={{color:"var(--pink)"}}>Hábitos hoy — {habD.length}/{data.hábitos.length}</div>
         {habP.map(x=>(
           <div key={x.id} className="card" style={{borderLeft:"3px solid #ff5fac"}}>
             <button className="check-area" onClick={()=>update("hábitos",x.id,{checks:{...(x.checks||{}),[t]:true}})}>○</button>
@@ -845,7 +895,7 @@ function HoyView({data,update,del}){
           </div>
         ))}
         {habD.map(x=>(
-          <div key={x.id} className="card" style={{opacity:.4,borderLeft:"3px solid var(--green)"}}>
+          <div key={x.id} className="card" style={{opacity:.35,borderLeft:"3px solid var(--green)"}}>
             <button className="check-area done" onClick={()=>update("hábitos",x.id,{checks:{...(x.checks||{}),[t]:false}})}>✓</button>
             <div className="card-left"><div className="card-title" style={{textDecoration:"line-through"}}>{x.title}</div></div>
           </div>
@@ -855,14 +905,6 @@ function HoyView({data,update,del}){
   );
 }
 
-function StatBox({n,label,color}){
-  return(
-    <div style={{background:"var(--bg2)",border:"1px solid var(--border)",borderRadius:12,padding:"12px 10px",textAlign:"center"}}>
-      <div style={{fontSize:24,fontWeight:800,color,lineHeight:1}}>{n}</div>
-      <div style={{fontSize:11,color:"var(--muted)",marginTop:4}}>{label}</div>
-    </div>
-  );
-}
 
 // ── TAREAS ────────────────────────────────────────────────────────────────────
 function TareasView({items,update,del,edit}){

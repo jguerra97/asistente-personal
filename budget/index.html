@@ -182,23 +182,19 @@ body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--tx);min-heig
 </div>
 
 <!-- IO -->
-<div class="io-btns" style="margin-bottom:14px;flex-wrap:wrap;gap:6px;">
-  <a href="../" style="display:inline-flex;align-items:center;gap:6px;
-  font-family:'DM Mono',monospace;font-size:10px;color:var(--mu);
-  text-decoration:none;padding:5px 11px;border-radius:6px;
-  background:var(--s2);border:1px solid var(--bd2);
-  transition:color .18s,border-color .18s;"
-  onmouseover="this.style.color='var(--tx)';this.style.borderColor='var(--mu)'"
-  onmouseout="this.style.color='var(--mu)';this.style.borderColor='var(--bd2)'">
-  ← Inicio
-</a>
-  <button class="io-btn exp" onclick="exportData()">⬇ Exportar</button>
-  <button class="io-btn imp" onclick="document.getElementById('imp-file').click()">⬆ Importar</button>
-  <input type="file" id="imp-file" accept=".json" onchange="importData(this)">
-  <button class="io-btn drive-save" onclick="driveSave()">☁ Guardar Drive</button>
-  <button class="io-btn drive-load" onclick="driveLoad()">☁ Cargar Drive</button>
-  <button class="io-btn dl" onclick="descargarResumen()">📄 Resumen</button>
-  <span id="drive-msg"></span>
+<div class="io-wrap">
+  <div class="io-row">
+    <a href="../" class="io-btn home">← Inicio</a>
+    <button class="io-btn exp" onclick="exportData()">⬇ Exportar</button>
+    <button class="io-btn imp" onclick="document.getElementById('imp-file').click()">⬆ Importar</button>
+    <button class="io-btn dl" onclick="descargarResumen()">📄 Resumen</button>
+    <input type="file" id="imp-file" accept=".json" onchange="importData(this)">
+  </div>
+  <div class="io-row">
+    <button class="io-btn drive-save" onclick="driveSave()">☁ Guardar en Drive</button>
+    <button class="io-btn drive-load" onclick="driveLoad()">☁ Cargar desde Drive</button>
+    <span id="drive-msg"></span>
+  </div>
 </div>
 
 <!-- RESUMEN TOP -->

@@ -246,22 +246,20 @@ td:first-child{text-align:left;}
 
 <div class="hdr">
   <div><h1>PORT<em>FOLIO</em></h1><div class="sub" id="ts">Conectando...</div></div>
-  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-    <div style="display:flex;flex-direction:column;gap:6px;">
-      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
-        <a href="../" class="io-btn home">← Inicio</a>
-        <button class="io-btn exp" onclick="exportData()">⬇ Exportar</button>
-        <button class="io-btn imp" onclick="document.getElementById('imp-file').click()">⬆ Importar</button>
-        <button class="rbtn" id="rb" onclick="load()"><span class="sp" id="sp">↻</span> Actualizar</button>
-        <button class="rbtn" onclick="descargarResumen()" style="border-color:rgba(157,127,240,.4);color:var(--pu)">📄 Resumen</button>
-        <input type="file" id="imp-file" accept=".json" onchange="importData(this)">
-      </div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
-        <button class="io-btn drive-save" onclick="driveSavePF()">☁ Guardar en Drive</button>
-        <button class="io-btn drive-load" onclick="driveLoadPF()">☁ Cargar desde Drive</button>
-        <span id="drive-msg-pf"></span>
-      </div>
-    </div>
+</div>
+<div class="io-wrap">
+  <div class="io-row">
+    <a href="../" class="io-btn home">← Inicio</a>
+    <button class="io-btn exp" onclick="exportData()">⬇ Exportar</button>
+    <button class="io-btn imp" onclick="document.getElementById('imp-file').click()">⬆ Importar</button>
+    <button class="rbtn" id="rb" onclick="load()"><span class="sp" id="sp">↻</span> Actualizar</button>
+    <button class="rbtn" onclick="descargarResumen()" style="border-color:rgba(157,127,240,.4);color:var(--pu)">📄 Resumen</button>
+    <input type="file" id="imp-file" accept=".json" onchange="importData(this)">
+  </div>
+  <div class="io-row">
+    <button class="io-btn drive-save" onclick="driveSavePF()">☁ Guardar en Drive</button>
+    <button class="io-btn drive-load" onclick="driveLoadPF()">☁ Cargar desde Drive</button>
+    <span id="drive-msg-pf"></span>
   </div>
 </div>
 

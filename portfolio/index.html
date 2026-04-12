@@ -324,27 +324,28 @@ td:first-child{text-align:left;}
   <div class="scen-grid" id="scen-grid"></div>
 </div>
 
-<!-- BONOS -->
+
+
+<!-- DISTRIBUCIÓN -->
 <div class="sec">
-  <div class="ld" style="background:var(--go);box-shadow:0 0 6px var(--go)"></div>
-  <div class="lt">Plan de bonos <span>~$4,258 c/u · julio y diciembre</span></div>
+  <div class="ld" style="background:var(--pu);box-shadow:0 0 5px var(--pu)"></div>
+  <div class="lt">Distribución del portafolio <span>peso % por valor actual</span></div>
 </div>
-<div class="bonos-grid">
-  <div class="bono-card">
-    <div class="bono-ttl">Regla 50 / 40 / 10</div>
-    <div class="bono-amt" style="color:var(--go)">~$4,258 <span style="font-size:12px;color:var(--mu);font-weight:400">/ bono</span></div>
-    <div class="brow"><span class="bl">🏠 Abono hipoteca</span><span class="br" style="color:var(--gr)">$2,129<span class="bpct">50%</span></span></div>
-    <div class="brow"><span class="bl">📈 Inversión</span><span class="br" style="color:var(--ac)">$1,703<span class="bpct">40%</span></span></div>
-    <div class="brow"><span class="bl">✈️ Bantrab + libre</span><span class="br" style="color:var(--pu)">$426<span class="bpct">10%</span></span></div>
-    <div class="bnote">2 bonos = $3,406 extra/año.<br>Acortan timeline ~6-9 meses.</div>
-  </div>
-  <div class="bono-card">
-    <div class="bono-ttl">Distribución $1,703 por bono</div>
-    <div class="bono-amt" style="color:var(--ac)">$1,703 <span style="font-size:12px;color:var(--mu);font-weight:400">al portafolio</span></div>
-    <div class="brow"><div class="bl"><div style="color:var(--tx)">BTC</div><div style="font-size:9px">Base</div></div><span class="br" style="color:var(--go)">$600 jul · $700 dic</span></div>
-    <div class="brow"><div class="bl"><div style="color:var(--tx)">HYPE</div><div style="font-size:9px">Motor</div></div><span class="br" style="color:var(--ac)">$800 jul · $700 dic</span></div>
-    <div class="brow"><div class="bl"><div style="color:var(--tx)">ONDO</div><div style="font-size:9px">RWA</div></div><span class="br" style="color:var(--pu)">$303 jul · $303 dic</span></div>
-    <div class="bnote">Si Capa 2 tiene catalizador activo,<br>redirigir parte de ONDO a G o PHA.</div>
+<div class="card" id="dist-card">
+  <div class="card-body">
+    <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;">
+      <!-- Donut canvas -->
+      <div style="position:relative;flex-shrink:0;">
+        <canvas id="dist-canvas" width="160" height="160"></canvas>
+        <div id="dist-center" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+          text-align:center;pointer-events:none;">
+          <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu);text-transform:uppercase;letter-spacing:.05em">total</div>
+          <div id="dist-total-lbl" style="font-size:13px;font-weight:800;color:var(--tx);letter-spacing:-.5px">—</div>
+        </div>
+      </div>
+      <!-- Leyenda -->
+      <div id="dist-legend" style="flex:1;min-width:160px;display:flex;flex-direction:column;gap:5px;"></div>
+    </div>
   </div>
 </div>
 
@@ -633,6 +634,7 @@ async function load(){
   const n=new Date();
   document.getElementById('ts').textContent=`${n.toLocaleDateString('es-GT')} ${n.toLocaleTimeString('es-GT',{hour:'2-digit',minute:'2-digit'})}`;
   rb.classList.remove('busy');sp.classList.remove('go');
+  renderDist();
 }
 function onQC(tick,val){const v=parseFloat(val);if(isNaN(v)||v<0)return;const a=[...L1,...L2].find(x=>x.tick===tick);if(a){a.qty=v;svS(tick,'qty',v);load();}}
 function onEC(tick,val){const v=parseFloat(val);if(isNaN(v)||v<=0)return;const a=[...L1,...L2].find(x=>x.tick===tick);if(a){a.entry=v;svS(tick,'entry',v);load();}}
@@ -780,6 +782,69 @@ body{font-family:"Segoe UI",Arial,sans-serif;background:#f7f8fc;color:#1a202c;pa
   a.click();URL.revokeObjectURL(a.href);
 }
 
+
+// ── DISTRIBUCIÓN DONUT ──────────────────────────────────────────
+function renderDist(){
+  const canvas=document.getElementById('dist-canvas');
+  const legend=document.getElementById('dist-legend');
+  const totalLbl=document.getElementById('dist-total-lbl');
+  if(!canvas||!legend) return;
+
+  const all=[...L1,...L2,...BROKER];
+  const items=all.map(a=>({
+    tick:a.tick, col:a.col,
+    val:(a.price||0)*a.qty
+  })).filter(x=>x.val>0).sort((a,b)=>b.val-a.val);
+
+  const tot=items.reduce((s,x)=>s+x.val,0);
+  if(tot<=0) return;
+
+  // Actualizar label centro
+  totalLbl.textContent='$'+tot.toLocaleString('en-US',{maximumFractionDigits:0});
+
+  // Dibujar donut
+  const ctx=canvas.getContext('2d');
+  const cx=80,cy=80,R=72,r=44;
+  ctx.clearRect(0,0,160,160);
+
+  let angle=-Math.PI/2;
+  const GAP=0.025;
+  items.forEach(item=>{
+    const slice=(item.val/tot)*(Math.PI*2)-GAP;
+    ctx.beginPath();
+    ctx.moveTo(cx,cy);
+    ctx.arc(cx,cy,R,angle,angle+slice);
+    ctx.closePath();
+    ctx.fillStyle=item.col;
+    ctx.fill();
+    angle+=slice+GAP;
+  });
+
+  // Hueco central
+  ctx.beginPath();
+  ctx.arc(cx,cy,r,0,Math.PI*2);
+  ctx.fillStyle='#0d1117';
+  ctx.fill();
+
+  // Leyenda
+  const fm=n=>'$'+n.toLocaleString('en-US',{maximumFractionDigits:0});
+  legend.innerHTML=items.map(item=>{
+    const pct=((item.val/tot)*100).toFixed(1);
+    const barW=Math.max(4,Math.round((item.val/tot)*100));
+    return `<div style="display:flex;align-items:center;gap:7px;">
+      <div style="width:8px;height:8px;border-radius:2px;flex-shrink:0;background:${item.col}"></div>
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:2px;">
+          <span style="font-family:'DM Mono',monospace;font-size:10px;font-weight:600;color:var(--tx)">${item.tick}</span>
+          <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--mu)">${fm(item.val)} <span style="color:${item.col}">${pct}%</span></span>
+        </div>
+        <div style="background:var(--s3);border-radius:2px;height:3px;overflow:hidden;">
+          <div style="width:${barW}%;height:100%;background:${item.col};border-radius:2px;"></div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
 
 // ── GOOGLE DRIVE SYNC ────────────────────────────────────────────
 const DRIVE_CLIENT_ID = '625753563994-ckkovl3isvbmajduferhvhcf4qr3lqsc.apps.googleusercontent.com';

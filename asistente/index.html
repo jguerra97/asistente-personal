@@ -189,11 +189,23 @@ input[type=range]{width:100%;accent-color:var(--purple);margin:0;}
 </head>
 <body>
 <div id="root"></div>
+<div id="fallback" style="display:none;padding:20px;color:#ff4444;font-family:sans-serif;background:#0c0c0e;min-height:100vh;">
+  <h2>Error al cargar</h2>
+  <p id="err-msg"></p>
+  <p style="color:#888;font-size:13px">Abre la consola del navegador (F12) para más detalles.</p>
+</div>
+<script>
+window.onerror = function(msg, src, line, col, err) {
+  document.getElementById("root").style.display = "none";
+  document.getElementById("fallback").style.display = "block";
+  document.getElementById("err-msg").textContent = msg + " (línea " + line + ")";
+};
+</script>
 <script src="https://accounts.google.com/gsi/client" async></script>
 <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-<script type="text/babel">
+<script type="text/babel" data-presets="react">
 const {useState, useEffect} = React;
 
 const STORAGE_KEY = "asistente_v3";
@@ -389,7 +401,7 @@ function App() {
   const sp = sec => ({update:(id,u)=>updateItem(sec,id,u), del:id=>setDelConf({sec,id})});
 
   return (
-    <div id="root">
+    <div style={{display:"flex",flexDirection:"column",minHeight:"100vh",background:"#0c0c0e",color:"#f0f0f4",fontFamily:"'DM Sans',sans-serif",maxWidth:640,margin:"0 auto"}}>
       <header className="header">
         <div className="header-top">
           <div className="brand">

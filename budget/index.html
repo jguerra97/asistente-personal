@@ -48,6 +48,35 @@ body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--tx);min-heig
 .card-head{padding:10px 14px;border-bottom:1px solid var(--bd2);display:flex;justify-content:space-between;align-items:center;}
 .card-body{padding:12px 14px;}
 .card-title{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--mu);}
+/* ── FIJOS DESGLOSE ─────────────────────────────────────────── */
+.fijos-toggle{display:flex;justify-content:space-between;align-items:center;cursor:pointer;padding:10px 14px;background:var(--s2);border-radius:8px;margin-bottom:6px;border:1px solid var(--bd);user-select:none;}
+.fijos-toggle:active{opacity:.8;}
+.fijos-toggle-left{display:flex;flex-direction:column;gap:2px;}
+.fijos-toggle-lbl{font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);letter-spacing:.05em;text-transform:uppercase;}
+.fijos-toggle-amt{font-family:'DM Mono',monospace;font-size:14px;font-weight:800;color:var(--rd);}
+.fijos-toggle-ico{font-size:16px;transition:transform .25s;color:var(--mu);}
+.fijos-toggle-ico.open{transform:rotate(180deg);}
+.fijos-list{display:none;border:1px solid var(--bd);border-radius:8px;overflow:hidden;margin-bottom:10px;}
+.fijos-list.open{display:block;}
+.fijo-row{display:grid;grid-template-columns:20px 1fr auto auto;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--bd);background:var(--s1);}
+.fijo-row:last-child{border-bottom:none;}
+.fijo-ico{font-size:13px;text-align:center;}
+.fijo-nom{font-family:'DM Mono',monospace;font-size:10px;color:var(--tx);}
+.fijo-q{font-family:'DM Mono',monospace;font-size:11px;font-weight:700;color:var(--rd);text-align:right;}
+.fijo-usd{font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);text-align:right;min-width:40px;}
+.fijos-total-row{display:flex;justify-content:space-between;align-items:center;padding:9px 14px;background:rgba(242,92,92,.07);border-top:2px solid rgba(242,92,92,.15);}
+.fijos-total-row .ft-lbl{font-family:'DM Mono',monospace;font-size:10px;color:var(--mu);font-weight:600;}
+.fijos-total-row .ft-val{font-family:'DM Mono',monospace;font-size:13px;font-weight:800;color:var(--rd);}
+/* ── SUBS ENTRETENIMIENTO ─────────────────────────────────── */
+.subs-wrap{background:var(--s1);border:1px solid var(--bd);border-radius:8px;padding:10px 14px;margin-top:10px;}
+.subs-title{font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px;}
+.subs-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--bd);}
+.subs-row:last-child{border-bottom:none;}
+.subs-nom{font-family:'DM Mono',monospace;font-size:10px;color:var(--tx);}
+.subs-usd{font-family:'DM Mono',monospace;font-size:10px;color:var(--mu);}
+.subs-footer{display:flex;justify-content:space-between;margin-top:7px;padding-top:7px;border-top:1px solid var(--bd);}
+.subs-footer span{font-family:'DM Mono',monospace;font-size:9px;color:var(--mu2);}
+.subs-footer strong{font-family:'DM Mono',monospace;font-size:11px;color:var(--ac);font-weight:700;}
 .badge{font-family:'DM Mono',monospace;font-size:9px;padding:2px 7px;border-radius:4px;}
 .ok{background:rgba(52,208,122,.12);color:var(--gr);border:1px solid rgba(52,208,122,.2);}
 .pend{background:rgba(90,106,130,.12);color:var(--mu);border:1px solid var(--bd2);}
@@ -268,6 +297,17 @@ body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--tx);min-heig
   </div>
 </div>
 
+<!-- GASTOS FIJOS COLAPSABLE -->
+<div class="sec"><div class="ld" style="background:var(--rd);box-shadow:0 0 5px var(--rd)"></div><div class="lt">Gastos fijos <span>toca para ver el desglose · se reservan antes de distribuir</span></div></div>
+<div class="fijos-toggle" onclick="toggleFijos()" id="fijos-toggle-btn">
+  <div class="fijos-toggle-left">
+    <span class="fijos-toggle-lbl">Total reservado al Ahorro BI</span>
+    <span class="fijos-toggle-amt" id="fijos-toggle-total">Q19,863.69</span>
+  </div>
+  <span class="fijos-toggle-ico" id="fijos-toggle-ico">▾</span>
+</div>
+<div class="fijos-list" id="fijos-list"></div>
+
 <!-- RESERVAS -->
 <div class="sec"><div class="ld" style="background:var(--pu);box-shadow:0 0 5px var(--pu)"></div><div class="lt">Reservas <span>edita el saldo actual</span></div></div>
 <div class="col-grid" id="col-grid"></div>
@@ -396,7 +436,27 @@ var COLS={emer:54275,bant:14204,imp:0,buf:119,reimb:0};
 const CUOTA=13959.61;
 const MESES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const MNOMBRES=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-const FIJOS_TOTAL=13959.61+900+1355+510+250+400+115+25.39+115+1000; // Q18,629.61 (incl. Q1,000 imprevistos)
+const FIJOS_TOTAL=13959.61+900+1355+510+250+400+115+25.39+115+1000+969+265.69; // Q19,863.69
+const FIJOS_RUBROS=[
+  {ico:'🏠',nom:'Hipoteca BI',amt:13959.61},
+  {ico:'🏛️',nom:'IUSI',amt:900},
+  {ico:'🔧',nom:'Mantenimiento',amt:1355},
+  {ico:'💡',nom:'Luz',amt:115},
+  {ico:'📡',nom:'Internet',amt:510},
+  {ico:'📱',nom:'Conectividad',amt:250},
+  {ico:'⛽',nom:'Gasolina',amt:400},
+  {ico:'🏦',nom:'Cobros bancarios',amt:25.39},
+  {ico:'🛒',nom:'Supermercado',amt:115},
+  {ico:'🤖',nom:'Claude AI Max',amt:969},
+  {ico:'📊',nom:'Análisis financiero',amt:265.69},
+  {ico:'🔒',nom:'Imprevistos fijos',amt:1000},
+];
+const SUBS_ENT=[
+  {nom:'Spotify',usd:6.49,freq:'mensual'},
+  {nom:'Disney+',usd:10.99,freq:'mensual'},
+  {nom:'Netflix',usd:4.99,freq:'mensual'},
+  {nom:'Amazon Prime',usd:11.58,freq:'~$139/año'},
+];
 
 // ── FORMATO ───────────────────────────────────────────────────────
 const fq=(n,d=0)=>'Q'+n.toLocaleString('es-GT',{minimumFractionDigits:d,maximumFractionDigits:d});
@@ -723,6 +783,25 @@ function renderResumenMes(ingTotal, tf, excMes, dMes, btcQ, invRestQ, tQ1, tQ2){
         +'<span style="font-family:monospace;font-size:10px;font-weight:700;color:var(--tx)">TOTAL</span>'
         +'<span style="font-family:monospace;font-size:11px;font-weight:800;color:var(--go)">'+fq(dMes?.inv||0)+'</span>'
       +'</div>'
+    +'</div>'
+  +'</div>';
+
+  // Sub-rubros suscripciones entretenimiento (informativo — van de Lulubit)
+  const tc2=ST.tc||7.75;
+  const totalSubsUsd=SUBS_ENT.reduce(function(s,x){return s+x.usd;},0);
+  const totalSubsQ=(totalSubsUsd*tc2);
+  body.innerHTML+='<div class="subs-wrap">'
+    +'<div class="subs-title">🎬 Suscripciones entretenimiento <span style="color:var(--mu2);font-weight:400;font-size:8px">· van de Lulubit</span></div>'
+    +SUBS_ENT.map(function(s){
+      return '<div class="subs-row">'
+        +'<span class="subs-nom">'+s.nom+'</span>'
+        +'<span class="subs-usd">$'+s.usd.toFixed(2)
+          +' <span style="color:var(--mu2);font-size:9px">'+s.freq+'</span></span>'
+        +'</div>';
+    }).join('')
+    +'<div class="subs-footer">'
+      +'<span>comprometido de Disfrute</span>'
+      +'<strong>~$'+totalSubsUsd.toFixed(0)+' · Q'+totalSubsQ.toFixed(0)+'</strong>'
     +'</div>'
   +'</div>';
 }
@@ -1260,11 +1339,81 @@ async function driveLoad(){
   });
 }
 
+// ── GASTOS FIJOS COLAPSABLE ───────────────────────────────────────
+var _fijosOpen = false;
+
+function toggleFijos(){
+  _fijosOpen = !_fijosOpen;
+  var list = document.getElementById('fijos-list');
+  var ico  = document.getElementById('fijos-toggle-ico');
+  if(_fijosOpen){
+    list.classList.add('open');
+    ico.classList.add('open');
+    renderFijosList();
+  } else {
+    list.classList.remove('open');
+    ico.classList.remove('open');
+  }
+}
+
+function renderFijosList(){
+  var tc = ST.tc || 7.75;
+  var total = FIJOS_RUBROS.reduce(function(s,r){return s+r.amt;},0);
+  var catColor = {
+    vivienda:'rgba(232,121,160,.15)',
+    servicios:'rgba(61,184,245,.15)',
+    transporte:'rgba(245,183,49,.15)',
+    banco:'rgba(157,127,240,.15)',
+    hogar:'rgba(52,208,122,.15)',
+    digital:'rgba(86,161,255,.15)',
+    reserva:'rgba(242,92,92,.15)'
+  };
+  var rows = FIJOS_RUBROS.map(function(r){
+    var cc = catColor[r.cat]||'var(--s3)';
+    return '<div class="fijo-row">'
+      +'<span class="fijo-ico">'+r.ico+'</span>'
+      +'<span class="fijo-nom">'+r.nom+'</span>'
+      +'<span class="fijo-q">Q'+r.amt.toLocaleString('es-GT',{minimumFractionDigits:2,maximumFractionDigits:2})+'</span>'
+      +'<span class="fijo-usd">$'+(r.amt/tc).toFixed(0)+'</span>'
+      +'</div>';
+  }).join('');
+  var totalRow = '<div class="fijos-total-row">'
+    +'<span class="ft-lbl">Total fijos</span>'
+    +'<span class="ft-val">Q'+total.toLocaleString('es-GT',{minimumFractionDigits:2,maximumFractionDigits:2})+'</span>'
+    +'</div>';
+  document.getElementById('fijos-list').innerHTML = rows + totalRow;
+
+  // Actualizar monto en el toggle
+  var togTotal = document.getElementById('fijos-toggle-total');
+  if(togTotal) togTotal.textContent = 'Q'+total.toLocaleString('es-GT',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+
+function renderSubsEnt(){
+  // Buscar el div de distribución de disfrute e inyectar sub-rubros
+  var tc = ST.tc || 7.75;
+  var totalUsd = SUBS_ENT.reduce(function(s,x){return s+x.usd;},0);
+  var totalQ   = totalUsd * tc;
+  var rows = SUBS_ENT.map(function(s){
+    return '<div class="subs-row">'
+      +'<span class="subs-nom">'+s.nom+'</span>'
+      +'<span class="subs-usd">$'+s.usd.toFixed(2)+' <span style="color:var(--mu2);font-size:9px">'+s.freq+'</span></span>'
+      +'</div>';
+  }).join('');
+  var footer = '<div class="subs-footer">'
+    +'<span>comprometido de Disfrute</span>'
+    +'<strong>~$'+totalUsd.toFixed(0)+' · Q'+totalQ.toFixed(0)+'</strong>'
+    +'</div>';
+  var wrap = document.getElementById('subs-ent-wrap');
+  if(wrap) wrap.innerHTML = '<div class="subs-title">🎬 Suscripciones entretenimiento</div>' + rows + footer;
+}
+
 // ── INIT ─────────────────────────────────────────────────────────
 loadSaved();
 recalc();
 renderStats();
 renderDCA();
+renderFijosList(); // precarga el monto en el toggle aunque esté cerrado
+renderSubsEnt();
 </script>
 </body>
 </html>

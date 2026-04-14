@@ -77,6 +77,23 @@ body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--tx);min-heig
 .subs-footer{display:flex;justify-content:space-between;margin-top:7px;padding-top:7px;border-top:1px solid var(--bd);}
 .subs-footer span{font-family:'DM Mono',monospace;font-size:9px;color:var(--mu2);}
 .subs-footer strong{font-family:'DM Mono',monospace;font-size:11px;color:var(--ac);font-weight:700;}
+/* ── TABLA ACTIVOS INVERSIÓN ──────────────────────────────────── */
+.inv-toggle{display:flex;justify-content:space-between;align-items:center;cursor:pointer;padding:7px 10px;background:rgba(245,183,49,.07);border:1px solid rgba(245,183,49,.2);border-radius:7px;margin-top:8px;user-select:none;}
+.inv-toggle-lbl{font-family:'DM Mono',monospace;font-size:9px;color:var(--go);letter-spacing:.05em;text-transform:uppercase;}
+.inv-toggle-ico{font-size:12px;color:var(--go);transition:transform .25s;}
+.inv-toggle-ico.open{transform:rotate(180deg);}
+.inv-list{display:none;margin-top:4px;border:1px solid rgba(245,183,49,.15);border-radius:7px;overflow:hidden;}
+.inv-list.open{display:block;}
+.inv-row{display:grid;grid-template-columns:22px 1fr auto auto auto;align-items:center;gap:6px;padding:7px 10px;border-bottom:1px solid var(--bd);background:var(--s1);}
+.inv-row:last-child{border-bottom:none;}
+.inv-ico{font-size:12px;text-align:center;font-weight:700;}
+.inv-nom{font-family:'DM Mono',monospace;font-size:10px;color:var(--tx);}
+.inv-hint{font-family:'DM Mono',monospace;font-size:8px;color:var(--mu2);}
+.inv-pct{font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);min-width:28px;text-align:right;}
+.inv-q{font-family:'DM Mono',monospace;font-size:11px;font-weight:700;min-width:60px;text-align:right;}
+.inv-total-row{display:flex;justify-content:space-between;padding:7px 10px;background:rgba(245,183,49,.05);}
+.inv-total-row span{font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);}
+.inv-total-row strong{font-family:'DM Mono',monospace;font-size:11px;font-weight:800;color:var(--go);}
 .badge{font-family:'DM Mono',monospace;font-size:9px;padding:2px 7px;border-radius:4px;}
 .ok{background:rgba(52,208,122,.12);color:var(--gr);border:1px solid rgba(52,208,122,.2);}
 .pend{background:rgba(90,106,130,.12);color:var(--mu);border:1px solid var(--bd2);}
@@ -508,26 +525,68 @@ function saveCol(k,v){const d=ldS();if(!d.cols)d.cols={};d.cols[k]=v;svS(d);}
 function onColChange(k,val){const v=parseFloat(val)||0;COLS[k]=v;saveCol(k,v);renderCols();}
 
 // ── DISTRIBUCIÓN ──────────────────────────────────────────────────
-// Del excedente: 45% inversión, 25% Lulubit, 30% Bantrab
+// Del excedente: 50% inversión, 25% Lulubit, 25% Bantrab
 function distribuir(exc){
-  return {inv:exc*0.45, dis:exc*0.25, ban:exc*0.30};
+  return {inv:exc*0.50, dis:exc*0.25, ban:exc*0.25};
 }
+// ── ACTIVOS DE INVERSIÓN (distribución interna) ───────────────────
+const INV_ACTIVOS=[
+  {ico:'₿', nom:'BTC',   pct:0.30, col:'#f7931a', hint:'DCA fijo'},
+  {ico:'H', nom:'HYPE',  pct:0.25, col:'#3db8f5', hint:'ETF inminente'},
+  {ico:'S', nom:'STRC',  pct:0.20, col:'#f5b731', hint:'Yield · techo $5K'},
+  {ico:'O', nom:'ONDO',  pct:0.10, col:'#818cf8', hint:'RWA gradual'},
+  {ico:'🔓',nom:'Libre', pct:0.15, col:'#34d07a', hint:'IO · dips · táctica'},
+];
 
 function renderQ(d, fijProp, pago){
   if(!d||pago<=0) return '<div class="row"><span class="row-lbl" style="color:var(--mu2)">Ingresa el pago</span></div>';
-  const ahorroBI = fijProp; // ya incluye imprevistos
+  const ahorroBI = fijProp;
+  const tc = ST.tc||7.75;
   const rows=[
     {lbl:'🏦 Ahorro BI · fijos',    q:-ahorroBI, c:'var(--rd)'},
     {lbl:'₿  Exchange · inversión', q:-d.inv,    c:'var(--go)'},
     {lbl:'🎉 Lulubit · disfrute',   q:d.dis,     c:'#3db8f5'},
     {lbl:'✈️ Bantrab · viajes',     q:d.ban,     c:'#9d7ff0'},
   ];
-  return rows.map(r=>`<div class="row">
+  const rowsHtml = rows.map(r=>`<div class="row">
     <span class="row-lbl">${r.lbl}</span>
     <div class="row-val">
       <div class="row-q" style="color:${r.c}">${r.q>=0?fq(r.q):'-'+fq(-r.q)}</div>
       <div class="row-usd">${r.q>=0?fd(r.q):'-'+fd(-r.q)}</div>
     </div></div>`).join('');
+
+  // Tabla dinámica de activos
+  const uid = 'inv-'+Math.random().toString(36).slice(2,7);
+  const invTotal = d.inv;
+  const activosRows = INV_ACTIVOS.map(a=>{
+    const q = invTotal * a.pct;
+    const usd = q / tc;
+    return `<div class="inv-row">
+      <span class="inv-ico" style="color:${a.col}">${a.ico}</span>
+      <div><div class="inv-nom">${a.nom}</div><div class="inv-hint">${a.hint}</div></div>
+      <span class="inv-pct">${Math.round(a.pct*100)}%</span>
+      <span class="inv-q" style="color:${a.col}">Q${q.toFixed(0)}</span>
+      <span class="inv-hint" style="min-width:36px;text-align:right">$${usd.toFixed(0)}</span>
+    </div>`;
+  }).join('');
+  const totalRow = `<div class="inv-total-row"><span>Total inversión</span><strong>Q${invTotal.toFixed(0)} · $${(invTotal/tc).toFixed(0)}</strong></div>`;
+
+  const tablaActivos = `
+    <div class="inv-toggle" onclick="
+      var l=document.getElementById('${uid}');
+      var i=this.querySelector('.inv-toggle-ico');
+      l.classList.toggle('open');
+      i.classList.toggle('open');
+    ">
+      <span class="inv-toggle-lbl">📊 ¿Cómo distribuir la inversión?</span>
+      <span class="inv-toggle-ico">▾</span>
+    </div>
+    <div class="inv-list" id="${uid}">
+      ${activosRows}
+      ${totalRow}
+    </div>`;
+
+  return rowsHtml + tablaActivos;
 }
 
 // ── RESERVAS (COLCHONES) ─────────────────────────────────────────

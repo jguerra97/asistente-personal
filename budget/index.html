@@ -886,25 +886,7 @@ function renderResumenMes(ingTotal, tf, excMes, dMes, btcQ, invRestQ, tQ1, tQ2){
     +'</div>';
   }).join('');
 
-  // Desglose inversión por activo
-  // Proporciones: BTC $200 fijo, resto → HYPE 43%, ONDO 21%, STRC 21%, PHA 15%
-  const btcFijoQ=Math.min(200*tc, dMes?.inv||0);
-  const invR=Math.max((dMes?.inv||0)-btcFijoQ,0);
-  const hyQ=(invR*150/350), onQ=(invR*75/350), stQ=(invR*75/350), phQ=(invR*50/350);
-  body.innerHTML+='<div style="margin-top:10px;padding:10px;background:var(--s2);border-radius:7px">'
-    +'<div style="font-family:monospace;font-size:9px;color:var(--mu);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">Distribución sugerida de inversión</div>'
-    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">'
-      +mkInvItem('₿','BTC','DCA fijo','#f7931a', btcFijoQ, tc)
-      +mkInvItem('H','HYPE','Motor principal','#3db8f5', hyQ, tc)
-      +mkInvItem('O','ONDO','RWA H2 2026','#818cf8', onQ, tc)
-      +mkInvItem('S','STRC','Yield 11.5%','#f5b731', stQ, tc)
-      +mkInvItem('P','PHA','Capa 2','#a78bfa', phQ, tc)
-      +'<div style="background:var(--s3);border-radius:6px;padding:7px 9px;display:flex;justify-content:space-between;align-items:center">'
-        +'<span style="font-family:monospace;font-size:10px;font-weight:700;color:var(--tx)">TOTAL</span>'
-        +'<span style="font-family:monospace;font-size:11px;font-weight:800;color:var(--go)">'+fq(dMes?.inv||0)+'</span>'
-      +'</div>'
-    +'</div>'
-  +'</div>';
+
 
   // Sub-rubros suscripciones entretenimiento (informativo — van de Lulubit)
   const tc2=ST.tc||7.75;

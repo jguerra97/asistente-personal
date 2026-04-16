@@ -1577,13 +1577,46 @@ function renderReimb(){
       +'</div>';
   }).join('');
   var declarado = reimbTotal();
+  var numChecked = REIMB_ITEMS.filter(function(i){return i.checked;}).length;
   var footer = '<div class="reimb-footer">'
-    +'<span class="reimb-footer-lbl">✓ Declarado: $'+declarado.toFixed(2)+' · se suma a reserva automaticamente</span>'
+    +'<span class="reimb-footer-lbl">✓ Declarado: $'+declarado.toFixed(2)+'</span>'
+    +'<div style="display:flex;gap:6px">'
+    +(numChecked > 0
+      ? '<button class="reimb-add-btn" style="background:rgba(242,92,92,.15);border-color:rgba(242,92,92,.3);color:var(--rd)" onclick="reimbLimpiar()">Limpiar ('+numChecked+')</button>'
+      : '')
     +'<button class="reimb-add-btn" onclick="reimbAdd()">+ Agregar</button>'
+    +'</div>'
     +'</div>';
   document.getElementById('reim-list').innerHTML = rows + footer;
 }
 
+function reimbLimpiar(){
+  var checked = REIMB_ITEMS.filter(function(i){return i.checked;});
+  if(checked.length === 0) return;
+  // Mostrar confirmación inline en lugar de confirm() nativo
+  var total = checked.reduce(function(s,i){return s+i.amt;},0);
+  var confirmDiv = document.getElementById('reimb-confirm');
+  if(confirmDiv){
+    confirmDiv.remove();
+    return; // segundo click = cancelar
+  }
+  var div = document.createElement('div');
+  div.id = 'reimb-confirm';
+  div.style.cssText = 'background:rgba(242,92,92,.12);border:1px solid rgba(242,92,92,.3);border-radius:7px;padding:10px 12px;margin-top:6px;font-family:monospace;font-size:10px;color:#f25c5c;';
+  div.innerHTML = 'Eliminar '+checked.length+' item(s) por $'+total.toFixed(2)+'? Los montos ya sumados a la reserva no se revierten.'
+    +'<div style="display:flex;gap:8px;margin-top:8px;">'
+    +'<button onclick="reimbConfirmarLimpiar()" style="font-family:monospace;font-size:9px;background:rgba(242,92,92,.2);border:1px solid rgba(242,92,92,.4);color:#f25c5c;border-radius:4px;padding:4px 10px;cursor:pointer;">Si, eliminar</button>'
+    +'<button onclick="document.getElementById(\'reimb-confirm\').remove()" style="font-family:monospace;font-size:9px;background:var(--s2);border:1px solid var(--bd);color:var(--mu);border-radius:4px;padding:4px 10px;cursor:pointer;">Cancelar</button>'
+    +'</div>';
+  var list = document.getElementById('reim-list');
+  if(list) list.appendChild(div);
+}
+
+function reimbConfirmarLimpiar(){
+  REIMB_ITEMS = REIMB_ITEMS.filter(function(i){return !i.checked;});
+  saveReimbGasto();
+  renderReimb();
+}
 function reimbAdd(){
   REIMB_ITEMS.push({id: Date.now(), desc:'', amt:0, checked:false});
   saveReimbGasto(); renderReimb();

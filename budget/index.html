@@ -1559,13 +1559,14 @@ function toggleReim(){
 }
 
 function renderReimb(){
-  var total = reimbTotal();
+  var pendiente = REIMB_ITEMS.filter(function(i){return !i.checked;}).reduce(function(s,i){return s+i.amt;},0);
   var tog = document.getElementById('reim-toggle-total');
-  if(tog) tog.textContent = '$'+total.toFixed(2)+' declarados';
+  if(tog) tog.textContent = pendiente > 0 ? '$'+pendiente.toFixed(2)+' por declarar' : 'Todo declarado';
 
   if(!_reimbOpen) return;
   var rows = REIMB_ITEMS.map(function(item, idx){
-    return '<div class="reimb-item">'
+    var rowStyle = item.checked ? 'opacity:.5;' : '';
+    return '<div class="reimb-item" style="'+rowStyle+'">'
       +'<input type="checkbox" class="reimb-check" '+(item.checked?'checked':'')
         +' onchange="reimbCheck('+idx+',this.checked)">'
       +'<input type="text" class="reimb-desc" value="'+item.desc+'" placeholder="Descripcion"'
@@ -1575,16 +1576,12 @@ function renderReimb(){
       +'<button class="reimb-del" onclick="reimbDel('+idx+')">✕</button>'
       +'</div>';
   }).join('');
+  var declarado = reimbTotal();
   var footer = '<div class="reimb-footer">'
-    +'<span class="reimb-footer-lbl">Marca = declarado y suma a reserva</span>'
+    +'<span class="reimb-footer-lbl">✓ Declarado: $'+declarado.toFixed(2)+' · se suma a reserva automaticamente</span>'
     +'<button class="reimb-add-btn" onclick="reimbAdd()">+ Agregar</button>'
     +'</div>';
   document.getElementById('reim-list').innerHTML = rows + footer;
-
-  // Actualizar campo reimb en COLS con el total declarado
-  COLS.reimb = total;
-  saveCol('reimb', total);
-  renderCols();
 }
 
 function reimbAdd(){
@@ -1592,19 +1589,48 @@ function reimbAdd(){
   saveReimbGasto(); renderReimb();
 }
 function reimbDel(idx){
+  // Si estaba checked, restar su monto antes de eliminar
+  var item = REIMB_ITEMS[idx];
+  if(item.checked && item.amt > 0){
+    COLS.reimb = Math.max(0, COLS.reimb - item.amt);
+    saveCol('reimb', COLS.reimb);
+    renderCols();
+  }
   REIMB_ITEMS.splice(idx,1);
   saveReimbGasto(); renderReimb();
 }
 function reimbCheck(idx, val){
-  REIMB_ITEMS[idx].checked = val;
-  saveReimbGasto(); renderReimb();
+  var item = REIMB_ITEMS[idx];
+  var delta = item.amt;
+  if(val){
+    // Marcar: sumar al saldo de reserva
+    COLS.reimb = (COLS.reimb||0) + delta;
+  } else {
+    // Desmarcar: restar del saldo de reserva
+    COLS.reimb = Math.max(0, (COLS.reimb||0) - delta);
+  }
+  item.checked = val;
+  saveCol('reimb', COLS.reimb);
+  saveReimbGasto();
+  renderCols();
+  renderReimb();
 }
 function reimbDesc(idx, val){
   REIMB_ITEMS[idx].desc = val;
   saveReimbGasto();
 }
 function reimbAmt(idx, val){
-  REIMB_ITEMS[idx].amt = parseFloat(val)||0;
+  var item = REIMB_ITEMS[idx];
+  var oldAmt = item.amt;
+  var newAmt = parseFloat(val)||0;
+  // Si ya estaba marcado, ajustar la diferencia en la reserva
+  if(item.checked){
+    var diff = newAmt - oldAmt;
+    COLS.reimb = Math.max(0, (COLS.reimb||0) + diff);
+    saveCol('reimb', COLS.reimb);
+    renderCols();
+  }
+  item.amt = newAmt;
   saveReimbGasto(); renderReimb();
 }
 

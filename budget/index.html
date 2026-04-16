@@ -290,7 +290,7 @@ body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--tx);min-heig
   <div class="rc"><label>Ingreso del mes</label><div class="rv g" id="r-ing">—</div><div class="rs" id="r-ing-usd">—</div></div>
   <div class="rc"><label>Ahorro BI total</label><div class="rv r" id="r-fij">—</div><div class="rs" id="r-fij-pct">—</div></div>
   <div class="rc"><label>Excedente</label><div class="rv p" id="r-exc">—</div><div class="rs" id="r-exc-usd">—</div></div>
-  <div class="rc"><label>Inversión cripto</label><div class="rv o" id="r-inv">—</div><div class="rs" id="r-inv-sub">40% del excedente</div></div>
+  <div class="rc"><label>Inversión cripto</label><div class="rv o" id="r-inv">—</div><div class="rs" id="r-inv-sub">Q1,100 Bantrab fijo · 60% resto inversión</div></div>
 </div>
 
 <!-- STATS INGRESOS -->
@@ -580,9 +580,13 @@ function saveCol(k,v){const d=ldS();if(!d.cols)d.cols={};d.cols[k]=v;svS(d);}
 function onColChange(k,val){const v=parseFloat(val)||0;COLS[k]=v;saveCol(k,v);renderCols();}
 
 // ── DISTRIBUCIÓN ──────────────────────────────────────────────────
-// Del excedente: 50% inversión, 25% Lulubit, 25% Bantrab
+// Bantrab: Q1,100 fijo (mínimo operativo banco)
+// Resto del excedente: 60% inversión, 40% disfrute
+const BANTRAB_FIJO = 1100;
 function distribuir(exc){
-  return {inv:exc*0.50, dis:exc*0.25, ban:exc*0.25};
+  const ban = Math.min(BANTRAB_FIJO, exc);
+  const resto = Math.max(exc - ban, 0);
+  return {inv:resto*0.60, dis:resto*0.40, ban:ban};
 }
 // ── ACTIVOS DE INVERSIÓN (distribución interna) ───────────────────
 const INV_ACTIVOS=[
@@ -651,7 +655,7 @@ function renderCols(){
   const tf=FIJOS_TOTAL;
   const defs=[
     {k:'emer',ttl:'💰 Ahorro BI',          meta:tf*3, cuenta:'Ahorro BI',   col:'var(--gr)'},
-    {k:'bant',ttl:'✈️ Bantrab',            meta:45000,      cuenta:'Bantrab',     col:'var(--ac)'},
+    {k:'bant',ttl:'✈️ Bantrab',            meta:30000,      cuenta:'Bantrab',     col:'var(--ac)'},
     {k:'buf', ttl:'🔧 Monetaria BI · caja chica',meta:3000,cuenta:'Monetaria BI',col:'var(--mu)'},
     {k:'reimb',ttl:'💵 Reembolsos trabajo',meta:null,       cuenta:'USD cash',    col:'var(--ac)',usd:true},
   ];
@@ -988,7 +992,7 @@ function recalc(){
   document.getElementById('r-inv').textContent    = fq(invMesQ);
   document.getElementById('r-inv-sub').textContent= (tQ1||tQ2)
     ? '₿ Q'+btcQ.toFixed(0)+' fijo + Q'+invRestQ.toFixed(0)+' prop.'
-    : '45% del excedente';
+    : 'Q1,100 Bantrab fijo · 60% resto inversión';
 
   // ── QUINCENAS ──
   const badge=(id,cls,txt)=>{const e=document.getElementById(id);if(e){e.className='badge '+cls;e.textContent=txt;}};
@@ -1268,7 +1272,7 @@ function descargarResumen(){
         +'<th style="'+S.th+'">Saldo</th><th style="'+S.th+'">Meta</th>'
         +'</tr></thead><tbody>'
         +'<tr><td style="'+S.td+'">Ahorro BI</td><td style="'+S.td+'">Ahorro BI</td><td style="'+S.td+'color:#059669;font-weight:600">'+fqR(COLS.emer)+'</td><td style="'+S.td+'">'+fqR(tf*3+15000)+'</td></tr>'
-        +'<tr><td style="'+S.td+'">Bantrab (viajes)</td><td style="'+S.td+'">Bantrab</td><td style="'+S.td+'">'+fqR(COLS.bant)+'</td><td style="'+S.td+'">Q45,000</td></tr>'
+        +'<tr><td style="'+S.td+'">Bantrab (viajes)</td><td style="'+S.td+'">Bantrab</td><td style="'+S.td+'">'+fqR(COLS.bant)+'</td><td style="'+S.td+'">Q30,000</td></tr>'
         // imp unificado en Ahorro BI — no mostrar por separado
         +'<tr><td style="'+S.td+'">Buffer operativo</td><td style="'+S.td+'">Monetaria BI</td><td style="'+S.td+'">'+fqR(COLS.buf)+'</td><td style="'+S.td+'">Q3,000</td></tr>'
         +(COLS.reimb>0?'<tr><td style="'+S.td+'">Reembolsos</td><td style="'+S.td+'">USD cash</td><td style="'+S.td+'">'+'$'+COLS.reimb.toFixed(0)+' ('+fqR(COLS.reimb*tc)+')</td><td style="'+S.td+'">—</td></tr>':'')

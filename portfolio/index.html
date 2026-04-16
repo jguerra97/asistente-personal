@@ -380,21 +380,21 @@ function applyS(){
 }
 
 const L1=[
-  {id:'hyperliquid', tick:'HYPE',name:'Hyperliquid',   col:'#3db8f5',ico:'H',qty:34.24,      entry:31.20,  strat:'dca', sl:'DCA'},
-  {id:'ondo-finance',tick:'ONDO',name:'Ondo Finance',  col:'#818cf8',ico:'O',qty:4967.32,    entry:0.2497, strat:'hold',sl:'H2 2026'},
+  {id:'hyperliquid', tick:'HYPE',name:'Hyperliquid',   col:'#3db8f5',ico:'H',qty:34.24,      entry:34.68,  strat:'dca', sl:'DCA'},
+  {id:'ondo-finance',tick:'ONDO',name:'Ondo Finance',  col:'#818cf8',ico:'O',qty:5751.44,    entry:0.2572, strat:'hold',sl:'H2 2026'},
 ];
 const L2=[
-  {id:'phala-network',tick:'PHA',name:'Phala Network', col:'#a78bfa',ico:'P',qty:24002,      entry:0.033,  target:0.099,price:0.0373,
+  {id:'phala-network',tick:'PHA',name:'Phala Network', col:'#a78bfa',ico:'P',qty:24002,      entry:0.0345, target:0.099,price:0.0373,
    contractFallback:{platform:'ethereum',address:'0x6c5bA91642F10282b576d91922Ae6448C9d52f4E'}},
-  {id:'akash-network',tick:'AKT',name:'Akash Network', col:'#10b981',ico:'A',qty:1791.46,    entry:0.44,   target:1.32, price:0.46},
-  {id:'tars-protocol',tick:'TAI',name:'TARS AI',        col:'#e879a0',ico:'T',qty:58062,      entry:0.020,  target:0.060,price:0.0169},
-  {id:'gravity',      tick:'G',  name:'Gravity (Galxe)',col:'#6366f1',ico:'G',qty:89815,      entry:0.003522,target:0.010,price:0.003664,
+  {id:'akash-network',tick:'AKT',name:'Akash Network', col:'#10b981',ico:'A',qty:1791.46,    entry:0.4718, target:1.32, price:0.46},
+  {id:'tars-protocol',tick:'TAI',name:'TARS AI',        col:'#e879a0',ico:'T',qty:58062,      entry:0.01982,target:0.060,price:0.0169},
+  {id:'gravity',      tick:'G',  name:'Gravity (Galxe)',col:'#6366f1',ico:'G',qty:115722,     entry:0.003846,target:0.010,price:0.003664,
    contractFallback:{platform:'ethereum',address:'0x9c7beba8f6ef6643abd725e45a4e8387ef260649'}},
 ];
 const BROKER=[
-  {tick:'STRC',name:'Strategy Stretch',col:'#f5b731',ico:'S',qty:17.69459,  entry:100,   price:99.50, strat:'yield',sl:'11.5% yield',note:'Preferred stock · yield mensual'},
-  {tick:'MSTR',name:'MicroStrategy',   col:'#e8a020',ico:'M',qty:8.46299,   entry:173.87,price:123.72,strat:'exit', sl:'Exit $160',  note:'Salir 50% si recupera $160–165'},
-  {tick:'BTC', name:'Bitcoin (broker)',col:'#f7931a',ico:'₿',qty:0.00503913,entry:55000, price:69200, strat:'dca',  sl:'DCA',        note:'DCA $200/mes fijo'},
+  {tick:'STRC',name:'Strategy Stretch',col:'#f5b731',ico:'S',qty:17.69459,  entry:99.76, price:100,    strat:'yield',sl:'11.5% yield',note:'Preferred stock · yield mensual'},
+  {tick:'MSTR',name:'MicroStrategy',   col:'#e8a020',ico:'M',qty:8.46299,   entry:177.20,price:128.44, strat:'exit', sl:'Exit $160',  note:'Salir 50% si recupera $160–165'},
+  {tick:'BTC', name:'Bitcoin (broker)',col:'#f7931a',ico:'₿',qty:0.0267,    entry:73200, price:74555,  strat:'dca',  sl:'DCA',        note:'DCA $200/mes fijo'},
 ];
 
 const fm=(n,d=2)=>n==null?'—':'$'+n.toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
@@ -468,6 +468,63 @@ function renderBroker(){
   document.getElementById('broker-grid').innerHTML=BROKER.map(a=>{
     const val=a.price*a.qty,cst=a.entry*a.qty,pnl=val-cst,pp=(pnl/cst)*100;
     const ico=`<div class="ai" style="background:${a.col}22;color:${a.col};border:1px solid ${a.col}44;width:27px;height:27px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700">${a.ico}</div>`;
+
+    // ── STRC YIELD TRACKER ──────────────────────────────────────
+    var yieldHtml = '';
+    if(a.tick === 'STRC'){
+      const YIELD_RATE = 0.115;
+      const yieldMes   = (a.qty * a.price * YIELD_RATE) / 12;
+      const yieldAnual = a.qty * a.price * YIELD_RATE;
+      const meta       = 5000;
+      const pctMeta    = Math.min((val / meta) * 100, 100);
+      const yieldMeta  = (meta * YIELD_RATE) / 12;
+      // Proyecciones: asume DCA de $66/mes adicional
+      const dcaMes = 66;
+      const proj6  = ((a.qty * a.price) + dcaMes * 6)  * YIELD_RATE / 12;
+      const proj12 = ((a.qty * a.price) + dcaMes * 12) * YIELD_RATE / 12;
+
+      yieldHtml = `
+        <div style="margin-top:10px;padding:10px;background:rgba(245,183,49,.07);border:1px solid rgba(245,183,49,.2);border-radius:8px;">
+          <div style="font-family:'DM Mono',monospace;font-size:9px;color:#f5b731;letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px;">💰 Yield tracker</div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px;">
+            <div style="background:var(--s2);border-radius:6px;padding:7px;text-align:center;">
+              <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu);text-transform:uppercase;margin-bottom:3px;">Este mes</div>
+              <div style="font-family:'DM Mono',monospace;font-size:13px;font-weight:800;color:#f5b731;">$${yieldMes.toFixed(2)}</div>
+            </div>
+            <div style="background:var(--s2);border-radius:6px;padding:7px;text-align:center;">
+              <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu);text-transform:uppercase;margin-bottom:3px;">Anual</div>
+              <div style="font-family:'DM Mono',monospace;font-size:13px;font-weight:800;color:#f5b731;">$${yieldAnual.toFixed(0)}</div>
+            </div>
+            <div style="background:var(--s2);border-radius:6px;padding:7px;text-align:center;">
+              <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu);text-transform:uppercase;margin-bottom:3px;">En meta</div>
+              <div style="font-family:'DM Mono',monospace;font-size:13px;font-weight:800;color:var(--gr);">$${yieldMeta.toFixed(0)}</div>
+            </div>
+          </div>
+
+          <div style="margin-bottom:6px;">
+            <div style="display:flex;justify-content:space-between;margin-bottom:3px;">
+              <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);">Progreso a meta $${meta.toLocaleString()}</span>
+              <span style="font-family:'DM Mono',monospace;font-size:9px;color:#f5b731;font-weight:700;">${pctMeta.toFixed(1)}%</span>
+            </div>
+            <div style="height:5px;background:var(--s3);border-radius:3px;overflow:hidden;">
+              <div style="height:100%;width:${pctMeta}%;background:linear-gradient(90deg,#f5b731,#f7931a);border-radius:3px;"></div>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:8px;">
+            <div style="background:var(--s1);border-radius:5px;padding:5px 8px;display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);">+6 meses</span>
+              <span style="font-family:'DM Mono',monospace;font-size:10px;font-weight:700;color:var(--go);">$${proj6.toFixed(2)}/mes</span>
+            </div>
+            <div style="background:var(--s1);border-radius:5px;padding:5px 8px;display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);">+12 meses</span>
+              <span style="font-family:'DM Mono',monospace;font-size:10px;font-weight:700;color:var(--gr);">$${proj12.toFixed(2)}/mes</span>
+            </div>
+          </div>
+        </div>`;
+    }
+
     return`<div class="bg-cell">
       <div class="bg-hdr">${ico}<div><div class="atk" style="color:${a.col}">${a.tick}</div><div class="afl">${a.name}</div></div></div>
       <div class="bg-val">${fm(val)}</div>
@@ -480,6 +537,7 @@ function renderBroker(){
       </div>
       <div style="margin-top:7px"><span class="bdg b-${a.strat}">${a.sl}</span></div>
       <div class="bg-note">${a.note}</div>
+      ${yieldHtml}
     </div>`;
   }).join('');
 }

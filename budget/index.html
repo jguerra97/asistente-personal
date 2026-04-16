@@ -582,7 +582,7 @@ function onColChange(k,val){const v=parseFloat(val)||0;COLS[k]=v;saveCol(k,v);re
 // ── DISTRIBUCIÓN ──────────────────────────────────────────────────
 // Bantrab: Q1,100 fijo (mínimo operativo banco)
 // Resto del excedente: 60% inversión, 40% disfrute
-const BANTRAB_FIJO = 1100;
+const BANTRAB_FIJO = 550;
 function distribuir(exc){
   const ban = Math.min(BANTRAB_FIJO, exc);
   const resto = Math.max(exc - ban, 0);

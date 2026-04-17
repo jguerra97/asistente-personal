@@ -276,6 +276,7 @@ body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--tx);min-heig
     <button class="io-btn exp" onclick="exportData()">⬇ Exportar</button>
     <button class="io-btn imp" onclick="document.getElementById('imp-file').click()">⬆ Importar</button>
     <button class="io-btn dl" onclick="descargarResumen()">📄 Resumen</button>
+    <button class="io-btn" style="background:rgba(242,92,92,.15);color:#f25c5c;border:1px solid rgba(242,92,92,.3)" onclick="limpiarMes()">✕ Limpiar mes</button>
     <input type="file" id="imp-file" accept=".json" onchange="importData(this)">
   </div>
   <div class="io-row">
@@ -907,6 +908,20 @@ function renderResumenMes(ingTotal, tf, excMes, dMes, btcQ, invRestQ, tQ1, tQ2){
 }
 
 // ── RECALC PRINCIPAL ─────────────────────────────────────────────
+function limpiarMes(){
+  if(!confirm('¿Limpiar Q1 y Q2 del mes actual?')) return;
+  ST.q1=0; ST.q2=0;
+  document.getElementById('q1').value='';
+  document.getElementById('q2').value='';
+  const d=ldS();
+  if(!d.quincenas) d.quincenas={};
+  d.quincenas[qKey()]={q1:0,q2:0};
+  const _key=MNOMBRES[ST.mes]+' '+(ST.anio||2026);
+  if(d.historial){const _idx=d.historial.findIndex(h=>h.mes===_key);if(_idx>=0)d.historial.splice(_idx,1);}
+  svS(d);
+  recalc();
+}
+
 function recalc(){
   const _prevMes=ST.mes, _prevAnio=ST.anio||2026;
   ST.tc   =parseFloat(document.getElementById('tc').value)||7.75;
@@ -954,7 +969,7 @@ function recalc(){
   const dQ1=tQ1?distribuir(excQ1):null;
   const dQ2=tQ2?distribuir(excQ2):null;
 
-  const invMesQ=(dQ1?.inv||0)+(dQ2?.inv||0);
+  const invMesQ=tQ1&&tQ2?((dQ1?.inv||0)+(dQ2?.inv||0)):0;
   const btcQ=Math.min(200*tc, invMesQ);
   const invRestQ=Math.max(invMesQ-btcQ,0);
   const ahorroMes=tf; // Ahorro BI = fijos totales (ya incluyen imprevistos)
@@ -967,10 +982,10 @@ function recalc(){
   document.getElementById('r-fij-pct').textContent= tQ1||tQ2
     ? fq(tf,2)+' (incl. Q1,000 imprevistos)'
     : fq(tf,2)+' (incl. Q1,000 imprevistos)';
-  document.getElementById('r-exc').textContent    = tQ1||tQ2 ? fq(excMes) : '—';
-  document.getElementById('r-exc-usd').textContent= tQ1||tQ2 ? fd(excMes)+' USD' : '';
-  document.getElementById('r-inv').textContent    = fq(invMesQ);
-  document.getElementById('r-inv-sub').textContent= (tQ1||tQ2)
+  document.getElementById('r-exc').textContent    = tQ1&&tQ2 ? fq(excMes) : '—';
+  document.getElementById('r-exc-usd').textContent= tQ1&&tQ2 ? fd(excMes)+' USD' : '';
+  document.getElementById('r-inv').textContent    = tQ1&&tQ2 ? fq(invMesQ) : '—';
+  document.getElementById('r-inv-sub').textContent= tQ1&&tQ2
     ? '₿ Q'+btcQ.toFixed(0)+' fijo + Q'+invRestQ.toFixed(0)+' prop.'
     : 'Q1,100 Bantrab fijo · 60% resto inversión';
 
@@ -992,12 +1007,11 @@ function recalc(){
   recalcHipSaldo();
   renderCuotasHip();
   // ── LEDN ──
-  // Guardar historial si mes completo, limpiar si está en 0
+  // Guardar historial si mes completo, limpiar si no está completo
   if(tQ1&&tQ2){
     saveHistorial();
   } else {
-    // Solo borrar si el usuario ingresó 0 manualmente (no si cambió de mes y cargó 0)
-    if(!tQ1&&!tQ2&&!_mesChanged){
+    if(!_mesChanged){
       const _d=ldS();
       const _key=MNOMBRES[ST.mes]+' '+(ST.anio||2026);
       if(_d.historial){

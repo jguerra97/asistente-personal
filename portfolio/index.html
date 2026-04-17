@@ -360,7 +360,7 @@ td:first-child{text-align:left;}
 </div>
 
 <div class="foot">
-  HYPE, ONDO, PHA, AKT, MORPHO vía CoinGecko · G via contract address fallback · STRC/MSTR/BTC manual<br>
+  HYPE, ONDO, PHA, AKT, MORPHO vía CoinGecko · STRC/MSTR/BTC manual<br>
   ✏ Cantidad y precio de entrada editables · Guardado automático en este navegador
 </div>
 </div>
@@ -380,21 +380,20 @@ function applyS(){
 }
 
 const L1=[
-  {id:'hyperliquid', tick:'HYPE',name:'Hyperliquid',   col:'#3db8f5',ico:'H',qty:34.24,      entry:34.68,  strat:'dca', sl:'DCA'},
-  {id:'ondo-finance',tick:'ONDO',name:'Ondo Finance',  col:'#818cf8',ico:'O',qty:5751.44,    entry:0.2572, strat:'hold',sl:'H2 2026'},
+  {id:'hyperliquid', tick:'HYPE',name:'Hyperliquid',   col:'#3db8f5',ico:'H',qty:34.24,      entry:34.68,  strat:'dca', sl:'DCA · Motor principal'},
+  {id:'ondo-finance',tick:'ONDO',name:'Ondo Finance',  col:'#818cf8',ico:'O',qty:5751.44,    entry:0.2572, strat:'hold',sl:'PAUSADO · overhang CEX'},
 ];
 const L2=[
-  {id:'phala-network',tick:'PHA',name:'Phala Network', col:'#a78bfa',ico:'P',qty:24002,      entry:0.0345, target:0.099,price:0.0373,
+  {id:'phala-network',tick:'PHA',  name:'Phala Network', col:'#a78bfa',ico:'P',qty:24002,   entry:0.0345, target:0.40, price:0.038,
    contractFallback:{platform:'ethereum',address:'0x6c5bA91642F10282b576d91922Ae6448C9d52f4E'}},
-  {id:'akash-network',tick:'AKT',name:'Akash Network', col:'#10b981',ico:'A',qty:1791.46,    entry:0.4718, target:1.32, price:0.46},
-  {id:'morpho',       tick:'MORPHO',name:'Morpho Protocol',col:'#9d7ff0',ico:'M',qty:145,      entry:1.80,   target:4.17, price:1.80},
-  {id:'gravity',      tick:'G',  name:'Gravity (Galxe)',col:'#6366f1',ico:'G',qty:115722,     entry:0.003846,target:0.010,price:0.003664,
-   contractFallback:{platform:'ethereum',address:'0x9c7beba8f6ef6643abd725e45a4e8387ef260649'}},
+  {id:'akash-network',tick:'AKT',  name:'Akash Network', col:'#10b981',ico:'A',qty:1791.46, entry:0.4718, target:3.50, price:0.467},
+  {id:'morpho',       tick:'MORPHO',name:'Morpho Protocol',col:'#9d7ff0',ico:'M',qty:201,   entry:1.79,   target:5.00, price:1.78,
+   contractFallback:{platform:'ethereum',address:'0x58d97b57bb95320f9a05dc918aef65434969c2b2'}},
 ];
 const BROKER=[
-  {tick:'STRC',name:'Strategy Stretch',col:'#f5b731',ico:'S',qty:17.69459,  entry:99.76, price:100,    strat:'yield',sl:'11.5% yield',note:'Preferred stock · yield mensual'},
-  {tick:'MSTR',name:'MicroStrategy',   col:'#e8a020',ico:'M',qty:8.46299,   entry:177.20,price:128.44, strat:'exit', sl:'Exit $160',  note:'Salir 50% si recupera $160–165'},
-  {tick:'BTC', name:'Bitcoin (broker)',col:'#f7931a',ico:'₿',qty:0.0267,    entry:73200, price:74555,  strat:'dca',  sl:'DCA',        note:'DCA $200/mes fijo'},
+  {tick:'STRC',name:'Strategy Stretch',  col:'#f5b731',ico:'S',qty:17.69459, entry:99.76,  price:100,   strat:'yield',sl:'11.5% yield',    note:'Preferred stock · yield mensual · meta $5K'},
+  {tick:'MSTR',name:'MicroStrategy',     col:'#e8a020',ico:'M',qty:8.46299,  entry:177.20, price:132,   strat:'exit', sl:'Exit $160–165',  note:'Salir 50% → rotar a HYPE'},
+  {tick:'BTC', name:'Bitcoin (Lava+DCA)',col:'#f7931a',ico:'₿',qty:0.10196,  entry:34000,  price:75012, strat:'dca',  sl:'DCA perpetuo',   note:'Colchón LF · DCA $211/mes · entrada promedio ~$34K'},
 ];
 
 const fm=(n,d=2)=>n==null?'—':'$'+n.toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
@@ -667,10 +666,7 @@ async function load(){
   });
   L2.forEach(a=>{
     let price=null,chg=null;
-    if(a.tick==='G'){
-      if(gData){price=gData.usd;chg=gData.chg;a.price=price;}
-      else price=a.price;
-    } else if(a.tick==='PHA'){
+    if(a.tick==='PHA'){
       if(phaData){price=phaData.usd;chg=phaData.chg;a.price=price;}
       else price=a.price;
     } else{
@@ -886,7 +882,7 @@ function renderDist(){
     const vB = BROKER.reduce((s,a)=>s+(a.price||0)*a.qty,0);
     items = [
       {label:'Capa 1 · Sólidos',      col:'#3db8f5', val:v1, sub:'HYPE · ONDO'},
-      {label:'Capa 2 · Explosivos',   col:'#9d7ff0', val:v2, sub:'PHA · AKT · MORPHO · G'},
+      {label:'Capa 2 · Explosivos',   col:'#9d7ff0', val:v2, sub:'PHA · AKT · MORPHO'},
       {label:'Broker / Institucional', col:'#f5b731', val:vB, sub:'STRC · MSTR · BTC'},
     ].filter(x=>x.val>0);
   }

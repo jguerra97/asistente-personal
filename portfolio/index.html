@@ -323,7 +323,23 @@ td:first-child{text-align:left;}
   <div class="scen-grid" id="scen-grid"></div>
 </div>
 
-
+<!-- ACUMULACIÓN DE TOKENS (COLAPSABLE) -->
+<div class="sec" style="margin-top:16px">
+  <div class="ld" style="background:var(--pk);box-shadow:0 0 6px var(--pk)"></div>
+  <div class="lt">Acumulación de tokens <span>progreso hacia cantidad objetivo</span></div>
+</div>
+<div class="acc-toggle" onclick="toggleAcc()" id="acc-toggle-btn"
+  style="background:var(--s1);border:1px solid var(--bd);border-radius:10px;
+  padding:11px 14px;display:flex;justify-content:space-between;align-items:center;
+  cursor:pointer;-webkit-tap-highlight-color:rgba(232,105,160,.2);margin-bottom:6px;
+  transition:background .15s;">
+  <div>
+    <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--mu);letter-spacing:.08em;text-transform:uppercase">Progreso acumulación meta</div>
+    <div id="acc-toggle-total" style="font-family:'DM Mono',monospace;font-size:13px;font-weight:700;color:var(--pk);margin-top:2px">—</div>
+  </div>
+  <span id="acc-toggle-ico" style="font-size:14px;color:var(--mu);transition:transform .2s">▾</span>
+</div>
+<div class="acc-list" id="acc-list" style="display:none;margin-bottom:10px"></div>
 
 <!-- DISTRIBUCIÓN -->
 <div class="sec">
@@ -391,8 +407,8 @@ const L2=[
    contractFallback:{platform:'ethereum',address:'0x58d97b57bb95320f9a05dc918aef65434969c2b2'}},
 ];
 const BROKER=[
-  {tick:'STRC',name:'Strategy Stretch',  col:'#f5b731',ico:'S',qty:17.69459, entry:99.76,  price:100,   strat:'yield',sl:'11.5% yield',    note:'Preferred stock · yield mensual · meta $5K'},
-  {tick:'MSTR',name:'MicroStrategy',     col:'#e8a020',ico:'M',qty:8.46299,  entry:177.20, price:132,   strat:'exit', sl:'Exit $160–165',  note:'Salir 50% → rotar a HYPE'},
+  {tick:'STRC',name:'Strategy Stretch',  col:'#f5b731',ico:'S',qty:0, entry:99.76,  price:100,   strat:'exit', sl:'LIQUIDADO',    note:'Vendido 17 abril · $1,769 USDC reserva táctica'},
+  {tick:'MSTR',name:'MicroStrategy',     col:'#e8a020',ico:'M',qty:8.46299,  entry:177.20, price:166.43,   strat:'exit', sl:'Exit $210-220',  note:'Hold · táctico limits $155/$145 · salida target'},
   {tick:'BTC', name:'Bitcoin (Lava+DCA)',col:'#f7931a',ico:'₿',qty:0.10196,  entry:34000,  price:75012, strat:'dca',  sl:'DCA perpetuo',   note:'Colchón LF · DCA $211/mes · entrada promedio ~$34K'},
 ];
 
@@ -699,6 +715,7 @@ async function load(){
   document.getElementById('ts').textContent=`${n.toLocaleDateString('es-GT')} ${n.toLocaleTimeString('es-GT',{hour:'2-digit',minute:'2-digit'})}`;
   rb.classList.remove('busy');sp.classList.remove('go');
   renderDist();
+  renderAcc();
 }
 function onQC(tick,val){const v=parseFloat(val);if(isNaN(v)||v<0)return;const a=[...L1,...L2].find(x=>x.tick===tick);if(a){a.qty=v;svS(tick,'qty',v);load();}}
 function onEC(tick,val){const v=parseFloat(val);if(isNaN(v)||v<=0)return;const a=[...L1,...L2].find(x=>x.tick===tick);if(a){a.entry=v;svS(tick,'entry',v);load();}}
@@ -857,6 +874,87 @@ function setDistView(v){
   if(ba) { ba.style.background=v==='activo'?'var(--pu)':'transparent'; ba.style.color=v==='activo'?'#fff':'var(--mu)'; ba.style.borderColor=v==='activo'?'var(--pu)':'var(--bd2)'; }
   if(bc) { bc.style.background=v==='capa'?'var(--ac)':'transparent'; bc.style.color=v==='capa'?'#fff':'var(--mu)'; bc.style.borderColor=v==='capa'?'var(--ac)':'var(--bd2)'; }
   renderDist();
+}
+
+// ── ACUMULACIÓN DE TOKENS (META) ───────────────────────────────
+// Tokens objetivo para alcanzar meta $150K con zonas de salida del plan
+const ACC_TARGETS = {
+  'HYPE':   {target:150,     label:'tokens', color:'#3db8f5'},
+  'ONDO':   {target:12000,   label:'tokens', color:'#818cf8'},
+  'PHA':    {target:120000,  label:'tokens', color:'#a78bfa'},
+};
+
+let _accOpen = false;
+function toggleAcc(){
+  _accOpen = !_accOpen;
+  const list = document.getElementById('acc-list');
+  const ico  = document.getElementById('acc-toggle-ico');
+  if(!list||!ico) return;
+  if(_accOpen){
+    list.style.display='block';
+    ico.style.transform='rotate(180deg)';
+    renderAcc();
+  } else {
+    list.style.display='none';
+    ico.style.transform='rotate(0deg)';
+  }
+}
+
+function renderAcc(){
+  const list = document.getElementById('acc-list');
+  const totalLbl = document.getElementById('acc-toggle-total');
+  if(!list) return;
+
+  // Combinar todos los activos con targets
+  const all = [...L1, ...L2, ...BROKER];
+  const rows = Object.keys(ACC_TARGETS).map(tick => {
+    const asset = all.find(a => a.tick === tick);
+    const tgt = ACC_TARGETS[tick];
+    if(!asset) return null;
+    const qty = asset.qty || 0;
+    const pct = Math.min((qty / tgt.target) * 100, 100);
+    const faltan = Math.max(tgt.target - qty, 0);
+    const completo = pct >= 100;
+    const pctCol = completo ? 'var(--gr)' : pct >= 50 ? 'var(--go)' : 'var(--ac)';
+
+    // Formato de cantidades
+    const fmtQty = (n) => n >= 1000 ? n.toLocaleString('en-US',{maximumFractionDigits:0})
+                       : n >= 1 ? n.toLocaleString('en-US',{maximumFractionDigits:2})
+                       : n.toFixed(4);
+
+    return `<div style="background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:12px 14px;margin-bottom:6px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="ai" style="background:${tgt.color}22;color:${tgt.color};border:1px solid ${tgt.color}44;width:24px;height:24px;font-size:10px">${asset.ico||tick[0]}</div>
+          <div>
+            <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--tx)">${tick}</div>
+            <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu)">${asset.name||''}</div>
+          </div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-family:'DM Mono',monospace;font-size:11px;font-weight:700;color:${pctCol}">${pct.toFixed(1)}%</div>
+          <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu)">${completo?'✓ completado':'faltan '+fmtQty(faltan)}</div>
+        </div>
+      </div>
+      <div style="background:var(--s3);border-radius:3px;height:6px;overflow:hidden;margin-bottom:6px">
+        <div style="height:100%;width:${pct}%;background:${tgt.color};border-radius:3px;transition:width .3s"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-family:'DM Mono',monospace;font-size:10px;color:var(--mu)">
+        <span>${fmtQty(qty)} ${tgt.label}</span>
+        <span>meta: ${fmtQty(tgt.target)} ${tgt.label}</span>
+      </div>
+    </div>`;
+  }).filter(Boolean).join('');
+
+  // Resumen global — promedio ponderado por contribución a meta
+  const totalPct = Object.keys(ACC_TARGETS).reduce((acc, tick) => {
+    const asset = all.find(a => a.tick === tick);
+    if(!asset) return acc;
+    return acc + Math.min((asset.qty||0) / ACC_TARGETS[tick].target, 1);
+  }, 0) / Object.keys(ACC_TARGETS).length * 100;
+
+  list.innerHTML = rows;
+  if(totalLbl) totalLbl.textContent = totalPct.toFixed(1) + '% promedio · '+Object.keys(ACC_TARGETS).length+' activos';
 }
 
 function renderDist(){

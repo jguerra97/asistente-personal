@@ -743,6 +743,74 @@ function descargarResumen(){
   const fm2=n=>'$'+n.toLocaleString('en-US',{maximumFractionDigits:0});
   const fmp=n=>(n>=0?'+':'')+n.toFixed(1)+'%';
 
+  // Construir rows de acumulación (v1.6 — 3 activos meta)
+  const ACC_SUMMARY = {
+    'HYPE':   {target:150,     label:'tokens', color:'#3db8f5', role:'Motor principal · DCA 30%'},
+    'PHA':    {target:120000,  label:'tokens', color:'#a78bfa', role:'Caballo matemático · DCA 30%'},
+    'ONDO':   {target:12000,   label:'tokens', color:'#818cf8', role:'RWA institucional · DCA 15%'},
+  };
+  const accRows = Object.keys(ACC_SUMMARY).map(tick=>{
+    const asset = allAssets.find(x=>x.tick===tick);
+    if(!asset) return '';
+    const tgt = ACC_SUMMARY[tick];
+    const qty = asset.qty || 0;
+    const pct = Math.min((qty / tgt.target) * 100, 100);
+    const faltan = Math.max(tgt.target - qty, 0);
+    const completo = pct >= 100;
+    const barColor = completo ? '#059669' : tgt.color;
+    const fmtQty = (n) => n >= 1000 ? n.toLocaleString('en-US',{maximumFractionDigits:0})
+                       : n >= 1 ? n.toLocaleString('en-US',{maximumFractionDigits:2})
+                       : n.toFixed(4);
+    return `<div style="margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <div>
+          <span style="font-size:13px;font-weight:700;color:${tgt.color}">${tick}</span>
+          <span style="font-size:10px;color:#a0aec0;margin-left:6px">${tgt.role}</span>
+        </div>
+        <div style="font-size:12px;font-weight:700;color:${barColor}">${pct.toFixed(1)}%</div>
+      </div>
+      <div style="background:#edf2f7;border-radius:3px;height:6px;overflow:hidden;margin-bottom:4px">
+        <div style="height:100%;width:${pct}%;background:${barColor};border-radius:3px"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:#718096">
+        <span>${fmtQty(qty)} ${tgt.label}</span>
+        <span>meta ${fmtQty(tgt.target)} · faltan ${fmtQty(faltan)}</span>
+      </div>
+    </div>`;
+  }).join('');
+
+  const promedioAcc = Object.keys(ACC_SUMMARY).reduce((acc, tick) => {
+    const asset = allAssets.find(x=>x.tick===tick);
+    if(!asset) return acc;
+    return acc + Math.min((asset.qty||0) / ACC_SUMMARY[tick].target, 1);
+  }, 0) / Object.keys(ACC_SUMMARY).length * 100;
+
+  // DCA mensual — distribución v1.6
+  const DCA_DIST = [
+    {tick:'BTC',  pct:25, usd:176, q:'1,363', color:'#f7931a', role:'colchón LF'},
+    {tick:'HYPE', pct:30, usd:211, q:'1,636', color:'#3db8f5', role:'motor principal'},
+    {tick:'PHA',  pct:30, usd:211, q:'1,636', color:'#a78bfa', role:'caballo matemático'},
+    {tick:'ONDO', pct:15, usd:105, q:'818',   color:'#818cf8', role:'RWA'},
+  ];
+  const dcaRows = DCA_DIST.map(d=>`<tr>
+    <td style="padding:7px 10px;border-bottom:1px solid #edf2f7"><span style="color:${d.color};font-weight:700">${d.tick}</span> <span style="color:#a0aec0;font-size:10px">· ${d.role}</span></td>
+    <td style="padding:7px 10px;border-bottom:1px solid #edf2f7;text-align:right;font-weight:600">${d.pct}%</td>
+    <td style="padding:7px 10px;border-bottom:1px solid #edf2f7;text-align:right;color:#059669">Q${d.q}</td>
+    <td style="padding:7px 10px;border-bottom:1px solid #edf2f7;text-align:right;color:#a0aec0">$${d.usd}</td>
+  </tr>`).join('');
+
+  // Zonas de salida y tags especiales para activos específicos (v1.6)
+  const ZONAS = {
+    'PHA':  '20% $0.09 / 25% $0.27 / 25% $0.70 / 20% $1.35 / 10% $2.00+',
+    'HYPE': '20% $55 / 25% $95 / 30% $150 / 25% $220+',
+    'ONDO': '20% $0.50 / 30% $1.10 / 30% $2.25 / 20% $4.50',
+    'AKT':  'HOLD · Salida 50% $1.50 / 50% $3.00+ → PHA',
+    'MORPHO':'HOLD · Salida 50% $3.50 / 50% $5.50+ → PHA',
+    'MSTR': 'Stop $145 · T1 $210-220 (50%) · T2 $260+ (25%) → PHA',
+    'BTC':  '🔒 Colchón LF · NO cuenta para meta $150K',
+    'STRC': 'LIQUIDADO · ex-capital en USDC reserva táctica',
+  };
+
   // Filas de activos — diseño compacto 2 columnas en lugar de tabla ancha
   const cards=allAssets.map(a=>{
     const val=(a.price||0)*a.qty;
@@ -751,7 +819,12 @@ function descargarResumen(){
     const apPct=inv>0?((ap/inv)*100):0;
     const peso=tot>0?((val/tot)*100).toFixed(1):'0';
     const layer=L1.find(x=>x.tick===a.tick)?'Capa 1':L2.find(x=>x.tick===a.tick)?'Capa 2':'Broker';
-    return `<div style="background:#f8faff;border:1px solid #e2e8f0;border-radius:8px;padding:12px 14px;break-inside:avoid;">
+    const zonaTexto = ZONAS[a.tick] || '';
+    const isBTCcolchon = a.tick === 'BTC';
+    const isHold = ['AKT','MORPHO','MSTR'].includes(a.tick);
+    const borderColor = isBTCcolchon ? '#f7931a' : isHold ? '#e8a020' : '#e2e8f0';
+    const bgColor = isBTCcolchon ? '#fff7ed' : isHold ? '#fffbeb' : '#f8faff';
+    return `<div style="background:${bgColor};border:1px solid ${borderColor};border-radius:8px;padding:12px 14px;break-inside:avoid;">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
         <div>
           <span style="font-size:15px;font-weight:800;color:#1a202c">${a.tick}</span>
@@ -772,6 +845,7 @@ function descargarResumen(){
         <span style="font-size:10px;color:#a0aec0">P&L no realizado</span>
         <span style="font-size:13px;font-weight:700;color:${ap>=0?'#00b894':'#e53e3e'}">${ap>=0?'+':''}${fm2(Math.abs(ap))} <span style="font-size:10px">(${fmp(apPct)})</span></span>
       </div>
+      ${zonaTexto?`<div style="margin-top:8px;padding:7px 10px;background:rgba(157,127,240,.08);border-left:3px solid #9d7ff0;border-radius:3px;"><div style="font-size:8px;color:#6b46c1;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;font-weight:600">Plan</div><div style="font-size:10px;color:#4c1d95;line-height:1.4">${zonaTexto}</div></div>`:''}
     </div>`;
   }).join('');
 
@@ -850,6 +924,31 @@ body{font-family:"Segoe UI",Arial,sans-serif;background:#f7f8fc;color:#1a202c;pa
 <div class="sec">
   <div class="sec-hdr"><div class="sec-t">Composición detallada</div><div class="sec-sub">${fm2(tot)} valor total</div></div>
   <div class="assets-grid">${cards}</div>
+</div>
+
+<div class="sec">
+  <div class="sec-hdr"><div class="sec-t">Progreso de acumulación · meta tokens</div><div class="sec-sub">${promedioAcc.toFixed(1)}% promedio · 3 activos</div></div>
+  ${accRows}
+  <div style="background:#f5f3ff;border:1px solid #ddd6fe;border-radius:8px;padding:10px 12px;margin-top:8px;font-size:10px;color:#4c1d95;line-height:1.5">
+    <strong>Plan v1.6:</strong> acumular tokens de los 3 activos meta hasta alcanzar cantidades objetivo.<br>
+    Al ejecutar zonas de salida, capital liberado → 100% PHA hasta completar meta $150K.
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sec-hdr"><div class="sec-t">Distribución DCA mensual</div><div class="sec-sub">$703/mes · Q5,452</div></div>
+  <table style="width:100%;border-collapse:collapse;font-size:11px">
+    <thead><tr style="background:#f9fafb">
+      <th style="padding:7px 10px;text-align:left;font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e5e7eb">Activo</th>
+      <th style="padding:7px 10px;text-align:right;font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e5e7eb">%</th>
+      <th style="padding:7px 10px;text-align:right;font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e5e7eb">Quetzales</th>
+      <th style="padding:7px 10px;text-align:right;font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e5e7eb">USD</th>
+    </tr></thead>
+    <tbody>${dcaRows}</tbody>
+  </table>
+  <div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:6px;padding:8px 12px;margin-top:10px;font-size:10px;color:#065f46;line-height:1.5">
+    <strong>Nota:</strong> mientras ONDO tenga overhang multisig activo, ese 15% se redirige 50/50 a PHA y HYPE.
+  </div>
 </div>
 
 <div class="note">⚠ Estado de resultados no realizado. Valores al momento de generación. No constituye asesoramiento financiero regulado.</div>

@@ -509,7 +509,7 @@ var COLS={emer:54275,bant:14204,imp:0,buf:119,reimb:0};
 const CUOTA=13959.61;
 const MESES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const MNOMBRES=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-const FIJOS_TOTAL=13959.61+900+1355+510+250+400+115+25.39+115+1000+969+265.69; // Q19,863.69
+const FIJOS_TOTAL=13959.61+900+1355+510+250+400+115+25.39+115+1267+969; // Q19,865.00
 const FIJOS_RUBROS=[
   {ico:'🏠',nom:'Hipoteca BI',amt:13959.61},
   {ico:'🏛️',nom:'IUSI',amt:900},
@@ -521,8 +521,7 @@ const FIJOS_RUBROS=[
   {ico:'🏦',nom:'Cobros bancarios',amt:25.39},
   {ico:'🛒',nom:'Supermercado',amt:115},
   {ico:'🤖',nom:'Claude AI Max',amt:969},
-  {ico:'📊',nom:'Análisis financiero',amt:265.69},
-  {ico:'🔒',nom:'Imprevistos fijos',amt:1000},
+  {ico:'🔒',nom:'Imprevistos fijos',amt:1267},
 ];
 const SUBS_ENT=[
   {nom:'Spotify',usd:6.49,freq:'mensual'},
@@ -591,11 +590,10 @@ function distribuir(exc){
 }
 // ── ACTIVOS DE INVERSIÓN (distribución interna) ───────────────────
 const INV_ACTIVOS=[
-  {ico:'₿', nom:'BTC',   pct:0.30, col:'#f7931a', hint:'DCA fijo — colchon LF'},
-  {ico:'H', nom:'HYPE',  pct:0.35, col:'#3db8f5', hint:'Motor principal · acumular agresivo'},
-  {ico:'S', nom:'STRC',  pct:0.20, col:'#f5b731', hint:'Yield · techo $5K · Schwab'},
-  {ico:'P', nom:'PHA',   pct:0.10, col:'#a78bfa', hint:'AI compute · $200M revenue · acumular'},
-  {ico:'M', nom:'MORPHO',pct:0.05, col:'#9d7ff0', hint:'DeFi · Apollo deal · beta propio'},
+  {ico:'₿', nom:'BTC',   pct:0.25, col:'#f7931a', hint:'DCA fijo — colchon LF'},
+  {ico:'H', nom:'HYPE',  pct:0.30, col:'#3db8f5', hint:'Motor principal — acumular agresivo'},
+  {ico:'P', nom:'PHA',   pct:0.30, col:'#a78bfa', hint:'Caballo matematico — mayor asimetria'},
+  {ico:'O', nom:'ONDO',  pct:0.15, col:'#818cf8', hint:'RWA institucional · reactivar post-overhang'},
 ];
 
 function renderQ(d, fijProp, pago){
@@ -858,7 +856,7 @@ function renderResumenMes(ingTotal, tf, excMes, dMes, btcQ, invRestQ, tQ1, tQ2){
   card.style.display='block';
   empty.style.display='none';
 
-  const ahorroBI=tf; // fijos ya incluyen Q1,000 imprevistos
+  const ahorroBI=tf; // fijos ya incluyen Q1,267 imprevistos
   const tc=ST.tc||7.75;
 
   const rows=[
@@ -956,7 +954,7 @@ function recalc(){
   const ingTotal=ST.q1+ST.q2;
   const tQ1=ST.q1>0, tQ2=ST.q2>0;
 
-  // FIJOS = Q18,629.61 (incluye Q1,000 imprevistos) — proporcional en Q1, resto en Q2
+  // FIJOS = Q19,865.00 (incluye Q1,267 imprevistos) — proporcional en Q1, resto en Q2
   const propQ1=ST.sprev>0?Math.min(ST.q1/ST.sprev,1):0.5;
   const fijQ1=tf*propQ1;
   const fijQ2=tf-fijQ1;
@@ -980,8 +978,8 @@ function recalc(){
   // Fijos reservados = fijos fijos + imprevistos del mes (ambos van a Ahorro BI)
   document.getElementById('r-fij').textContent    = tQ1||tQ2 ? fq(ahorroMes,2) : fq(tf,2);
   document.getElementById('r-fij-pct').textContent= tQ1||tQ2
-    ? fq(tf,2)+' (incl. Q1,000 imprevistos)'
-    : fq(tf,2)+' (incl. Q1,000 imprevistos)';
+    ? fq(tf,2)+' (incl. Q1,267 imprevistos)'
+    : fq(tf,2)+' (incl. Q1,267 imprevistos)';
   document.getElementById('r-exc').textContent    = tQ1&&tQ2 ? fq(excMes) : '—';
   document.getElementById('r-exc-usd').textContent= tQ1&&tQ2 ? fd(excMes)+' USD' : '';
   document.getElementById('r-inv').textContent    = tQ1&&tQ2 ? fq(invMesQ) : '—';

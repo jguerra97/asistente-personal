@@ -1213,6 +1213,75 @@ function descargarResumen(){
       +'</div>'
     +'</div>'
 
+    // ── DISTRIBUCIÓN DEL INGRESO (v1.6) ──
+    +(avgNorm>0?('<div style="'+S.sec+'">'
+      +'<span style="'+S.sectl+'">Distribución del ingreso mensual</span>'
+      +'<div style="background:#f5f3ff;border-radius:8px;padding:14px;margin-bottom:10px;font-family:monospace;font-size:12px;line-height:1.9">'
+        +'<div style="font-weight:700;color:#4c1d95">Ingreso: '+fqR(avgNorm)+'</div>'
+        +'<div style="padding-left:12px;color:#555">├─ Fijos total: <b>'+fqR(tf)+'</b> <span style="color:#888">('+((tf/avgNorm)*100).toFixed(0)+'%)</span></div>'
+        +'<div style="padding-left:30px;color:#888">│  ├─ Gasto real: '+fqR(tf-1267)+'</div>'
+        +'<div style="padding-left:30px;color:#059669">│  └─ Ahorro imprevistos: Q1,267</div>'
+        +'<div style="padding-left:12px;color:#555">└─ Excedente: <b>'+fqR(avgNorm-tf)+'</b> <span style="color:#888">('+(((avgNorm-tf)/avgNorm)*100).toFixed(0)+'%)</span></div>'
+        +'<div style="padding-left:30px;color:#888">   ├─ Bantrab fijo: Q1,100</div>'
+        +'<div style="padding-left:30px;color:#555">   └─ Resto Q'+((avgNorm-tf-1100)).toLocaleString('es-GT',{maximumFractionDigits:0})+':</div>'
+        +'<div style="padding-left:48px;color:#059669">      ├─ Inversión (60%): Q'+(((avgNorm-tf-1100)*0.60)).toLocaleString('es-GT',{maximumFractionDigits:0})+'</div>'
+        +'<div style="padding-left:48px;color:#2563eb">      └─ Disfrute (40%): Q'+(((avgNorm-tf-1100)*0.40)).toLocaleString('es-GT',{maximumFractionDigits:0})+'</div>'
+      +'</div>'
+      +'<div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:10px 14px;text-align:center">'
+        +'<span style="font-size:10px;color:#065f46;text-transform:uppercase;letter-spacing:.5px">Tasa ahorro + inversión</span>'
+        +'<div style="font-size:22px;font-weight:800;color:#059669">'+(((1267+1100+((avgNorm-tf-1100)*0.60))/avgNorm)*100).toFixed(1)+'%</div>'
+        +'<span style="font-size:10px;color:#065f46">del ingreso bruto mensual</span>'
+      +'</div>'
+    +'</div>'):'')
+
+    // ── DESGLOSE DE GASTOS FIJOS (v1.6) ──
+    +'<div style="'+S.sec+'">'
+      +'<span style="'+S.sectl+'">Desglose de gastos fijos</span>'
+      +'<table style="'+S.tbl+'"><thead><tr>'
+        +'<th style="'+S.th+'">Categoría</th><th style="'+S.th+'">Monto</th><th style="'+S.th+'">%</th>'
+        +'</tr></thead><tbody>'
+        +'<tr><td style="'+S.td+'">🏠 Hipoteca BI</td><td style="'+S.td+'font-weight:600">Q13,960</td><td style="'+S.td+'color:#888">70%</td></tr>'
+        +'<tr><td style="'+S.td+'">📋 IUSI</td><td style="'+S.td+'">Q900</td><td style="'+S.td+'color:#888">5%</td></tr>'
+        +'<tr><td style="'+S.td+'">💡 Servicios casa (mant+luz)</td><td style="'+S.td+'">Q1,470</td><td style="'+S.td+'color:#888">7%</td></tr>'
+        +'<tr><td style="'+S.td+'">🌐 Conectividad (internet+Fi)</td><td style="'+S.td+'">Q760</td><td style="'+S.td+'color:#888">4%</td></tr>'
+        +'<tr><td style="'+S.td+'">🛒 Supermercado</td><td style="'+S.td+'">Q115</td><td style="'+S.td+'color:#888">1%</td></tr>'
+        +'<tr><td style="'+S.td+'">⛽ Gasolina</td><td style="'+S.td+'">Q400</td><td style="'+S.td+'color:#888">2%</td></tr>'
+        +'<tr><td style="'+S.td+'">🤖 Claude AI Max</td><td style="'+S.td+'">Q969</td><td style="'+S.td+'color:#888">5%</td></tr>'
+        +'<tr><td style="'+S.td+'">🏦 Cobros bancarios</td><td style="'+S.td+'">Q25</td><td style="'+S.td+'color:#888">0%</td></tr>'
+        +'<tr style="background:#f9fafb"><td style="'+S.td+'color:#059669;font-weight:700">🔒 Imprevistos (Ahorro BI)</td><td style="'+S.td+'color:#059669;font-weight:700">Q1,267</td><td style="'+S.td+'color:#059669;font-weight:700">6%</td></tr>'
+        +'<tr><td style="'+S.td+'font-weight:700">Total fijos</td><td style="'+S.td+'font-weight:700;color:#4c1d95">Q19,865</td><td style="'+S.td+'font-weight:700">100%</td></tr>'
+      +'</tbody></table>'
+    +'</div>'
+
+    // ── DISTRIBUCIÓN DE INVERSIÓN (v1.6) ──
+    +(avgNorm>0?('<div style="'+S.sec+'">'
+      +'<span style="'+S.sectl+'">Distribución de inversión · DCA mensual</span>'
+      +'<div style="text-align:center;margin-bottom:12px">'
+        +'<span style="font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.5px">Capital invertido cada mes</span>'
+        +'<div style="font-size:24px;font-weight:800;color:#4c1d95;letter-spacing:-1px">Q'+(((avgNorm-tf-1100)*0.60)).toLocaleString('es-GT',{maximumFractionDigits:0})+'</div>'
+        +'<span style="font-size:11px;color:#888">$'+((((avgNorm-tf-1100)*0.60)/tc)).toLocaleString('en-US',{maximumFractionDigits:0})+' USD</span>'
+      +'</div>'
+      +'<table style="'+S.tbl+'"><thead><tr>'
+        +'<th style="'+S.th+'">Activo</th><th style="'+S.th+'">%</th><th style="'+S.th+'">Monto</th><th style="'+S.th+'">USD</th>'
+        +'</tr></thead><tbody>'
+        +(function(){
+          const inv=((avgNorm-tf-1100)*0.60);
+          const ass=[
+            {n:'₿ BTC',p:0.25,d:'colchón LF',c:'#f7931a'},
+            {n:'H HYPE',p:0.30,d:'motor principal',c:'#3db8f5'},
+            {n:'P PHA',p:0.30,d:'caballo matemático',c:'#a78bfa'},
+            {n:'O ONDO',p:0.15,d:'RWA institucional',c:'#818cf8'},
+          ];
+          return ass.map(a=>'<tr>'
+            +'<td style="'+S.td+'"><span style="color:'+a.c+';font-weight:700">'+a.n+'</span> <span style="color:#888;font-size:10px">· '+a.d+'</span></td>'
+            +'<td style="'+S.td+'font-weight:600">'+(a.p*100).toFixed(0)+'%</td>'
+            +'<td style="'+S.td+'color:#059669">Q'+(inv*a.p).toLocaleString('es-GT',{maximumFractionDigits:0})+'</td>'
+            +'<td style="'+S.td+'color:#888">$'+((inv*a.p)/tc).toLocaleString('en-US',{maximumFractionDigits:0})+'</td>'
+          +'</tr>').join('');
+        })()
+      +'</tbody></table>'
+    +'</div>'):'')
+
     // ── HISTORIAL ──
     +'<div style="'+S.sec+'">'
       +'<span style="'+S.sectl+'">Historial de ingresos</span>'
@@ -1270,6 +1339,14 @@ function descargarResumen(){
         +(COLS.reimb>0?'<tr><td style="'+S.td+'">Reembolsos</td><td style="'+S.td+'">USD cash</td><td style="'+S.td+'">'+'$'+COLS.reimb.toFixed(0)+' ('+fqR(COLS.reimb*tc)+')</td><td style="'+S.td+'">—</td></tr>':'')
         +'<tr><td style="'+S.td+'font-weight:700" colspan="2">Total reservas</td><td style="'+S.td+'font-weight:700;color:#4c1d95" colspan="2">'+fqR(totalRes)+'</td></tr>'
       +'</tbody></table>'
+      +'<div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:8px;padding:10px 14px;margin-top:10px">'
+        +'<div style="font-size:10px;color:#78350f;text-transform:uppercase;letter-spacing:.5px;font-weight:600;margin-bottom:4px">📊 Proyección Ahorro BI</div>'
+        +'<div style="font-size:11px;color:#78350f;line-height:1.5">'
+          +'Aporte mensual: Q1,267 (imprevistos fijos)<br>'
+          +'• Meta 70% (Q41,716): <b>~abril 2027</b> · trigger transición<br>'
+          +'• Meta 100% (Q59,594): <b>~octubre 2028</b>'
+        +'</div>'
+      +'</div>'
     +'</div>'
 
     // ── HIPOTECA ──
@@ -1291,6 +1368,19 @@ function descargarResumen(){
         +'<tr><td style="'+S.td+'color:#888">Cuota mensual</td><td style="'+S.td+'">Q13,959.61</td></tr>'
         +'<tr><td style="'+S.td+'color:#888">Saldo estimado</td><td style="'+S.td+'color:#dc2626;font-weight:600">'+fqR(salHip)+' ('+fusd(salHip)+')</td></tr>'
         +'<tr><td style="'+S.td+'color:#888">Capital pagado</td><td style="'+S.td+'color:#059669;font-weight:600">'+fqR(1480000-salHip)+' ('+((1480000-salHip)/1480000*100).toFixed(1)+'%)</td></tr>'
+      +'</tbody></table>'
+    +'</div>'
+
+    // ── BONOS PROGRAMADOS (v1.6) ──
+    +'<div style="'+S.sec+'">'
+      +'<span style="'+S.sectl+'">Bonos programados · destino definido</span>'
+      +'<table style="'+S.tbl+'"><thead><tr>'
+        +'<th style="'+S.th+'">Bono</th><th style="'+S.th+'">Hipoteca</th><th style="'+S.th+'">Inversión</th><th style="'+S.th+'">Bantrab</th>'
+        +'</tr></thead><tbody>'
+        +'<tr><td style="'+S.td+'font-weight:700">Julio 2026</td><td style="'+S.td+'color:#dc2626">40%</td><td style="'+S.td+'color:#059669">40%</td><td style="'+S.td+'color:#2563eb">20%</td></tr>'
+        +'<tr><td style="'+S.td+'" colspan="4"><span style="font-size:10px;color:#888">Inversión Julio: 60% PHA · 30% HYPE · 10% ONDO (cuando reactive)</span></td></tr>'
+        +'<tr><td style="'+S.td+'font-weight:700">Diciembre 2026</td><td style="'+S.td+'color:#dc2626">35%</td><td style="'+S.td+'color:#059669">45%</td><td style="'+S.td+'color:#2563eb">20%</td></tr>'
+        +'<tr><td style="'+S.td+'" colspan="4"><span style="font-size:10px;color:#888">Inversión Diciembre: 50% PHA · 30% HYPE · 20% ONDO</span></td></tr>'
       +'</tbody></table>'
     +'</div>'
 

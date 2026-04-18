@@ -1253,6 +1253,43 @@ function descargarResumen(){
       +'</tbody></table>'
     +'</div>'
 
+    // ── INDICADORES FINANCIEROS CLAVE (v1.6) ──
+    +(avgNorm>0?('<div style="'+S.sec+'">'
+      +'<span style="'+S.sectl+'">Indicadores financieros clave</span>'
+      +(function(){
+        const dti = (13959.61 / avgNorm) * 100;
+        const liqRatio = totalRes / tf;
+        const dtiColor = dti < 36 ? '#059669' : dti < 43 ? '#d97706' : '#dc2626';
+        const dtiLabel = dti < 36 ? 'Saludable' : dti < 43 ? 'Aceptable' : 'Al límite';
+        const liqColor = liqRatio >= 6 ? '#2563eb' : liqRatio >= 3 ? '#059669' : liqRatio >= 1.5 ? '#d97706' : '#dc2626';
+        const liqLabel = liqRatio >= 6 ? 'Capital dormido' : liqRatio >= 3 ? 'Sólido' : liqRatio >= 1.5 ? 'Mínimo aceptable' : 'Insuficiente';
+        return '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'
+          +'<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:12px 14px">'
+            +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">'
+              +'<div style="font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;font-weight:600">DTI · Debt-to-Income</div>'
+              +'<span style="font-size:9px;color:'+dtiColor+';background:'+dtiColor+'15;padding:2px 7px;border-radius:3px;font-weight:600">'+dtiLabel+'</span>'
+            +'</div>'
+            +'<div style="font-size:28px;font-weight:800;color:'+dtiColor+';letter-spacing:-1px;line-height:1">'+dti.toFixed(1)+'%</div>'
+            +'<div style="font-size:10px;color:#888;margin-top:4px">Hipoteca Q13,960 / Ingreso '+fqR(avgNorm)+'</div>'
+            +'<div style="font-size:9px;color:#a0aec0;margin-top:3px;line-height:1.4">Benchmark: &lt;36% saludable · 36-43% aceptable · &gt;43% límite</div>'
+          +'</div>'
+          +'<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:12px 14px">'
+            +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">'
+              +'<div style="font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;font-weight:600">Liquidity Ratio</div>'
+              +'<span style="font-size:9px;color:'+liqColor+';background:'+liqColor+'15;padding:2px 7px;border-radius:3px;font-weight:600">'+liqLabel+'</span>'
+            +'</div>'
+            +'<div style="font-size:28px;font-weight:800;color:'+liqColor+';letter-spacing:-1px;line-height:1">'+liqRatio.toFixed(2)+'x</div>'
+            +'<div style="font-size:10px;color:#888;margin-top:4px">'+fqR(totalRes)+' reservas / '+fqR(tf)+' fijos</div>'
+            +'<div style="font-size:9px;color:#a0aec0;margin-top:3px;line-height:1.4">Benchmark: &lt;1.5x bajo · 1.5-3x ok · 3-6x sólido · &gt;6x dormido</div>'
+          +'</div>'
+        +'</div>'
+        +'<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:6px;padding:8px 12px;margin-top:10px;font-size:10px;color:#0c4a6e;line-height:1.5">'
+          +'<strong>Lectura:</strong> '+(dti < 43 ? 'capacidad de deuda saludable.' : 'DTI cerca del límite — no asumir nueva deuda sin abonar capital primero.')+' '
+          +(liqRatio >= 3 ? 'Reservas equivalentes a '+liqRatio.toFixed(1)+' meses de gastos fijos.' : 'Reservas insuficientes — priorizar recomposición.')
+        +'</div>';
+      })()
+    +'</div>'):'')
+
     // ── DISTRIBUCIÓN DE INVERSIÓN (v1.6) ──
     +(avgNorm>0?('<div style="'+S.sec+'">'
       +'<span style="'+S.sectl+'">Distribución de inversión · DCA mensual</span>'
@@ -1370,6 +1407,47 @@ function descargarResumen(){
         +'<tr><td style="'+S.td+'color:#888">Capital pagado</td><td style="'+S.td+'color:#059669;font-weight:600">'+fqR(1480000-salHip)+' ('+((1480000-salHip)/1480000*100).toFixed(1)+'%)</td></tr>'
       +'</tbody></table>'
     +'</div>'
+
+    // ── PROYECCIÓN FLUJO 12 MESES (v1.6) ──
+    +(avgNorm>0?('<div style="'+S.sec+'">'
+      +'<span style="'+S.sectl+'">Proyección de flujo · próximos 12 meses</span>'
+      +'<table style="'+S.tbl+'"><thead><tr>'
+        +'<th style="'+S.th+'">Mes</th><th style="'+S.th+'">Ingreso esperado</th><th style="'+S.th+'">Evento</th><th style="'+S.th+'">Acum. total</th>'
+        +'</tr></thead><tbody>'
+        +(function(){
+          const hoy = new Date();
+          const mesActual = hoy.getMonth();
+          const anioActual = hoy.getFullYear();
+          const mesesNom = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+          let acum = 0;
+          const filas = [];
+          for(let i=0;i<12;i++){
+            const mIdx = (mesActual + i) % 12;
+            const anio = anioActual + Math.floor((mesActual + i) / 12);
+            const nombre = mesesNom[mIdx] + ' ' + anio;
+            let ing = avgNorm;
+            let evento = '—';
+            // Julio = bono julio
+            if(mIdx === 6){ ing = avgNorm + 33000; evento = '🎁 Bono julio (~Q33K)'; }
+            // Diciembre = bono diciembre
+            if(mIdx === 11){ ing = avgNorm + 33000; evento = '🎁 Bono diciembre (~Q33K)'; }
+            // Septiembre = Bantrab meta probable
+            if(mIdx === 8 && anio === 2026){ evento = '✅ Bantrab meta Q30K (proyectado)'; }
+            acum += ing;
+            filas.push('<tr>'
+              +'<td style="'+S.td+'font-weight:600">'+nombre+'</td>'
+              +'<td style="'+S.td+'color:#059669">'+fqR(ing)+'</td>'
+              +'<td style="'+S.td+'font-size:10px;color:#666">'+evento+'</td>'
+              +'<td style="'+S.td+'font-weight:700;color:#4c1d95">'+fqR(acum)+'</td>'
+            +'</tr>');
+          }
+          return filas.join('');
+        })()
+      +'</tbody></table>'
+      +'<div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:10px 14px;margin-top:10px;font-size:11px;color:#065f46;line-height:1.5">'
+        +'<strong>Supuestos:</strong> ingreso base = promedio histórico · bonos julio/diciembre estimados a ~Q33,000 · proyección antes de deducciones.'
+      +'</div>'
+    +'</div>'):'')
 
     // ── BONOS PROGRAMADOS (v1.6) ──
     +'<div style="'+S.sec+'">'

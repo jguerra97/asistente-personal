@@ -341,6 +341,24 @@ td:first-child{text-align:left;}
 </div>
 <div class="acc-list" id="acc-list" style="display:none;margin-bottom:10px"></div>
 
+<!-- ESTRATEGIA POR ACTIVO -->
+<div class="lbl" style="margin-top:16px;margin-bottom:8px">
+  <span class="dot" style="background:#f59e0b"></span>
+  <div class="lt">Estrategia por activo <span>plan vigente · referencia rápida</span></div>
+</div>
+<div class="acc-toggle" onclick="toggleStrat()" id="strat-toggle-btn"
+  style="background:var(--s1);border:1px solid var(--bd);border-radius:10px;
+  padding:11px 14px;display:flex;justify-content:space-between;align-items:center;
+  cursor:pointer;-webkit-tap-highlight-color:rgba(245,158,11,.2);margin-bottom:6px;
+  transition:background .15s;">
+  <div>
+    <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--mu);letter-spacing:.08em;text-transform:uppercase">📋 Plan vigente por activo</div>
+    <div style="font-family:'DM Mono',monospace;font-size:11px;font-weight:600;color:#f59e0b;margin-top:2px">Tap para ver detalle</div>
+  </div>
+  <span id="strat-toggle-ico" style="font-size:14px;color:var(--mu);transition:transform .2s">▾</span>
+</div>
+<div id="strat-list" style="display:none;margin-bottom:10px"></div>
+
 <!-- DISTRIBUCIÓN -->
 <div class="sec">
   <div class="ld" style="background:var(--pu);box-shadow:0 0 5px var(--pu)"></div>
@@ -743,11 +761,12 @@ function descargarResumen(){
   const fm2=n=>'$'+n.toLocaleString('en-US',{maximumFractionDigits:0});
   const fmp=n=>(n>=0?'+':'')+n.toFixed(1)+'%';
 
-  // Construir rows de acumulación (v1.6 — 3 activos meta)
+  // Construir rows de acumulación (v1.7 — 4 activos meta incluyendo AKT ventana)
   const ACC_SUMMARY = {
-    'HYPE':   {target:150,     label:'tokens', color:'#3db8f5', role:'Motor principal · DCA 30%'},
-    'PHA':    {target:120000,  label:'tokens', color:'#a78bfa', role:'Caballo matemático · DCA 30%'},
-    'ONDO':   {target:12000,   label:'tokens', color:'#818cf8', role:'RWA institucional · DCA 15%'},
+    'HYPE':   {target:150,     label:'tokens', color:'#3db8f5', role:'Motor principal · DCA 28%'},
+    'PHA':    {target:120000,  label:'tokens', color:'#a78bfa', role:'Caballo matemático · DCA 27%'},
+    'ONDO':   {target:12000,   label:'tokens', color:'#818cf8', role:'RWA · DCA 15% redirigido'},
+    'AKT':    {target:3000,    label:'tokens', color:'#10b981', role:'Ventana abr-jul · DCA 5% + táctica'},
   };
   const accRows = Object.keys(ACC_SUMMARY).map(tick=>{
     const asset = allAssets.find(x=>x.tick===tick);
@@ -785,12 +804,13 @@ function descargarResumen(){
     return acc + Math.min((asset.qty||0) / ACC_SUMMARY[tick].target, 1);
   }, 0) / Object.keys(ACC_SUMMARY).length * 100;
 
-  // DCA mensual — distribución v1.6
+  // DCA mensual — distribución v1.7 (5 activos con AKT ventana abr-jul)
   const DCA_DIST = [
     {tick:'BTC',  pct:25, usd:176, q:'1,363', color:'#f7931a', role:'colchón LF'},
-    {tick:'HYPE', pct:30, usd:211, q:'1,636', color:'#3db8f5', role:'motor principal'},
-    {tick:'PHA',  pct:30, usd:211, q:'1,636', color:'#a78bfa', role:'caballo matemático'},
-    {tick:'ONDO', pct:15, usd:105, q:'818',   color:'#818cf8', role:'RWA'},
+    {tick:'HYPE', pct:28, usd:197, q:'1,527', color:'#3db8f5', role:'motor principal'},
+    {tick:'PHA',  pct:27, usd:190, q:'1,472', color:'#a78bfa', role:'caballo matemático'},
+    {tick:'ONDO', pct:15, usd:105, q:'818',   color:'#818cf8', role:'RWA (redirigido)'},
+    {tick:'AKT',  pct:5,  usd:35,  q:'272',   color:'#10b981', role:'ventana abr-jul'},
   ];
   const dcaRows = DCA_DIST.map(d=>`<tr>
     <td style="padding:7px 10px;border-bottom:1px solid #edf2f7"><span style="color:${d.color};font-weight:700">${d.tick}</span> <span style="color:#a0aec0;font-size:10px">· ${d.role}</span></td>
@@ -844,6 +864,75 @@ function descargarResumen(){
     'BTC':  '🔒 Colchón LF · NO cuenta para meta $150K',
     'STRC': 'LIQUIDADO · ex-capital en USDC reserva táctica',
   };
+
+  // ── ESTRATEGIA EXTENDIDA POR ACTIVO — versión para PDF resumen ──
+  const STRAT_PDF = [
+    {tick:'BTC', color:'#f7931a', tag:'NO VENDER', tagBg:'#fef3c7', tagCol:'#92400e',
+      role:'Colchón de libertad financiera · base multi-ciclo',
+      dca:'DCA 25% · Q1,363/mes (~$176)',
+      plan:'No se vende por oportunismo táctico. Sale solo si: tesis multi-ciclo rota, meta $150K alcanzada con margen, oportunidad con asimetría superior documentada, o necesidad personal que no alcanza con reservas existentes.',
+      updated:'19 abr 2026'
+    },
+    {tick:'HYPE', color:'#3db8f5', tag:'ACUMULACIÓN', tagBg:'#dbeafe', tagCol:'#1e40af',
+      role:'Motor principal · derivatives · meta 150 tokens',
+      dca:'DCA 28% · Q1,527/mes (~$197)',
+      plan:'Salidas escalonadas en 4 zonas: 20% en $55-60 · 25% en $90-110 · 30% en $150-180 · 25% en $220-260. Capital liberado por salidas rota a PHA.',
+      updated:'18 abr 2026'
+    },
+    {tick:'PHA', color:'#a78bfa', tag:'ACUMULACIÓN', tagBg:'#ede9fe', tagCol:'#5b21b6',
+      role:'Caballo matemático · AI + TEE · meta 120,000 tokens',
+      dca:'DCA 27% · Q1,472/mes (~$190) + 50% del 15% ONDO redirigido',
+      plan:'Salidas en 5 zonas: 20% en $0.08-0.10 · 25% en $0.25-0.30 · 25% en $0.60-0.80 · 20% en $1.20-1.50 · 10% en $2.00+. Recibe capital de todas las salidas de otros activos.',
+      note:'⚠ Paciencia · sin catalyst fechado actualmente · escenario bear materializándose (nuevo mínimo $0.03). Tesis fundamental intacta pero requiere paciencia estratégica.',
+      updated:'19 abr 2026'
+    },
+    {tick:'ONDO', color:'#818cf8', tag:'PAUSADO · OVERHANG', tagBg:'#f3f4f6', tagCol:'#4c1d95',
+      role:'RWA institucional · con overhang multisig activo',
+      dca:'DCA 15% redirigido: 50% → PHA · 50% → HYPE',
+      plan:'Salidas: 20% en $0.50 · 30% en $1.00-1.20 · 30% en $2.00-2.50 · 20% en $4.00-5.00. Reactivar DCA directo a ONDO cuando multisig pare de vender on-chain.',
+      updated:'17 abr 2026'
+    },
+    {tick:'AKT', color:'#10b981', tag:'ACUMULACIÓN abr-jul 2026', tagBg:'#d1fae5', tagCol:'#065f46',
+      role:'Ventana táctica · DePIN compute · meta 3,000 tokens',
+      dca:'DCA 5% · Q272/mes (~$35) + reserva táctica',
+      plan:'Triggers reserva: <$0.45 comprar $100 · <$0.40 comprar $150 · máximo $300 durante toda la ventana. Después de julio 2026 vuelve a HOLD con salidas 50% en $1.50 / 50% en $3.00+ → capital rota a PHA.',
+      note:'Ventana activa: cierre con bono julio 2026 (20% del bono asignado a AKT para cerrar meta).',
+      updated:'18 abr 2026'
+    },
+    {tick:'MORPHO', color:'#9d7ff0', tag:'HOLD · OBSERVACIÓN', tagBg:'#ede9fe', tagCol:'#5b21b6',
+      role:'DeFi lending · candidato a reclasificación',
+      dca:'Sin DCA programático · posición inicial capital-constrained',
+      plan:'Salidas actuales: 50% en $3.50 / 50% en $5.50+ → capital a PHA.',
+      note:'⚠ Candidato a reclasificación: Apollo Global compra hasta 90M tokens (9% supply) en 48 meses. Ethereum Foundation depositó $19M en Morpho Vaults. V2 prioridad 2026. TVL $6.9B (segundo mayor DeFi lending). Resistió mercado bajista (+6.5% mientras altcoin sangraba). Revisar targets en FOMC 29 abril.',
+      updated:'19 abr 2026'
+    },
+    {tick:'MSTR', color:'#e8a020', tag:'HOLD TÁCTICO', tagBg:'#fef3c7', tagCol:'#92400e',
+      role:'Proxy BTC apalancado · broker Schwab · TradFi',
+      dca:'Sin DCA · limits activas: $155 ($100) + $145 ($150)',
+      plan:'Stop $145 · Target 1: $210-220 (50%) · Target 2: $260+ (25%). Si BTC rompe $100K con volumen y MSTR llega a $350+, evaluar salida total → capital a PHA.',
+      updated:'17 abr 2026'
+    },
+    {tick:'STRC', color:'#f5b731', tag:'LIQUIDADO', tagBg:'#fee2e2', tagCol:'#991b1b',
+      role:'Eliminado permanentemente del plan',
+      dca:'—',
+      plan:'Liquidado 17 abril 2026. Capital ($1,769 USDC) → reserva táctica. No se reconstruye salvo decisión futura del panel con justificación nueva.',
+      updated:'17 abr 2026'
+    },
+  ];
+
+  const stratRows = STRAT_PDF.map(s => `<div style="background:#fafbfc;border:1px solid #e5e7eb;border-left:3px solid ${s.color};border-radius:6px;padding:10px 14px;margin-bottom:8px;break-inside:avoid">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:5px;gap:8px">
+      <div>
+        <span style="font-size:13px;font-weight:800;color:${s.color}">${s.tick}</span>
+        <span style="font-size:10px;color:#6b7280;margin-left:6px;font-style:italic">${s.role}</span>
+      </div>
+      <span style="font-size:8px;font-weight:700;background:${s.tagBg};color:${s.tagCol};padding:2px 8px;border-radius:9px;white-space:nowrap;text-transform:uppercase;letter-spacing:.3px">${s.tag}</span>
+    </div>
+    <div style="font-size:10px;color:#1a202c;line-height:1.45;margin-bottom:3px"><span style="font-size:8px;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;font-weight:600">DCA · </span>${s.dca}</div>
+    <div style="font-size:10px;color:#1a202c;line-height:1.45"><span style="font-size:8px;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;font-weight:600">Plan · </span>${s.plan}</div>
+    ${s.note ? `<div style="margin-top:5px;padding:5px 8px;background:#fffbeb;border-left:2px solid #f59e0b;border-radius:3px;font-size:9px;color:#78350f;line-height:1.4">${s.note}</div>` : ''}
+    <div style="margin-top:5px;padding-top:4px;border-top:1px dashed #e5e7eb;font-size:8px;color:#9ca3af;text-align:right">actualizado ${s.updated}</div>
+  </div>`).join('');
 
   // Filas de activos — diseño compacto 2 columnas en lugar de tabla ancha
   const cards=allAssets.map(a=>{
@@ -985,11 +1074,19 @@ body{font-family:"Segoe UI",Arial,sans-serif;background:#f7f8fc;color:#1a202c;pa
 </div>
 
 <div class="sec">
-  <div class="sec-hdr"><div class="sec-t">Progreso de acumulación · meta tokens</div><div class="sec-sub">${promedioAcc.toFixed(1)}% promedio · 3 activos</div></div>
+  <div class="sec-hdr"><div class="sec-t">Progreso de acumulación · meta tokens</div><div class="sec-sub">${promedioAcc.toFixed(1)}% promedio · 4 activos</div></div>
   ${accRows}
   <div style="background:#f5f3ff;border:1px solid #ddd6fe;border-radius:8px;padding:10px 12px;margin-top:8px;font-size:10px;color:#4c1d95;line-height:1.5">
-    <strong>Plan v1.6:</strong> acumular tokens de los 3 activos meta hasta alcanzar cantidades objetivo.<br>
+    <strong>Plan v1.7:</strong> acumular tokens de los 4 activos meta (AKT en ventana abr-jul 2026) hasta alcanzar cantidades objetivo.<br>
     Al ejecutar zonas de salida, capital liberado → 100% PHA hasta completar meta $150K.
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sec-hdr"><div class="sec-t">Estrategia por activo</div><div class="sec-sub">plan vigente · v1.7</div></div>
+  ${stratRows}
+  <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:10px 12px;margin-top:8px;font-size:10px;color:#0c4a6e;line-height:1.5">
+    <strong>Nota operativa:</strong> el plan vigente es guía, no ley. Toda regla es heurística revalidable ante cambio material de contexto. Las estrategias se revisan en cada FOMC y checkpoints trimestrales.
   </div>
 </div>
 
@@ -1057,6 +1154,123 @@ const ACC_TARGETS = {
   'PHA':    {target:120000,  label:'tokens', color:'#a78bfa'},
   'AKT':    {target:3000,    label:'tokens · ventana abr-jul', color:'#10b981'},
 };
+
+// ── ESTRATEGIA POR ACTIVO (HARDCODED v1.7) ─────────────────────
+// Actualizar "updated" cuando cambie algo de un activo específico
+const STRAT = {
+  'BTC': {
+    color:'#f7931a', ico:'₿', name:'Bitcoin',
+    tag:'NO VENDER', tagColor:'#f7931a',
+    role:'Colchón de libertad financiera',
+    dca:'DCA 25% · Q1,363/mes · ~$176',
+    plan:'Sale solo si: tesis multi-ciclo rota, meta $150K alcanzada con margen, o necesidad personal que no alcanza con reservas.',
+    updated:'19 abr 2026'
+  },
+  'HYPE': {
+    color:'#3db8f5', ico:'H', name:'Hyperliquid',
+    tag:'ACUMULACIÓN', tagColor:'#3db8f5',
+    role:'Motor principal · tesis derivatives',
+    dca:'DCA 28% · Q1,527/mes · ~$197 · meta 150 tokens',
+    plan:'Salidas: 20% $55-60 · 25% $90-110 · 30% $150-180 · 25% $220-260. Capital liberado → PHA.',
+    updated:'18 abr 2026'
+  },
+  'PHA': {
+    color:'#a78bfa', ico:'P', name:'Phala Network',
+    tag:'ACUMULACIÓN', tagColor:'#a78bfa',
+    role:'Caballo matemático · AI + TEE',
+    dca:'DCA 27% · Q1,472/mes · ~$190 · meta 120,000 tokens',
+    plan:'Salidas 5 zonas: 20% $0.09 · 25% $0.27 · 25% $0.70 · 20% $1.35 · 10% $2.00+',
+    warn:'⚠ Paciencia · sin catalyst fechado · escenario bear materializándose',
+    updated:'19 abr 2026'
+  },
+  'ONDO': {
+    color:'#818cf8', ico:'O', name:'Ondo Finance',
+    tag:'PAUSADO', tagColor:'#a78bfa',
+    role:'RWA institucional · con overhang multisig',
+    dca:'DCA 15% redirigido: 50% PHA + 50% HYPE mientras multisig venda',
+    plan:'Salidas: 20% $0.50 · 30% $1.10 · 30% $2.25 · 20% $4.50. Reactivar DCA cuando multisig pare on-chain.',
+    updated:'17 abr 2026'
+  },
+  'AKT': {
+    color:'#10b981', ico:'A', name:'Akash Network',
+    tag:'ACUMULACIÓN abr-jul 2026', tagColor:'#10b981',
+    role:'Ventana táctica · DePIN compute',
+    dca:'DCA 5% + reserva táctica · meta 3,000 tokens',
+    plan:'Triggers reserva: <$0.45 comprar $100 · <$0.40 comprar $150 · máx $300 ventana. Post-julio: HOLD con salidas 50% $1.50 / 50% $3.00+ → PHA.',
+    updated:'18 abr 2026'
+  },
+  'MORPHO': {
+    color:'#9d7ff0', ico:'M', name:'Morpho Protocol',
+    tag:'HOLD · OBSERVACIÓN', tagColor:'#e8a020',
+    role:'DeFi lending · candidato reclasificar',
+    dca:'Sin DCA programático',
+    plan:'Salidas actuales: 50% $3.50 / 50% $5.50+ → PHA.',
+    warn:'⚠ Candidato reclasificar: Apollo Global (90M tokens/48m), EF deposits, V2 2026, TVL $6.9B',
+    updated:'19 abr 2026'
+  },
+  'MSTR': {
+    color:'#e8a020', ico:'M', name:'MicroStrategy',
+    tag:'HOLD TÁCTICO', tagColor:'#e8a020',
+    role:'Proxy BTC apalancado · broker Schwab',
+    dca:'Sin DCA · limits activas: $155 ($100) + $145 ($150)',
+    plan:'Stop $145 · T1 $210-220 (50%) · T2 $260+ (25%). Si BTC >$100K y MSTR >$350, evaluar salida total → PHA.',
+    updated:'17 abr 2026'
+  },
+  'STRC': {
+    color:'#f5b731', ico:'S', name:'Strategy Stretch',
+    tag:'LIQUIDADO', tagColor:'#dc2626',
+    role:'Eliminado permanentemente',
+    dca:'—',
+    plan:'Liquidado 17 abril 2026. $1,769 USDC → reserva táctica. No se reconstruye.',
+    updated:'17 abr 2026'
+  }
+};
+
+let _stratOpen = false;
+function toggleStrat(){
+  _stratOpen = !_stratOpen;
+  const list = document.getElementById('strat-list');
+  const ico  = document.getElementById('strat-toggle-ico');
+  if(!list||!ico) return;
+  if(_stratOpen){
+    list.style.display='block';
+    ico.style.transform='rotate(180deg)';
+    renderStrat();
+  } else {
+    list.style.display='none';
+    ico.style.transform='rotate(0deg)';
+  }
+}
+
+function renderStrat(){
+  const list = document.getElementById('strat-list');
+  if(!list) return;
+  const orden = ['BTC','HYPE','PHA','ONDO','AKT','MORPHO','MSTR','STRC'];
+  const rows = orden.map(tick => {
+    const s = STRAT[tick];
+    if(!s) return '';
+    const warnBlock = s.warn ? `<div style="margin-top:6px;font-size:10px;color:#b45309;line-height:1.35">${s.warn}</div>` : '';
+    return `<div style="background:var(--s1);border:1px solid var(--bd);border-left:3px solid ${s.color};border-radius:8px;padding:10px 12px;margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;gap:8px">
+        <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">
+          <div style="background:${s.color}22;color:${s.color};border:1px solid ${s.color}44;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">${s.ico}</div>
+          <div style="min-width:0">
+            <div style="font-size:12px;font-weight:800;color:${s.color}">${tick}</div>
+            <div style="font-size:9px;color:var(--mu);margin-top:1px">${s.name}</div>
+          </div>
+        </div>
+        <span style="font-size:9px;font-weight:700;background:${s.tagColor}22;color:${s.tagColor};border:1px solid ${s.tagColor}44;padding:3px 7px;border-radius:10px;white-space:nowrap;flex-shrink:0">${s.tag}</span>
+      </div>
+      <div style="font-size:10px;color:var(--mu);margin-bottom:4px;font-style:italic">${s.role}</div>
+      <div style="font-size:11px;color:var(--fg);line-height:1.4;margin-bottom:3px"><span style="color:var(--mu);font-size:9px;text-transform:uppercase;letter-spacing:.05em">DCA · </span>${s.dca}</div>
+      <div style="font-size:11px;color:var(--fg);line-height:1.4"><span style="color:var(--mu);font-size:9px;text-transform:uppercase;letter-spacing:.05em">Plan · </span>${s.plan}</div>
+      ${warnBlock}
+      <div style="margin-top:6px;padding-top:6px;border-top:1px dashed var(--bd);font-size:9px;color:var(--mu);text-align:right">actualizado ${s.updated}</div>
+    </div>`;
+  }).join('');
+  list.innerHTML = rows;
+}
+
 
 let _accOpen = false;
 function toggleAcc(){

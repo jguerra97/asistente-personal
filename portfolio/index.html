@@ -323,23 +323,7 @@ td:first-child{text-align:left;}
   <div class="scen-grid" id="scen-grid"></div>
 </div>
 
-<!-- ACUMULACIÓN DE TOKENS (COLAPSABLE) -->
-<div class="sec" style="margin-top:16px">
-  <div class="ld" style="background:var(--pk);box-shadow:0 0 6px var(--pk)"></div>
-  <div class="lt">Acumulación de tokens <span>progreso hacia cantidad objetivo</span></div>
-</div>
-<div class="acc-toggle" onclick="toggleAcc()" id="acc-toggle-btn"
-  style="background:var(--s1);border:1px solid var(--bd);border-radius:10px;
-  padding:11px 14px;display:flex;justify-content:space-between;align-items:center;
-  cursor:pointer;-webkit-tap-highlight-color:rgba(232,105,160,.2);margin-bottom:6px;
-  transition:background .15s;">
-  <div>
-    <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--mu);letter-spacing:.08em;text-transform:uppercase">Progreso acumulación meta</div>
-    <div id="acc-toggle-total" style="font-family:'DM Mono',monospace;font-size:13px;font-weight:700;color:var(--pk);margin-top:2px">—</div>
-  </div>
-  <span id="acc-toggle-ico" style="font-size:14px;color:var(--mu);transition:transform .2s">▾</span>
-</div>
-<div class="acc-list" id="acc-list" style="display:none;margin-bottom:10px"></div>
+
 
 <!-- DISTRIBUCIÓN -->
 <div class="sec">
@@ -376,7 +360,7 @@ td:first-child{text-align:left;}
 </div>
 
 <div class="foot">
-  HYPE, ONDO, PHA, AKT, MORPHO vía CoinGecko · STRC/MSTR/BTC manual<br>
+  HYPE, ONDO, PHA, AKT, TAI vía CoinGecko · G via contract address fallback · STRC/MSTR/BTC manual<br>
   ✏ Cantidad y precio de entrada editables · Guardado automático en este navegador
 </div>
 </div>
@@ -396,20 +380,21 @@ function applyS(){
 }
 
 const L1=[
-  {id:'hyperliquid', tick:'HYPE',name:'Hyperliquid',   col:'#3db8f5',ico:'H',qty:34.24,      entry:34.68,  strat:'dca', sl:'DCA · Motor principal'},
-  {id:'ondo-finance',tick:'ONDO',name:'Ondo Finance',  col:'#818cf8',ico:'O',qty:5751.44,    entry:0.2572, strat:'hold',sl:'PAUSADO · overhang CEX'},
+  {id:'hyperliquid', tick:'HYPE',name:'Hyperliquid',   col:'#3db8f5',ico:'H',qty:34.24,      entry:34.68,  strat:'dca', sl:'DCA'},
+  {id:'ondo-finance',tick:'ONDO',name:'Ondo Finance',  col:'#818cf8',ico:'O',qty:5751.44,    entry:0.2572, strat:'hold',sl:'H2 2026'},
 ];
 const L2=[
-  {id:'phala-network',tick:'PHA',  name:'Phala Network', col:'#a78bfa',ico:'P',qty:24002,   entry:0.0345, target:0.40, price:0.038,
+  {id:'phala-network',tick:'PHA',name:'Phala Network', col:'#a78bfa',ico:'P',qty:24002,      entry:0.0345, target:0.099,price:0.0373,
    contractFallback:{platform:'ethereum',address:'0x6c5bA91642F10282b576d91922Ae6448C9d52f4E'}},
-  {id:'akash-network',tick:'AKT',  name:'Akash Network', col:'#10b981',ico:'A',qty:1791.46, entry:0.4718, target:3.50, price:0.467},
-  {id:'morpho',       tick:'MORPHO',name:'Morpho Protocol',col:'#9d7ff0',ico:'M',qty:201,   entry:1.79,   target:5.00, price:1.78,
-   contractFallback:{platform:'ethereum',address:'0x58d97b57bb95320f9a05dc918aef65434969c2b2'}},
+  {id:'akash-network',tick:'AKT',name:'Akash Network', col:'#10b981',ico:'A',qty:1791.46,    entry:0.4718, target:1.32, price:0.46},
+  {id:'tars-protocol',tick:'TAI',name:'TARS AI',        col:'#e879a0',ico:'T',qty:58062,      entry:0.01982,target:0.060,price:0.0169},
+  {id:'gravity',      tick:'G',  name:'Gravity (Galxe)',col:'#6366f1',ico:'G',qty:115722,     entry:0.003846,target:0.010,price:0.003664,
+   contractFallback:{platform:'ethereum',address:'0x9c7beba8f6ef6643abd725e45a4e8387ef260649'}},
 ];
 const BROKER=[
-  {tick:'STRC',name:'Strategy Stretch',  col:'#f5b731',ico:'S',qty:0, entry:99.76,  price:100,   strat:'exit', sl:'LIQUIDADO',    note:'Vendido 17 abril · $1,769 USDC reserva táctica'},
-  {tick:'MSTR',name:'MicroStrategy',     col:'#e8a020',ico:'M',qty:8.46299,  entry:177.20, price:166.43,   strat:'exit', sl:'Exit $210-220',  note:'Hold · táctico limits $155/$145 · salida target'},
-  {tick:'BTC', name:'Bitcoin (Lava+DCA)',col:'#f7931a',ico:'₿',qty:0.10196,  entry:34000,  price:75012, strat:'dca',  sl:'DCA perpetuo',   note:'Colchón LF · DCA $211/mes · entrada promedio ~$34K'},
+  {tick:'STRC',name:'Strategy Stretch',col:'#f5b731',ico:'S',qty:17.69459,  entry:99.76, price:100,    strat:'yield',sl:'11.5% yield',note:'Preferred stock · yield mensual'},
+  {tick:'MSTR',name:'MicroStrategy',   col:'#e8a020',ico:'M',qty:8.46299,   entry:177.20,price:128.44, strat:'exit', sl:'Exit $160',  note:'Salir 50% si recupera $160–165'},
+  {tick:'BTC', name:'Bitcoin (broker)',col:'#f7931a',ico:'₿',qty:0.0267,    entry:73200, price:74555,  strat:'dca',  sl:'DCA',        note:'DCA $200/mes fijo'},
 ];
 
 const fm=(n,d=2)=>n==null?'—':'$'+n.toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
@@ -664,7 +649,7 @@ async function load(){
   rb.classList.add('busy');sp.classList.add('go');
   document.getElementById('ts').textContent='Actualizando precios...';
   applyS();
-  const cgIds=['hyperliquid','ondo-finance','akash-network','morpho'];
+  const cgIds=['hyperliquid','ondo-finance','akash-network','tars-protocol'];
   const px=await fetchCG(cgIds);
   if(Object.keys(px).length===0){
     document.getElementById('ts').textContent='⚠ Sin conexión a CoinGecko — usando precios guardados';
@@ -682,7 +667,10 @@ async function load(){
   });
   L2.forEach(a=>{
     let price=null,chg=null;
-    if(a.tick==='PHA'){
+    if(a.tick==='G'){
+      if(gData){price=gData.usd;chg=gData.chg;a.price=price;}
+      else price=a.price;
+    } else if(a.tick==='PHA'){
       if(phaData){price=phaData.usd;chg=phaData.chg;a.price=price;}
       else price=a.price;
     } else{
@@ -715,7 +703,6 @@ async function load(){
   document.getElementById('ts').textContent=`${n.toLocaleDateString('es-GT')} ${n.toLocaleTimeString('es-GT',{hour:'2-digit',minute:'2-digit'})}`;
   rb.classList.remove('busy');sp.classList.remove('go');
   renderDist();
-  renderAcc();
 }
 function onQC(tick,val){const v=parseFloat(val);if(isNaN(v)||v<0)return;const a=[...L1,...L2].find(x=>x.tick===tick);if(a){a.qty=v;svS(tick,'qty',v);load();}}
 function onEC(tick,val){const v=parseFloat(val);if(isNaN(v)||v<=0)return;const a=[...L1,...L2].find(x=>x.tick===tick);if(a){a.entry=v;svS(tick,'entry',v);load();}}
@@ -743,108 +730,6 @@ function descargarResumen(){
   const fm2=n=>'$'+n.toLocaleString('en-US',{maximumFractionDigits:0});
   const fmp=n=>(n>=0?'+':'')+n.toFixed(1)+'%';
 
-  // Construir rows de acumulación (v1.6 — 3 activos meta)
-  const ACC_SUMMARY = {
-    'HYPE':   {target:150,     label:'tokens', color:'#3db8f5', role:'Motor principal · DCA 30%'},
-    'PHA':    {target:120000,  label:'tokens', color:'#a78bfa', role:'Caballo matemático · DCA 30%'},
-    'ONDO':   {target:12000,   label:'tokens', color:'#818cf8', role:'RWA institucional · DCA 15%'},
-  };
-  const accRows = Object.keys(ACC_SUMMARY).map(tick=>{
-    const asset = allAssets.find(x=>x.tick===tick);
-    if(!asset) return '';
-    const tgt = ACC_SUMMARY[tick];
-    const qty = asset.qty || 0;
-    const pct = Math.min((qty / tgt.target) * 100, 100);
-    const faltan = Math.max(tgt.target - qty, 0);
-    const completo = pct >= 100;
-    const barColor = completo ? '#059669' : tgt.color;
-    const fmtQty = (n) => n >= 1000 ? n.toLocaleString('en-US',{maximumFractionDigits:0})
-                       : n >= 1 ? n.toLocaleString('en-US',{maximumFractionDigits:2})
-                       : n.toFixed(4);
-    return `<div style="margin-bottom:12px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-        <div>
-          <span style="font-size:13px;font-weight:700;color:${tgt.color}">${tick}</span>
-          <span style="font-size:10px;color:#a0aec0;margin-left:6px">${tgt.role}</span>
-        </div>
-        <div style="font-size:12px;font-weight:700;color:${barColor}">${pct.toFixed(1)}%</div>
-      </div>
-      <div style="background:#edf2f7;border-radius:3px;height:6px;overflow:hidden;margin-bottom:4px">
-        <div style="height:100%;width:${pct}%;background:${barColor};border-radius:3px"></div>
-      </div>
-      <div style="display:flex;justify-content:space-between;font-size:10px;color:#718096">
-        <span>${fmtQty(qty)} ${tgt.label}</span>
-        <span>meta ${fmtQty(tgt.target)} · faltan ${fmtQty(faltan)}</span>
-      </div>
-    </div>`;
-  }).join('');
-
-  const promedioAcc = Object.keys(ACC_SUMMARY).reduce((acc, tick) => {
-    const asset = allAssets.find(x=>x.tick===tick);
-    if(!asset) return acc;
-    return acc + Math.min((asset.qty||0) / ACC_SUMMARY[tick].target, 1);
-  }, 0) / Object.keys(ACC_SUMMARY).length * 100;
-
-  // DCA mensual — distribución v1.6
-  const DCA_DIST = [
-    {tick:'BTC',  pct:25, usd:176, q:'1,363', color:'#f7931a', role:'colchón LF'},
-    {tick:'HYPE', pct:30, usd:211, q:'1,636', color:'#3db8f5', role:'motor principal'},
-    {tick:'PHA',  pct:30, usd:211, q:'1,636', color:'#a78bfa', role:'caballo matemático'},
-    {tick:'ONDO', pct:15, usd:105, q:'818',   color:'#818cf8', role:'RWA'},
-  ];
-  const dcaRows = DCA_DIST.map(d=>`<tr>
-    <td style="padding:7px 10px;border-bottom:1px solid #edf2f7"><span style="color:${d.color};font-weight:700">${d.tick}</span> <span style="color:#a0aec0;font-size:10px">· ${d.role}</span></td>
-    <td style="padding:7px 10px;border-bottom:1px solid #edf2f7;text-align:right;font-weight:600">${d.pct}%</td>
-    <td style="padding:7px 10px;border-bottom:1px solid #edf2f7;text-align:right;color:#059669">Q${d.q}</td>
-    <td style="padding:7px 10px;border-bottom:1px solid #edf2f7;text-align:right;color:#a0aec0">$${d.usd}</td>
-  </tr>`).join('');
-
-  // Performance y concentración
-  const timestamp = new Date().toLocaleString('es-GT',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
-  // Top 3 concentración
-  const sortedByVal = [...allAssets].map(a=>({tick:a.tick, val:(a.price||0)*a.qty})).sort((a,b)=>b.val-a.val).slice(0,3);
-  const top3Total = sortedByVal.reduce((s,a)=>s+a.val,0);
-  const top3Pct = tot>0?((top3Total/tot)*100).toFixed(1):'0';
-  const top3Names = sortedByVal.map(a=>a.tick).join(' + ');
-
-  // Herfindahl Index — concentración
-  const herfindahl = allAssets.reduce((s,a)=>{
-    const pct = tot>0 ? ((a.price||0)*a.qty/tot) : 0;
-    return s + pct*pct;
-  }, 0) * 10000;
-  const concentrationLabel = herfindahl<1500?'Diversificado':herfindahl<2500?'Moderado':'Alto';
-  const concentrationColor = herfindahl<1500?'#059669':herfindahl<2500?'#d97706':'#dc2626';
-
-  // Capital comprometido — incluye hold activos (ya tiene capital metido)
-  const capitalComprometido = cst; // ya incluye todo (L1+L2+BROKER incluye AKT/MORPHO/MSTR)
-  // DCA próximos 12 meses
-  const dca12m = 703 * 12; // $703/mes * 12
-
-  // Escenarios proyectados — basados en plan v1.6
-  const escenarios = [
-    {nombre:'Base',     pct:'70%', txt:'70% targets ejecutados + DCA sostenido', rango:'$95K – $115K', color:'#d97706', prob:'45%'},
-    {nombre:'Alcista',  pct:'100%',txt:'Todos targets + bonos desplegados',       rango:'$145K – $175K', color:'#059669', prob:'30%'},
-    {nombre:'Bajista',  pct:'30%', txt:'Ciclo termina Q4 2026, targets no ejecutan', rango:'$55K – $75K',  color:'#dc2626', prob:'25%'},
-  ];
-  const escRows = escenarios.map(e=>`<tr>
-    <td style="padding:8px 10px;border-bottom:1px solid #edf2f7;"><span style="font-weight:700;color:${e.color}">${e.nombre}</span></td>
-    <td style="padding:8px 10px;border-bottom:1px solid #edf2f7;color:#555;font-size:10px">${e.txt}</td>
-    <td style="padding:8px 10px;border-bottom:1px solid #edf2f7;text-align:right;font-weight:700;color:${e.color}">${e.rango}</td>
-    <td style="padding:8px 10px;border-bottom:1px solid #edf2f7;text-align:right;font-size:10px;color:#888">${e.prob}</td>
-  </tr>`).join('');
-
-  // Zonas de salida y tags especiales para activos específicos (v1.6)
-  const ZONAS = {
-    'PHA':  '20% $0.09 / 25% $0.27 / 25% $0.70 / 20% $1.35 / 10% $2.00+',
-    'HYPE': '20% $55 / 25% $95 / 30% $150 / 25% $220+',
-    'ONDO': '20% $0.50 / 30% $1.10 / 30% $2.25 / 20% $4.50',
-    'AKT':  'HOLD · Salida 50% $1.50 / 50% $3.00+ → PHA',
-    'MORPHO':'HOLD · Salida 50% $3.50 / 50% $5.50+ → PHA',
-    'MSTR': 'Stop $145 · T1 $210-220 (50%) · T2 $260+ (25%) → PHA',
-    'BTC':  '🔒 Colchón LF · NO cuenta para meta $150K',
-    'STRC': 'LIQUIDADO · ex-capital en USDC reserva táctica',
-  };
-
   // Filas de activos — diseño compacto 2 columnas en lugar de tabla ancha
   const cards=allAssets.map(a=>{
     const val=(a.price||0)*a.qty;
@@ -853,12 +738,7 @@ function descargarResumen(){
     const apPct=inv>0?((ap/inv)*100):0;
     const peso=tot>0?((val/tot)*100).toFixed(1):'0';
     const layer=L1.find(x=>x.tick===a.tick)?'Capa 1':L2.find(x=>x.tick===a.tick)?'Capa 2':'Broker';
-    const zonaTexto = ZONAS[a.tick] || '';
-    const isBTCcolchon = a.tick === 'BTC';
-    const isHold = ['AKT','MORPHO','MSTR'].includes(a.tick);
-    const borderColor = isBTCcolchon ? '#f7931a' : isHold ? '#e8a020' : '#e2e8f0';
-    const bgColor = isBTCcolchon ? '#fff7ed' : isHold ? '#fffbeb' : '#f8faff';
-    return `<div style="background:${bgColor};border:1px solid ${borderColor};border-radius:8px;padding:12px 14px;break-inside:avoid;">
+    return `<div style="background:#f8faff;border:1px solid #e2e8f0;border-radius:8px;padding:12px 14px;break-inside:avoid;">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
         <div>
           <span style="font-size:15px;font-weight:800;color:#1a202c">${a.tick}</span>
@@ -879,7 +759,6 @@ function descargarResumen(){
         <span style="font-size:10px;color:#a0aec0">P&L no realizado</span>
         <span style="font-size:13px;font-weight:700;color:${ap>=0?'#00b894':'#e53e3e'}">${ap>=0?'+':''}${fm2(Math.abs(ap))} <span style="font-size:10px">(${fmp(apPct)})</span></span>
       </div>
-      ${zonaTexto?`<div style="margin-top:8px;padding:7px 10px;background:rgba(157,127,240,.08);border-left:3px solid #9d7ff0;border-radius:3px;"><div style="font-size:8px;color:#6b46c1;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;font-weight:600">Plan</div><div style="font-size:10px;color:#4c1d95;line-height:1.4">${zonaTexto}</div></div>`:''}
     </div>`;
   }).join('');
 
@@ -956,73 +835,8 @@ body{font-family:"Segoe UI",Arial,sans-serif;background:#f7f8fc;color:#1a202c;pa
 </div>
 
 <div class="sec">
-  <div class="sec-hdr"><div class="sec-t">Performance y concentración</div><div class="sec-sub">Precios al ${timestamp}</div></div>
-  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">
-    <div style="background:#f7f9ff;border:1px solid #e2e8f7;border-radius:8px;padding:10px 12px">
-      <div style="font-size:8px;color:#a0aec0;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Top 3 concentración</div>
-      <div style="font-size:18px;font-weight:800;color:#1a202c">${top3Pct}%</div>
-      <div style="font-size:9px;color:#a0aec0">${top3Names}</div>
-    </div>
-    <div style="background:#f7f9ff;border:1px solid #e2e8f7;border-radius:8px;padding:10px 12px">
-      <div style="font-size:8px;color:#a0aec0;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">HHI Concentración</div>
-      <div style="font-size:18px;font-weight:800;color:${concentrationColor}">${herfindahl.toFixed(0)}</div>
-      <div style="font-size:9px;color:${concentrationColor}">${concentrationLabel}</div>
-    </div>
-    <div style="background:#f7f9ff;border:1px solid #e2e8f7;border-radius:8px;padding:10px 12px">
-      <div style="font-size:8px;color:#a0aec0;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Capital 12 meses</div>
-      <div style="font-size:18px;font-weight:800;color:#059669">+${fm2(dca12m)}</div>
-      <div style="font-size:9px;color:#a0aec0">DCA comprometido</div>
-    </div>
-  </div>
-  <div style="background:#fff7ed;border-left:3px solid #f59e0b;border-radius:3px;padding:8px 12px;font-size:10px;color:#78350f;line-height:1.5">
-    <strong>Fuentes:</strong> HYPE/ONDO/AKT/PHA/MORPHO via CoinGecko · BTC/MSTR manual. HHI &lt;1500 diversificado · 1500-2500 moderado · &gt;2500 concentrado.
-  </div>
-</div>
-
-<div class="sec">
   <div class="sec-hdr"><div class="sec-t">Composición detallada</div><div class="sec-sub">${fm2(tot)} valor total</div></div>
   <div class="assets-grid">${cards}</div>
-</div>
-
-<div class="sec">
-  <div class="sec-hdr"><div class="sec-t">Progreso de acumulación · meta tokens</div><div class="sec-sub">${promedioAcc.toFixed(1)}% promedio · 3 activos</div></div>
-  ${accRows}
-  <div style="background:#f5f3ff;border:1px solid #ddd6fe;border-radius:8px;padding:10px 12px;margin-top:8px;font-size:10px;color:#4c1d95;line-height:1.5">
-    <strong>Plan v1.6:</strong> acumular tokens de los 3 activos meta hasta alcanzar cantidades objetivo.<br>
-    Al ejecutar zonas de salida, capital liberado → 100% PHA hasta completar meta $150K.
-  </div>
-</div>
-
-<div class="sec">
-  <div class="sec-hdr"><div class="sec-t">Distribución DCA mensual</div><div class="sec-sub">$703/mes · Q5,452</div></div>
-  <table style="width:100%;border-collapse:collapse;font-size:11px">
-    <thead><tr style="background:#f9fafb">
-      <th style="padding:7px 10px;text-align:left;font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e5e7eb">Activo</th>
-      <th style="padding:7px 10px;text-align:right;font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e5e7eb">%</th>
-      <th style="padding:7px 10px;text-align:right;font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e5e7eb">Quetzales</th>
-      <th style="padding:7px 10px;text-align:right;font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e5e7eb">USD</th>
-    </tr></thead>
-    <tbody>${dcaRows}</tbody>
-  </table>
-  <div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:6px;padding:8px 12px;margin-top:10px;font-size:10px;color:#065f46;line-height:1.5">
-    <strong>Nota:</strong> mientras ONDO tenga overhang multisig activo, ese 15% se redirige 50/50 a PHA y HYPE.
-  </div>
-</div>
-
-<div class="sec">
-  <div class="sec-hdr"><div class="sec-t">Escenarios proyectados · horizonte 2027-2028</div><div class="sec-sub">Meta $150K neto</div></div>
-  <table style="width:100%;border-collapse:collapse;font-size:11px">
-    <thead><tr style="background:#f9fafb">
-      <th style="padding:7px 10px;text-align:left;font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e5e7eb">Escenario</th>
-      <th style="padding:7px 10px;text-align:left;font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e5e7eb">Condición</th>
-      <th style="padding:7px 10px;text-align:right;font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e5e7eb">Valor esperado</th>
-      <th style="padding:7px 10px;text-align:right;font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e5e7eb">Prob.</th>
-    </tr></thead>
-    <tbody>${escRows}</tbody>
-  </table>
-  <div style="background:#fffbeb;border:1px solid #fbd38d;border-radius:6px;padding:8px 12px;margin-top:10px;font-size:10px;color:#744210;line-height:1.5">
-    <strong>Thesis breakers:</strong> Oil &gt;$110 · BTC &lt;$62K con volumen · VIX &gt;25 · Powell "no cuts 2026". Probabilidades son estimaciones del panel, no garantías.
-  </div>
 </div>
 
 <div class="note">⚠ Estado de resultados no realizado. Valores al momento de generación. No constituye asesoramiento financiero regulado.</div>
@@ -1049,87 +863,6 @@ function setDistView(v){
   renderDist();
 }
 
-// ── ACUMULACIÓN DE TOKENS (META) ───────────────────────────────
-// Tokens objetivo para alcanzar meta $150K con zonas de salida del plan
-const ACC_TARGETS = {
-  'HYPE':   {target:150,     label:'tokens', color:'#3db8f5'},
-  'ONDO':   {target:12000,   label:'tokens', color:'#818cf8'},
-  'PHA':    {target:120000,  label:'tokens', color:'#a78bfa'},
-};
-
-let _accOpen = false;
-function toggleAcc(){
-  _accOpen = !_accOpen;
-  const list = document.getElementById('acc-list');
-  const ico  = document.getElementById('acc-toggle-ico');
-  if(!list||!ico) return;
-  if(_accOpen){
-    list.style.display='block';
-    ico.style.transform='rotate(180deg)';
-    renderAcc();
-  } else {
-    list.style.display='none';
-    ico.style.transform='rotate(0deg)';
-  }
-}
-
-function renderAcc(){
-  const list = document.getElementById('acc-list');
-  const totalLbl = document.getElementById('acc-toggle-total');
-  if(!list) return;
-
-  // Combinar todos los activos con targets
-  const all = [...L1, ...L2, ...BROKER];
-  const rows = Object.keys(ACC_TARGETS).map(tick => {
-    const asset = all.find(a => a.tick === tick);
-    const tgt = ACC_TARGETS[tick];
-    if(!asset) return null;
-    const qty = asset.qty || 0;
-    const pct = Math.min((qty / tgt.target) * 100, 100);
-    const faltan = Math.max(tgt.target - qty, 0);
-    const completo = pct >= 100;
-    const pctCol = completo ? 'var(--gr)' : pct >= 50 ? 'var(--go)' : 'var(--ac)';
-
-    // Formato de cantidades
-    const fmtQty = (n) => n >= 1000 ? n.toLocaleString('en-US',{maximumFractionDigits:0})
-                       : n >= 1 ? n.toLocaleString('en-US',{maximumFractionDigits:2})
-                       : n.toFixed(4);
-
-    return `<div style="background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:12px 14px;margin-bottom:6px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-        <div style="display:flex;align-items:center;gap:8px">
-          <div class="ai" style="background:${tgt.color}22;color:${tgt.color};border:1px solid ${tgt.color}44;width:24px;height:24px;font-size:10px">${asset.ico||tick[0]}</div>
-          <div>
-            <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--tx)">${tick}</div>
-            <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu)">${asset.name||''}</div>
-          </div>
-        </div>
-        <div style="text-align:right">
-          <div style="font-family:'DM Mono',monospace;font-size:11px;font-weight:700;color:${pctCol}">${pct.toFixed(1)}%</div>
-          <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu)">${completo?'✓ completado':'faltan '+fmtQty(faltan)}</div>
-        </div>
-      </div>
-      <div style="background:var(--s3);border-radius:3px;height:6px;overflow:hidden;margin-bottom:6px">
-        <div style="height:100%;width:${pct}%;background:${tgt.color};border-radius:3px;transition:width .3s"></div>
-      </div>
-      <div style="display:flex;justify-content:space-between;font-family:'DM Mono',monospace;font-size:10px;color:var(--mu)">
-        <span>${fmtQty(qty)} ${tgt.label}</span>
-        <span>meta: ${fmtQty(tgt.target)} ${tgt.label}</span>
-      </div>
-    </div>`;
-  }).filter(Boolean).join('');
-
-  // Resumen global — promedio ponderado por contribución a meta
-  const totalPct = Object.keys(ACC_TARGETS).reduce((acc, tick) => {
-    const asset = all.find(a => a.tick === tick);
-    if(!asset) return acc;
-    return acc + Math.min((asset.qty||0) / ACC_TARGETS[tick].target, 1);
-  }, 0) / Object.keys(ACC_TARGETS).length * 100;
-
-  list.innerHTML = rows;
-  if(totalLbl) totalLbl.textContent = totalPct.toFixed(1) + '% promedio · '+Object.keys(ACC_TARGETS).length+' activos';
-}
-
 function renderDist(){
   const canvas  = document.getElementById('dist-canvas');
   const legend  = document.getElementById('dist-legend');
@@ -1153,7 +886,7 @@ function renderDist(){
     const vB = BROKER.reduce((s,a)=>s+(a.price||0)*a.qty,0);
     items = [
       {label:'Capa 1 · Sólidos',      col:'#3db8f5', val:v1, sub:'HYPE · ONDO'},
-      {label:'Capa 2 · Explosivos',   col:'#9d7ff0', val:v2, sub:'PHA · AKT · MORPHO'},
+      {label:'Capa 2 · Explosivos',   col:'#9d7ff0', val:v2, sub:'PHA · AKT · TAI · G'},
       {label:'Broker / Institucional', col:'#f5b731', val:vB, sub:'STRC · MSTR · BTC'},
     ].filter(x=>x.val>0);
   }

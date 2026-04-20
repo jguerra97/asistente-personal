@@ -401,7 +401,7 @@ body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--tx);min-heig
 <div class="card">
   <div class="card-body">
 
-    <!-- Saldo y progreso -->
+    <!-- Saldo y progreso (SIEMPRE VISIBLE) -->
     <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;margin-bottom:10px">
       <div>
         <div class="hip-saldo" id="hip-saldo">—</div>
@@ -415,24 +415,8 @@ body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--tx);min-heig
     <div class="hip-bar"><div class="hip-fill" id="hip-fill" style="background:linear-gradient(90deg,var(--rd),var(--go));width:0%"></div></div>
     <div class="hip-labels"><span id="hip-lbl-l">Pagado: Q0</span><span>Original: Q1,480,000</span></div>
 
-    <!-- Stats row -->
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin:12px 0;text-align:center">
-      <div style="background:var(--s2);border-radius:7px;padding:8px 4px">
-        <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu);margin-bottom:3px">PAGADAS</div>
-        <div id="hip-n-pag" style="font-size:16px;font-weight:800;color:var(--gr)">0</div>
-      </div>
-      <div style="background:var(--s2);border-radius:7px;padding:8px 4px">
-        <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu);margin-bottom:3px">PENDIENTES</div>
-        <div id="hip-n-pend" style="font-size:16px;font-weight:800;color:var(--rd)">—</div>
-      </div>
-      <div style="background:var(--s2);border-radius:7px;padding:8px 4px">
-        <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu);margin-bottom:3px">ABONOS</div>
-        <div id="hip-n-abonos" style="font-size:16px;font-weight:800;color:var(--ac)">Q0</div>
-      </div>
-    </div>
-
-    <!-- Checkbox mes actual -->
-    <div id="cuota-wrap-div">
+    <!-- Checkbox mes actual (SIEMPRE VISIBLE) -->
+    <div id="cuota-wrap-div" style="margin-top:10px">
       <div onclick="toggleCuotaMes()" style="display:flex;align-items:center;gap:12px;padding:10px 0;
         border-top:1px solid var(--bd);cursor:pointer;-webkit-tap-highlight-color:rgba(52,208,122,.2)">
         <span id="cuota-icon" style="font-size:24px;min-width:28px">⬜</span>
@@ -444,16 +428,44 @@ body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--tx);min-heig
       <div class="chips" id="cuota-chips"></div>
     </div>
 
-    <!-- Abonos extra -->
-    <div style="border-top:1px solid var(--bd);margin-top:10px;padding-top:10px;">
-      <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);margin-bottom:7px">Abonos extra a capital:</div>
-      <div class="reg-row">
-        <input class="reg-inp" id="hip-amt" type="number" placeholder="Q monto" step="100">
-        <input class="reg-inp" id="hip-nota" type="text" placeholder="nota">
-        <button class="reg-btn" onclick="addAbonoHip()">+ Agregar</button>
+    <!-- Stats + Abonos extra (COLAPSABLE) -->
+    <div onclick="toggleHipDet()" id="hip-det-toggle" style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:var(--s2);border-radius:6px;cursor:pointer;-webkit-tap-highlight-color:rgba(232,121,160,.2);margin-top:10px">
+      <div>
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);letter-spacing:.05em;text-transform:uppercase">Estadísticas y abonos extra</div>
+        <div style="font-family:'DM Mono',monospace;font-size:11px;font-weight:600;color:var(--pk);margin-top:2px">Tap para ver detalle</div>
       </div>
-      <div class="reg-list" id="hip-abonos-list"></div>
-      <div class="reg-total">Total abonos extra: <span id="hip-abonos-total" style="color:var(--gr);font-weight:700">Q0</span></div>
+      <span id="hip-det-ico" style="font-size:12px;color:var(--mu);transition:transform .2s">▾</span>
+    </div>
+    <div id="hip-det-body" style="display:none;margin-top:10px">
+
+      <!-- Stats row -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:12px;text-align:center">
+        <div style="background:var(--s2);border-radius:7px;padding:8px 4px">
+          <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu);margin-bottom:3px">PAGADAS</div>
+          <div id="hip-n-pag" style="font-size:16px;font-weight:800;color:var(--gr)">0</div>
+        </div>
+        <div style="background:var(--s2);border-radius:7px;padding:8px 4px">
+          <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu);margin-bottom:3px">PENDIENTES</div>
+          <div id="hip-n-pend" style="font-size:16px;font-weight:800;color:var(--rd)">—</div>
+        </div>
+        <div style="background:var(--s2);border-radius:7px;padding:8px 4px">
+          <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu);margin-bottom:3px">ABONOS</div>
+          <div id="hip-n-abonos" style="font-size:16px;font-weight:800;color:var(--ac)">Q0</div>
+        </div>
+      </div>
+
+      <!-- Abonos extra -->
+      <div style="border-top:1px solid var(--bd);padding-top:10px;">
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);margin-bottom:7px">Abonos extra a capital:</div>
+        <div class="reg-row">
+          <input class="reg-inp" id="hip-amt" type="number" placeholder="Q monto" step="100">
+          <input class="reg-inp" id="hip-nota" type="text" placeholder="nota">
+          <button class="reg-btn" onclick="addAbonoHip()">+ Agregar</button>
+        </div>
+        <div class="reg-list" id="hip-abonos-list"></div>
+        <div class="reg-total">Total abonos extra: <span id="hip-abonos-total" style="color:var(--gr);font-weight:700">Q0</span></div>
+      </div>
+
     </div>
   </div>
 </div>
@@ -466,39 +478,56 @@ body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--tx);min-heig
 </div>
 <div class="card">
   <div class="card-body">
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px">
-      <div style="background:var(--s2);border-radius:7px;padding:10px;text-align:center">
-        <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu);text-transform:uppercase;margin-bottom:4px">Base inicial</div>
-        <div id="dca-base-val" style="font-size:14px;font-weight:800;color:var(--ac)">—</div>
-        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);margin-top:2px">ene–mar 2026</div>
+    <!-- Resumen total siempre visible -->
+    <div onclick="toggleDcaDet()" id="dca-det-toggle" style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--s2);border-radius:7px;cursor:pointer;-webkit-tap-highlight-color:rgba(61,184,245,.2)">
+      <div>
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);letter-spacing:.05em;text-transform:uppercase">💰 Total invertido</div>
+        <div id="dca-total-top" style="font-family:'DM Mono',monospace;font-size:16px;font-weight:800;color:var(--go);margin-top:2px">—</div>
       </div>
-      <div style="background:var(--s2);border-radius:7px;padding:10px;text-align:center">
-        <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu);text-transform:uppercase;margin-bottom:4px">DCA desde abril</div>
-        <div id="dca-aportado" style="font-size:14px;font-weight:800;color:var(--gr)">—</div>
-        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);margin-top:2px">acumulado tracker</div>
-      </div>
-      <div style="background:var(--s2);border-radius:7px;padding:10px;text-align:center">
-        <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu);text-transform:uppercase;margin-bottom:4px">Total invertido</div>
-        <div id="dca-total" style="font-size:14px;font-weight:800;color:var(--go)">—</div>
-        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);margin-top:2px">base + DCA</div>
+      <div style="text-align:right;display:flex;align-items:center;gap:8px">
+        <div>
+          <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);letter-spacing:.05em;text-transform:uppercase">DCA activo</div>
+          <div id="dca-aportado-top" style="font-family:'DM Mono',monospace;font-size:13px;font-weight:700;color:var(--gr);margin-top:2px">—</div>
+        </div>
+        <span id="dca-det-ico" style="font-size:12px;color:var(--mu);transition:transform .2s">▾</span>
       </div>
     </div>
-    <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);margin-bottom:5px">
-      Capital invertido antes del tracker (ene–mar 2026, solo se ingresa una vez):
-    </div>
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
-      <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--mu)">$</span>
-      <input type="number" id="dca-base-inp" step="10" min="0" placeholder="8950"
-        style="background:var(--s3);border:1px solid rgba(61,184,245,.3);color:var(--ac);
-        font-family:'DM Mono',monospace;font-size:13px;font-weight:700;
-        padding:5px 9px;border-radius:6px;flex:1;text-align:right"
-        onchange="saveDCABase(this.value)">
-    </div>
-    <div style="border-top:1px solid var(--bd);padding-top:10px;">
-      <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);margin-bottom:7px">
-        Aportado desde abril en adelante (del historial):
+
+    <div id="dca-det-body" style="display:none;margin-top:10px">
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px">
+        <div style="background:var(--s2);border-radius:7px;padding:10px;text-align:center">
+          <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu);text-transform:uppercase;margin-bottom:4px">Base inicial</div>
+          <div id="dca-base-val" style="font-size:14px;font-weight:800;color:var(--ac)">—</div>
+          <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);margin-top:2px">ene–mar 2026</div>
+        </div>
+        <div style="background:var(--s2);border-radius:7px;padding:10px;text-align:center">
+          <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu);text-transform:uppercase;margin-bottom:4px">DCA desde abril</div>
+          <div id="dca-aportado" style="font-size:14px;font-weight:800;color:var(--gr)">—</div>
+          <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);margin-top:2px">acumulado tracker</div>
+        </div>
+        <div style="background:var(--s2);border-radius:7px;padding:10px;text-align:center">
+          <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu);text-transform:uppercase;margin-bottom:4px">Total invertido</div>
+          <div id="dca-total" style="font-size:14px;font-weight:800;color:var(--go)">—</div>
+          <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);margin-top:2px">base + DCA</div>
+        </div>
       </div>
-      <div id="dca-hist-list"></div>
+      <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);margin-bottom:5px">
+        Capital invertido antes del tracker (ene–mar 2026, solo se ingresa una vez):
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+        <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--mu)">$</span>
+        <input type="number" id="dca-base-inp" step="10" min="0" placeholder="8950"
+          style="background:var(--s3);border:1px solid rgba(61,184,245,.3);color:var(--ac);
+          font-family:'DM Mono',monospace;font-size:13px;font-weight:700;
+          padding:5px 9px;border-radius:6px;flex:1;text-align:right"
+          onchange="saveDCABase(this.value)">
+      </div>
+      <div style="border-top:1px solid var(--bd);padding-top:10px;">
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);margin-bottom:7px">
+          Aportado desde abril en adelante (del historial):
+        </div>
+        <div id="dca-hist-list"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -966,27 +995,34 @@ function renderLulubit(lulMesInput){
   }).join('');
 
   cont.innerHTML='<div class="subs-wrap">'
-    // ── Distribución estimada ──
-    +'<div class="subs-title">🎉 Lulubit · distribución estimada <span style="color:var(--mu2);font-weight:400;font-size:8px">· referencia visual</span></div>'
-    +catsHtml
-    +'<div style="display:flex;justify-content:space-between;padding:6px 0 4px;border-top:1px solid var(--bd);margin-top:6px;font-size:10px">'
-      +'<span style="color:var(--mu)">Total estimado</span>'
-      +'<span style="font-family:\'DM Mono\',monospace;color:var(--pu);font-weight:700">Q'+LULU_EST_TOTAL.toLocaleString('es-GT')+'</span>'
+    // ── Distribución estimada (COLAPSABLE) ──
+    +'<div onclick="toggleLuluEst()" id="lulu-est-toggle" style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:var(--s2);border-radius:6px;cursor:pointer;-webkit-tap-highlight-color:rgba(157,127,240,.2);margin-bottom:8px">'
+      +'<div>'
+        +'<div style="font-family:\'DM Mono\',monospace;font-size:9px;color:var(--mu);letter-spacing:.05em;text-transform:uppercase">🎉 Distribución estimada · suscripciones</div>'
+        +'<div style="font-family:\'DM Mono\',monospace;font-size:12px;font-weight:700;color:var(--pu);margin-top:2px">Q'+LULU_EST_TOTAL.toLocaleString('es-GT')+' · ref. visual</div>'
+      +'</div>'
+      +'<span id="lulu-est-ico" style="font-size:12px;color:var(--mu);transition:transform .2s">▾</span>'
     +'</div>'
-
-    // ── Detalle suscripciones ──
-    +'<div style="margin-top:10px;padding:8px 10px;background:var(--s2);border-radius:6px;font-size:10px">'
-      +'<div style="color:var(--mu);margin-bottom:4px;font-weight:600">🎬 Detalle suscripciones ($'+totalSubsUsd.toFixed(2)+' · Q'+totalSubsQ.toFixed(0)+')</div>'
-      +SUBS_ENT.map(function(s){
-        return '<div style="display:flex;justify-content:space-between;padding:2px 0;color:var(--mu2)">'
-          +'<span>'+s.nom+'</span>'
-          +'<span style="font-family:\'DM Mono\',monospace">$'+s.usd.toFixed(2)+' · '+s.freq+'</span>'
-        +'</div>';
-      }).join('')
+    +'<div id="lulu-est-body" style="display:none;margin-bottom:10px">'
+      +catsHtml
+      +'<div style="display:flex;justify-content:space-between;padding:6px 0 4px;border-top:1px solid var(--bd);margin-top:6px;font-size:10px">'
+        +'<span style="color:var(--mu)">Total estimado</span>'
+        +'<span style="font-family:\'DM Mono\',monospace;color:var(--pu);font-weight:700">Q'+LULU_EST_TOTAL.toLocaleString('es-GT')+'</span>'
+      +'</div>'
+      // Detalle suscripciones (dentro del colapsable)
+      +'<div style="margin-top:10px;padding:8px 10px;background:var(--s2);border-radius:6px;font-size:10px">'
+        +'<div style="color:var(--mu);margin-bottom:4px;font-weight:600">🎬 Detalle suscripciones ($'+totalSubsUsd.toFixed(2)+' · Q'+totalSubsQ.toFixed(0)+')</div>'
+        +SUBS_ENT.map(function(s){
+          return '<div style="display:flex;justify-content:space-between;padding:2px 0;color:var(--mu2)">'
+            +'<span>'+s.nom+'</span>'
+            +'<span style="font-family:\'DM Mono\',monospace">$'+s.usd.toFixed(2)+' · '+s.freq+'</span>'
+          +'</div>';
+        }).join('')
+      +'</div>'
     +'</div>'
 
     // ── Estado del mes ──
-    +'<div style="margin-top:14px;padding-top:10px;border-top:1px solid var(--bd)">'
+    +'<div style="padding-top:4px">'
       +'<div class="subs-title" style="margin-bottom:8px">📊 Estado del mes</div>'
 
       // Reserva Lulu input
@@ -1680,10 +1716,14 @@ function renderDCA(){
   const bv=document.getElementById('dca-base-val');
   const av=document.getElementById('dca-aportado');
   const tv=document.getElementById('dca-total');
+  const avTop=document.getElementById('dca-aportado-top');
+  const tvTop=document.getElementById('dca-total-top');
   const bi=document.getElementById('dca-base-inp');
   if(bv)bv.textContent=base>0?'$'+base.toLocaleString('en-US',{maximumFractionDigits:0}):'—';
   if(av)av.textContent=dcaAcum>0?'$'+dcaAcum.toFixed(0):'$0';
   if(tv)tv.textContent='$'+total.toLocaleString('en-US',{maximumFractionDigits:0});
+  if(avTop)avTop.textContent=dcaAcum>0?'+$'+dcaAcum.toFixed(0):'$0';
+  if(tvTop)tvTop.textContent='$'+total.toLocaleString('en-US',{maximumFractionDigits:0});
   if(bi&&!bi.matches(':focus')&&base>0) bi.value=base;
 
   // Lista mes a mes
@@ -1800,6 +1840,54 @@ async function driveLoad(){
 
 // ── GASTOS FIJOS COLAPSABLE ───────────────────────────────────────
 var _fijosOpen = false;
+
+// Toggle para distribución estimada Lulubit (colapsable)
+var _luluEstOpen = false;
+function toggleLuluEst(){
+  _luluEstOpen = !_luluEstOpen;
+  var body = document.getElementById('lulu-est-body');
+  var ico  = document.getElementById('lulu-est-ico');
+  if(!body||!ico) return;
+  if(_luluEstOpen){
+    body.style.display='block';
+    ico.style.transform='rotate(180deg)';
+  } else {
+    body.style.display='none';
+    ico.style.transform='rotate(0deg)';
+  }
+}
+
+// Toggle para stats + abonos extra de hipoteca (colapsable)
+var _hipDetOpen = false;
+function toggleHipDet(){
+  _hipDetOpen = !_hipDetOpen;
+  var body = document.getElementById('hip-det-body');
+  var ico  = document.getElementById('hip-det-ico');
+  if(!body||!ico) return;
+  if(_hipDetOpen){
+    body.style.display='block';
+    ico.style.transform='rotate(180deg)';
+  } else {
+    body.style.display='none';
+    ico.style.transform='rotate(0deg)';
+  }
+}
+
+// Toggle para detalle DCA tracker (colapsable)
+var _dcaDetOpen = false;
+function toggleDcaDet(){
+  _dcaDetOpen = !_dcaDetOpen;
+  var body = document.getElementById('dca-det-body');
+  var ico  = document.getElementById('dca-det-ico');
+  if(!body||!ico) return;
+  if(_dcaDetOpen){
+    body.style.display='block';
+    ico.style.transform='rotate(180deg)';
+  } else {
+    body.style.display='none';
+    ico.style.transform='rotate(0deg)';
+  }
+}
 
 function toggleFijos(){
   _fijosOpen = !_fijosOpen;

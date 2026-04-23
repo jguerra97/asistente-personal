@@ -112,23 +112,20 @@ body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--tx);min-heig
 .reimb-footer{display:flex;justify-content:space-between;align-items:center;padding:7px 10px;background:rgba(61,184,245,.05);}
 .reimb-footer-lbl{font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);}
 .reimb-add-btn{font-family:'DM Mono',monospace;font-size:9px;color:var(--ac);background:rgba(61,184,245,.1);border:1px solid rgba(61,184,245,.2);border-radius:4px;padding:3px 8px;cursor:pointer;}
-/* ── GASTOS PERSONALES TARJETA ───────────────────────────────── */
-.gasto-toggle{display:flex;justify-content:space-between;align-items:center;cursor:pointer;padding:8px 12px;background:rgba(157,127,240,.07);border:1px solid rgba(157,127,240,.2);border-radius:7px;margin-top:8px;user-select:none;}
-.gasto-toggle-lbl{font-family:'DM Mono',monospace;font-size:9px;color:var(--pu);letter-spacing:.05em;text-transform:uppercase;}
-.gasto-toggle-total{font-family:'DM Mono',monospace;font-size:11px;font-weight:700;color:var(--pu);}
-.gasto-toggle-ico{font-size:12px;color:var(--pu);transition:transform .25s;}
-.gasto-toggle-ico.open{transform:rotate(180deg);}
-.gasto-list{display:none;border:1px solid rgba(157,127,240,.15);border-radius:7px;overflow:hidden;margin-top:4px;}
-.gasto-list.open{display:block;}
-.gasto-item{display:grid;grid-template-columns:1fr 80px 24px;align-items:center;gap:6px;padding:7px 10px;border-bottom:1px solid var(--bd);background:var(--s1);}
-.gasto-item:last-child{border-bottom:none;}
-.gasto-desc{font-family:'DM Mono',monospace;font-size:10px;color:var(--tx);background:transparent;border:none;border-bottom:1px solid var(--bd);outline:none;width:100%;}
-.gasto-desc::placeholder{color:var(--mu2);}
-.gasto-amt-inp{font-family:'DM Mono',monospace;font-size:10px;color:var(--pu);background:transparent;border:none;border-bottom:1px solid rgba(157,127,240,.3);outline:none;width:100%;text-align:right;}
-.gasto-del{background:none;border:none;color:var(--rd);cursor:pointer;font-size:13px;padding:0;}
-.gasto-footer{display:flex;justify-content:space-between;align-items:center;padding:7px 10px;background:rgba(157,127,240,.05);}
-.gasto-footer-lbl{font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);}
-.gasto-add-btn{font-family:'DM Mono',monospace;font-size:9px;color:var(--pu);background:rgba(157,127,240,.1);border:1px solid rgba(157,127,240,.2);border-radius:4px;padding:3px 8px;cursor:pointer;}
+.reimb-form{background:rgba(61,184,245,.08);border:1px solid rgba(61,184,245,.25);border-radius:7px;padding:10px;margin:6px 10px;}
+.reimb-form-row{display:flex;flex-direction:column;gap:4px;margin-bottom:7px;}
+.reimb-form-lbl{font-family:'DM Mono',monospace;font-size:8px;color:var(--mu);letter-spacing:.05em;text-transform:uppercase;}
+.reimb-form-inp{font-family:'DM Mono',monospace;font-size:11px;color:var(--tx);background:var(--s3);border:1px solid var(--bd2);border-radius:5px;padding:6px 8px;outline:none;width:100%;}
+.reimb-form-inp:focus{border-color:var(--ac);}
+.reimb-form-preview{font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);font-style:italic;margin-top:2px;min-height:12px;}
+.reimb-form-actions{display:flex;gap:6px;justify-content:flex-end;margin-top:4px;}
+.reimb-form-cancel{font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);background:var(--s2);border:1px solid var(--bd);border-radius:4px;padding:4px 10px;cursor:pointer;}
+.reimb-form-save{font-family:'DM Mono',monospace;font-size:9px;color:var(--ac);background:rgba(61,184,245,.15);border:1px solid rgba(61,184,245,.3);border-radius:4px;padding:4px 10px;cursor:pointer;font-weight:700;}
+.reimb-form-save:disabled{opacity:.4;cursor:not-allowed;}
+.reimb-item-info{display:flex;flex-direction:column;gap:2px;min-width:0;}
+.reimb-item-title{font-family:'DM Mono',monospace;font-size:10px;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.reimb-item-sub{font-family:'DM Mono',monospace;font-size:8px;color:var(--mu);}
+/* ── GASTOS PERSONALES TARJETA (removido, redundante con presupuesto Lulubit) ── */
 .badge{font-family:'DM Mono',monospace;font-size:9px;padding:2px 7px;border-radius:4px;}
 .ok{background:rgba(52,208,122,.12);color:var(--gr);border:1px solid rgba(52,208,122,.2);}
 .pend{background:rgba(90,106,130,.12);color:var(--mu);border:1px solid var(--bd2);}
@@ -385,16 +382,6 @@ body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--tx);min-heig
   <span class="reimb-toggle-ico" id="reim-toggle-ico">▾</span>
 </div>
 <div class="reimb-list" id="reim-list"></div>
-
-<!-- GASTOS PERSONALES TARJETA -->
-<div class="gasto-toggle" onclick="toggleGasto()" id="gasto-toggle-btn" style="margin-bottom:12px">
-  <div>
-    <div class="gasto-toggle-lbl">💳 Gastos personales tarjeta</div>
-    <div class="gasto-toggle-total" id="gasto-toggle-total">Q0 este mes</div>
-  </div>
-  <span class="gasto-toggle-ico" id="gasto-toggle-ico">▾</span>
-</div>
-<div class="gasto-list" id="gasto-list" style="margin-bottom:12px"></div>
 
 <!-- HIPOTECA -->
 <div class="sec"><div class="ld" style="background:var(--pk);box-shadow:0 0 5px var(--pk)"></div><div class="lt">Hipoteca <span>Q1,480,000 · 7.26% · 15 años · Feb 2026</span></div></div>
@@ -1428,137 +1415,104 @@ function descargarResumen(){
       +'</div>'
     +'</div>'
 
-    // ── DISTRIBUCIÓN DEL INGRESO (v1.6) ──
-    +(avgNorm>0?('<div style="'+S.sec+'">'
-      +'<span style="'+S.sectl+'">Distribución del ingreso mensual</span>'
-      +'<div style="background:#f5f3ff;border-radius:8px;padding:14px;margin-bottom:10px;font-family:monospace;font-size:12px;line-height:1.9">'
-        +'<div style="font-weight:700;color:#4c1d95">Ingreso: '+fqR(avgNorm)+'</div>'
-        +'<div style="padding-left:12px;color:#555">├─ Fijos total: <b>'+fqR(tf)+'</b> <span style="color:#888">('+((tf/avgNorm)*100).toFixed(0)+'%)</span></div>'
-        +'<div style="padding-left:30px;color:#888">│  ├─ Gasto real: '+fqR(tf-1267)+'</div>'
-        +'<div style="padding-left:30px;color:#059669">│  └─ Ahorro imprevistos: Q1,267</div>'
-        +'<div style="padding-left:12px;color:#555">└─ Excedente: <b>'+fqR(avgNorm-tf)+'</b> <span style="color:#888">('+(((avgNorm-tf)/avgNorm)*100).toFixed(0)+'%)</span></div>'
-        +'<div style="padding-left:30px;color:#888">   ├─ Bantrab fijo: Q1,100</div>'
-        +'<div style="padding-left:30px;color:#555">   └─ Resto Q'+((avgNorm-tf-1100)).toLocaleString('es-GT',{maximumFractionDigits:0})+':</div>'
-        +'<div style="padding-left:48px;color:#059669">      ├─ Inversión (60%): Q'+(((avgNorm-tf-1100)*0.60)).toLocaleString('es-GT',{maximumFractionDigits:0})+'</div>'
-        +'<div style="padding-left:48px;color:#2563eb">      └─ Disfrute (40%): Q'+(((avgNorm-tf-1100)*0.40)).toLocaleString('es-GT',{maximumFractionDigits:0})+'</div>'
-      +'</div>'
-      +'<div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:10px 14px;text-align:center">'
-        +'<span style="font-size:10px;color:#065f46;text-transform:uppercase;letter-spacing:.5px">Tasa ahorro + inversión</span>'
-        +'<div style="font-size:22px;font-weight:800;color:#059669">'+(((1267+1100+((avgNorm-tf-1100)*0.60))/avgNorm)*100).toFixed(1)+'%</div>'
-        +'<span style="font-size:10px;color:#065f46">del ingreso bruto mensual</span>'
-      +'</div>'
-    +'</div>'):'')
-
-    // ── DESGLOSE DE GASTOS FIJOS (v1.6) ──
-    +'<div style="'+S.sec+'">'
-      +'<span style="'+S.sectl+'">Desglose de gastos fijos</span>'
-      +'<table style="'+S.tbl+'"><thead><tr>'
-        +'<th style="'+S.th+'">Categoría</th><th style="'+S.th+'">Monto</th><th style="'+S.th+'">%</th>'
-        +'</tr></thead><tbody>'
-        +'<tr><td style="'+S.td+'">🏠 Hipoteca BI</td><td style="'+S.td+'font-weight:600">Q13,960</td><td style="'+S.td+'color:#888">70%</td></tr>'
-        +'<tr><td style="'+S.td+'">📋 IUSI</td><td style="'+S.td+'">Q900</td><td style="'+S.td+'color:#888">5%</td></tr>'
-        +'<tr><td style="'+S.td+'">💡 Servicios casa (mant+luz)</td><td style="'+S.td+'">Q1,470</td><td style="'+S.td+'color:#888">7%</td></tr>'
-        +'<tr><td style="'+S.td+'">🌐 Conectividad (internet+Fi)</td><td style="'+S.td+'">Q760</td><td style="'+S.td+'color:#888">4%</td></tr>'
-        +'<tr><td style="'+S.td+'">🛒 Supermercado</td><td style="'+S.td+'">Q115</td><td style="'+S.td+'color:#888">1%</td></tr>'
-        +'<tr><td style="'+S.td+'">⛽ Gasolina</td><td style="'+S.td+'">Q400</td><td style="'+S.td+'color:#888">2%</td></tr>'
-        +'<tr><td style="'+S.td+'">🤖 Claude AI Max</td><td style="'+S.td+'">Q969</td><td style="'+S.td+'color:#888">5%</td></tr>'
-        +'<tr><td style="'+S.td+'">🏦 Cobros bancarios</td><td style="'+S.td+'">Q25</td><td style="'+S.td+'color:#888">0%</td></tr>'
-        +'<tr style="background:#f9fafb"><td style="'+S.td+'color:#059669;font-weight:700">🔒 Imprevistos (Ahorro BI)</td><td style="'+S.td+'color:#059669;font-weight:700">Q1,267</td><td style="'+S.td+'color:#059669;font-weight:700">6%</td></tr>'
-        +'<tr><td style="'+S.td+'font-weight:700">Total fijos</td><td style="'+S.td+'font-weight:700;color:#4c1d95">Q19,865</td><td style="'+S.td+'font-weight:700">100%</td></tr>'
-      +'</tbody></table>'
-    +'</div>'
-
-    // ── INDICADORES FINANCIEROS CLAVE (v1.6) ──
-    +(avgNorm>0?('<div style="'+S.sec+'">'
-      +'<span style="'+S.sectl+'">Indicadores financieros clave</span>'
-      +(function(){
-        const dti = (13959.61 / avgNorm) * 100;
-        const liqRatio = totalRes / tf;
-        const dtiColor = dti < 36 ? '#059669' : dti < 43 ? '#d97706' : '#dc2626';
-        const dtiLabel = dti < 36 ? 'Saludable' : dti < 43 ? 'Aceptable' : 'Al límite';
-        const liqColor = liqRatio >= 6 ? '#2563eb' : liqRatio >= 3 ? '#059669' : liqRatio >= 1.5 ? '#d97706' : '#dc2626';
-        const liqLabel = liqRatio >= 6 ? 'Capital dormido' : liqRatio >= 3 ? 'Sólido' : liqRatio >= 1.5 ? 'Mínimo aceptable' : 'Insuficiente';
-        return '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'
-          +'<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:12px 14px">'
-            +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">'
-              +'<div style="font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;font-weight:600">DTI · Debt-to-Income</div>'
-              +'<span style="font-size:9px;color:'+dtiColor+';background:'+dtiColor+'15;padding:2px 7px;border-radius:3px;font-weight:600">'+dtiLabel+'</span>'
-            +'</div>'
-            +'<div style="font-size:28px;font-weight:800;color:'+dtiColor+';letter-spacing:-1px;line-height:1">'+dti.toFixed(1)+'%</div>'
-            +'<div style="font-size:10px;color:#888;margin-top:4px">Hipoteca Q13,960 / Ingreso '+fqR(avgNorm)+'</div>'
-            +'<div style="font-size:9px;color:#a0aec0;margin-top:3px;line-height:1.4">Benchmark: &lt;36% saludable · 36-43% aceptable · &gt;43% límite</div>'
-          +'</div>'
-          +'<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:12px 14px">'
-            +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">'
-              +'<div style="font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;font-weight:600">Liquidity Ratio</div>'
-              +'<span style="font-size:9px;color:'+liqColor+';background:'+liqColor+'15;padding:2px 7px;border-radius:3px;font-weight:600">'+liqLabel+'</span>'
-            +'</div>'
-            +'<div style="font-size:28px;font-weight:800;color:'+liqColor+';letter-spacing:-1px;line-height:1">'+liqRatio.toFixed(2)+'x</div>'
-            +'<div style="font-size:10px;color:#888;margin-top:4px">'+fqR(totalRes)+' reservas / '+fqR(tf)+' fijos</div>'
-            +'<div style="font-size:9px;color:#a0aec0;margin-top:3px;line-height:1.4">Benchmark: &lt;1.5x bajo · 1.5-3x ok · 3-6x sólido · &gt;6x dormido</div>'
-          +'</div>'
-        +'</div>'
-        +'<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:6px;padding:8px 12px;margin-top:10px;font-size:10px;color:#0c4a6e;line-height:1.5">'
-          +'<strong>Lectura:</strong> '+(dti < 43 ? 'capacidad de deuda saludable.' : 'DTI cerca del límite — no asumir nueva deuda sin abonar capital primero.')+' '
-          +(liqRatio >= 3 ? 'Reservas equivalentes a '+liqRatio.toFixed(1)+' meses de gastos fijos.' : 'Reservas insuficientes — priorizar recomposición.')
-        +'</div>';
-      })()
-    +'</div>'):'')
-
-    // ── DISTRIBUCIÓN DE INVERSIÓN (v1.6) ──
-    +(avgNorm>0?('<div style="'+S.sec+'">'
-      +'<span style="'+S.sectl+'">Distribución de inversión · DCA mensual</span>'
-      +'<div style="text-align:center;margin-bottom:12px">'
-        +'<span style="font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.5px">Capital invertido cada mes</span>'
-        +'<div style="font-size:24px;font-weight:800;color:#4c1d95;letter-spacing:-1px">Q'+(((avgNorm-tf-1100)*0.60)).toLocaleString('es-GT',{maximumFractionDigits:0})+'</div>'
-        +'<span style="font-size:11px;color:#888">$'+((((avgNorm-tf-1100)*0.60)/tc)).toLocaleString('en-US',{maximumFractionDigits:0})+' USD</span>'
-      +'</div>'
-      +'<table style="'+S.tbl+'"><thead><tr>'
-        +'<th style="'+S.th+'">Activo</th><th style="'+S.th+'">%</th><th style="'+S.th+'">Monto</th><th style="'+S.th+'">USD</th>'
-        +'</tr></thead><tbody>'
-        +(function(){
-          const inv=((avgNorm-tf-1100)*0.60);
-          const ass=[
-            {n:'₿ BTC',p:0.25,d:'colchón LF',c:'#f7931a'},
-            {n:'H HYPE',p:0.30,d:'motor principal',c:'#3db8f5'},
-            {n:'P PHA',p:0.30,d:'caballo matemático',c:'#a78bfa'},
-            {n:'O ONDO',p:0.15,d:'RWA institucional',c:'#818cf8'},
-          ];
-          return ass.map(a=>'<tr>'
-            +'<td style="'+S.td+'"><span style="color:'+a.c+';font-weight:700">'+a.n+'</span> <span style="color:#888;font-size:10px">· '+a.d+'</span></td>'
-            +'<td style="'+S.td+'font-weight:600">'+(a.p*100).toFixed(0)+'%</td>'
-            +'<td style="'+S.td+'color:#059669">Q'+(inv*a.p).toLocaleString('es-GT',{maximumFractionDigits:0})+'</td>'
-            +'<td style="'+S.td+'color:#888">$'+((inv*a.p)/tc).toLocaleString('en-US',{maximumFractionDigits:0})+'</td>'
-          +'</tr>').join('');
-        })()
-      +'</tbody></table>'
-    +'</div>'):'')
-
-    // ── HISTORIAL ──
+    // ── HISTORIAL DE INGRESOS (con grafica mes a mes) ──
     +'<div style="'+S.sec+'">'
       +'<span style="'+S.sectl+'">Historial de ingresos</span>'
       +(hist.length===0
-        ?'<p style="font-size:12px;color:#888">Sin historial aún.</p>'
-        :'<table style="'+S.tbl+'"><thead><tr>'
-          +'<th style="'+S.th+'">Mes</th><th style="'+S.th+'">Ingreso</th>'
-          +'<th style="'+S.th+'">Excedente</th><th style="'+S.th+'">%</th>'
-          +'</tr></thead><tbody>'+histRows+'</tbody></table>'
-          +'<div style="'+S.cards+'margin-top:12px">'
-            +'<div style="'+S.card+'"><span style="'+S.clbl+'">Promedio mensual</span>'
-              +'<span style="'+S.cval+'color:#4c1d95">'+fqR(avgNorm)+'</span>'
-              +'<span style="'+S.csub+'">sin bonos</span></div>'
-            +'<div style="'+S.card+'"><span style="'+S.clbl+'">Tendencia</span>'
-              +'<span style="'+S.cval+(slope>=0?'color:#059669':'color:#dc2626')+'">'+(slope>=0?'+':'')+fqR(Math.abs(slope))+'/mes</span>'
-              +'<span style="'+S.csub+'">'+(slope>=0?'crecimiento':'atención')+'</span></div>'
-          +'</div>'
+        ?'<p style="font-size:12px;color:#888">Sin historial aun.</p>'
+        :(function(){
+          // ── SVG CHART: barras mes a mes ──
+          const chartW = 580, chartH = 180;
+          const padL = 50, padR = 10, padT = 15, padB = 30;
+          const innerW = chartW - padL - padR;
+          const innerH = chartH - padT - padB;
+          const maxVal = Math.max.apply(null, hist.map(h=>h.total));
+          const minVal = 0;
+          // Escala Y redondeada a miles
+          const yMax = Math.ceil(maxVal/5000)*5000;
+          const barW = hist.length > 0 ? (innerW / hist.length) * 0.65 : 10;
+          const barGap = hist.length > 0 ? (innerW / hist.length) * 0.35 : 5;
+          const stepX = hist.length > 0 ? innerW / hist.length : 0;
+
+          // Bars + labels
+          let barsHtml = '';
+          let labelsHtml = '';
+          hist.forEach((h,i)=>{
+            const barH = yMax > 0 ? (h.total / yMax) * innerH : 0;
+            const x = padL + i*stepX + (stepX - barW)/2;
+            const y = padT + innerH - barH;
+            const diffFromAvg = avgNorm > 0 ? ((h.total - avgNorm) / avgNorm) : 0;
+            // Color: verde si >= promedio, rojo si muy abajo, naranja en medio
+            let barColor;
+            if(diffFromAvg >= 0.1) barColor = '#059669';       // >10% arriba
+            else if(diffFromAvg >= -0.05) barColor = '#7c3aed'; // cerca del promedio
+            else if(diffFromAvg >= -0.2) barColor = '#d97706';  // algo bajo
+            else barColor = '#dc2626';                          // muy bajo
+            barsHtml += '<rect x="'+x+'" y="'+y+'" width="'+barW+'" height="'+barH+'" fill="'+barColor+'" rx="2"/>';
+            // valor arriba de la barra (solo si hay espacio)
+            if(barH > 20){
+              barsHtml += '<text x="'+(x+barW/2)+'" y="'+(y-3)+'" text-anchor="middle" font-family="monospace" font-size="8" fill="#4a5568">'+(h.total/1000).toFixed(0)+'K</text>';
+            }
+            // label mes
+            labelsHtml += '<text x="'+(x+barW/2)+'" y="'+(chartH - padB + 14)+'" text-anchor="middle" font-family="monospace" font-size="9" fill="#718096">'+h.mes.slice(0,3)+'</text>';
+            // ultimo char del año como ref si cambia
+            if(i === 0 || hist[i-1].mes.slice(-4) !== h.mes.slice(-4)){
+              labelsHtml += '<text x="'+(x+barW/2)+'" y="'+(chartH - padB + 24)+'" text-anchor="middle" font-family="monospace" font-size="7" fill="#a0aec0">'+h.mes.slice(-2)+'</text>';
+            }
+          });
+          // Y axis ticks (0, medio, max)
+          const yTicks = [0, yMax/2, yMax];
+          let yAxisHtml = '';
+          yTicks.forEach(v=>{
+            const yPos = padT + innerH - (yMax > 0 ? (v/yMax)*innerH : 0);
+            yAxisHtml += '<line x1="'+padL+'" y1="'+yPos+'" x2="'+(chartW-padR)+'" y2="'+yPos+'" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="2,2"/>';
+            yAxisHtml += '<text x="'+(padL-6)+'" y="'+(yPos+3)+'" text-anchor="end" font-family="monospace" font-size="8" fill="#a0aec0">'+(v/1000).toFixed(0)+'K</text>';
+          });
+          // Linea promedio
+          let avgLine = '';
+          if(avgNorm > 0 && yMax > 0){
+            const yAvg = padT + innerH - (avgNorm/yMax)*innerH;
+            avgLine = '<line x1="'+padL+'" y1="'+yAvg+'" x2="'+(chartW-padR)+'" y2="'+yAvg+'" stroke="#7c3aed" stroke-width="1" stroke-dasharray="4,3" opacity="0.6"/>'
+              +'<text x="'+(chartW-padR-4)+'" y="'+(yAvg-3)+'" text-anchor="end" font-family="monospace" font-size="8" fill="#7c3aed">prom '+fqR(avgNorm)+'</text>';
+          }
+
+          const svg = '<svg viewBox="0 0 '+chartW+' '+chartH+'" style="width:100%;max-width:100%;height:auto;display:block;margin-bottom:10px" preserveAspectRatio="xMidYMid meet">'
+            +yAxisHtml
+            +barsHtml
+            +avgLine
+            +labelsHtml
+            +'</svg>';
+
+          // Leyenda colores
+          const legend = '<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;font-size:9px;color:#666;margin-bottom:10px">'
+            +'<span><span style="display:inline-block;width:10px;height:10px;background:#059669;border-radius:2px;vertical-align:middle;margin-right:4px"></span>arriba del promedio (>10%)</span>'
+            +'<span><span style="display:inline-block;width:10px;height:10px;background:#7c3aed;border-radius:2px;vertical-align:middle;margin-right:4px"></span>cerca del promedio</span>'
+            +'<span><span style="display:inline-block;width:10px;height:10px;background:#d97706;border-radius:2px;vertical-align:middle;margin-right:4px"></span>algo bajo</span>'
+            +'<span><span style="display:inline-block;width:10px;height:10px;background:#dc2626;border-radius:2px;vertical-align:middle;margin-right:4px"></span>muy bajo (>20%)</span>'
+            +'</div>';
+
+          return svg + legend
+            +'<table style="'+S.tbl+'"><thead><tr>'
+              +'<th style="'+S.th+'">Mes</th><th style="'+S.th+'">Ingreso</th>'
+              +'<th style="'+S.th+'">Excedente</th><th style="'+S.th+'">%</th>'
+            +'</tr></thead><tbody>'+histRows+'</tbody></table>'
+            +'<div style="'+S.cards+'margin-top:12px">'
+              +'<div style="'+S.card+'"><span style="'+S.clbl+'">Promedio mensual</span>'
+                +'<span style="'+S.cval+'color:#4c1d95">'+fqR(avgNorm)+'</span>'
+                +'<span style="'+S.csub+'">sin bonos · '+normales.length+' meses</span></div>'
+              +'<div style="'+S.card+'"><span style="'+S.clbl+'">Tendencia</span>'
+                +'<span style="'+S.cval+(slope>=0?'color:#059669':'color:#dc2626')+'">'+(slope>=0?'+':'')+fqR(Math.abs(slope))+'/mes</span>'
+                +'<span style="'+S.csub+'">'+(slope>=0?'crecimiento':'decrecimiento')+'</span></div>'
+            +'</div>';
+        })()
       )
     +'</div>'
 
     // ── INVERSIÓN ──
     +'<div style="'+S.sec+'">'
-      +'<span style="'+S.sectl+'">Inversión acumulada en activos</span>'
+      +'<span style="'+S.sectl+'">Inversion acumulada en activos</span>'
       +'<div style="'+S.cards+'">'
-        +'<div style="'+S.card+'"><span style="'+S.clbl+'">Base inicial (ene–mar)</span>'
+        +'<div style="'+S.card+'"><span style="'+S.clbl+'">Base inicial (ene-mar)</span>'
           +'<span style="'+S.cval+'color:#2563eb">$'+dcaBase.toLocaleString('en-US',{maximumFractionDigits:0})+'</span>'
           +'<span style="'+S.csub+'">capital antes del tracker</span></div>'
         +'<div style="'+S.card+'"><span style="'+S.clbl+'">DCA desde abril</span>'
@@ -1579,37 +1533,28 @@ function descargarResumen(){
 
     // ── RESERVAS ──
     +'<div style="'+S.sec+'">'
-      +'<span style="'+S.sectl+'">Reservas y patrimonio líquido</span>'
+      +'<span style="'+S.sectl+'">Reservas y patrimonio liquido</span>'
       +'<table style="'+S.tbl+'"><thead><tr>'
-        +'<th style="'+S.th+'">Reserva</th><th style="'+S.th+'">Institución</th>'
+        +'<th style="'+S.th+'">Reserva</th><th style="'+S.th+'">Institucion</th>'
         +'<th style="'+S.th+'">Saldo</th><th style="'+S.th+'">Meta</th>'
         +'</tr></thead><tbody>'
         +'<tr><td style="'+S.td+'">Ahorro BI</td><td style="'+S.td+'">Ahorro BI</td><td style="'+S.td+'color:#059669;font-weight:600">'+fqR(COLS.emer)+'</td><td style="'+S.td+'">'+fqR(tf*3+15000)+'</td></tr>'
         +'<tr><td style="'+S.td+'">Bantrab (viajes)</td><td style="'+S.td+'">Bantrab</td><td style="'+S.td+'">'+fqR(COLS.bant)+'</td><td style="'+S.td+'">Q30,000</td></tr>'
-        // imp unificado en Ahorro BI — no mostrar por separado
         +'<tr><td style="'+S.td+'">Buffer operativo</td><td style="'+S.td+'">Monetaria BI</td><td style="'+S.td+'">'+fqR(COLS.buf)+'</td><td style="'+S.td+'">Q3,000</td></tr>'
         +(COLS.reimb>0?'<tr><td style="'+S.td+'">Reembolsos</td><td style="'+S.td+'">USD cash</td><td style="'+S.td+'">'+'$'+COLS.reimb.toFixed(0)+' ('+fqR(COLS.reimb*tc)+')</td><td style="'+S.td+'">—</td></tr>':'')
         +'<tr><td style="'+S.td+'font-weight:700" colspan="2">Total reservas</td><td style="'+S.td+'font-weight:700;color:#4c1d95" colspan="2">'+fqR(totalRes)+'</td></tr>'
       +'</tbody></table>'
-      +'<div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:8px;padding:10px 14px;margin-top:10px">'
-        +'<div style="font-size:10px;color:#78350f;text-transform:uppercase;letter-spacing:.5px;font-weight:600;margin-bottom:4px">📊 Proyección Ahorro BI</div>'
-        +'<div style="font-size:11px;color:#78350f;line-height:1.5">'
-          +'Aporte mensual: Q1,267 (imprevistos fijos)<br>'
-          +'• Meta 70% (Q41,716): <b>~abril 2027</b> · trigger transición<br>'
-          +'• Meta 100% (Q59,594): <b>~octubre 2028</b>'
-        +'</div>'
-      +'</div>'
     +'</div>'
 
     // ── HIPOTECA ──
     +'<div style="'+S.sec+'">'
-      +'<span style="'+S.sectl+'">Crédito hipotecario</span>'
+      +'<span style="'+S.sectl+'">Credito hipotecario</span>'
       +'<div style="'+S.cards+'">'
         +'<div style="'+S.card+'"><span style="'+S.clbl+'">Saldo pendiente</span>'
           +'<span style="'+S.cval+'color:#dc2626">'+fqR(salHip)+'</span>'
           +'<span style="'+S.csub+'">'+fusd(salHip)+'</span></div>'
         +'<div style="'+S.card+'"><span style="'+S.clbl+'">Al corriente</span>'
-          +'<span style="'+S.cval+(nPag===nTot?'color:#059669':'color:#d97706')+'">'+( nPag===nTot?'✅ Sí':nPag+'/'+nTot)+'</span>'
+          +'<span style="'+S.cval+(nPag===nTot?'color:#059669':'color:#d97706')+'">'+( nPag===nTot?'Si':nPag+'/'+nTot)+'</span>'
           +'<span style="'+S.csub+'">cuotas marcadas</span></div>'
       +'</div>'
       +'<table style="'+S.tbl+'"><thead><tr>'
@@ -1623,9 +1568,9 @@ function descargarResumen(){
       +'</tbody></table>'
     +'</div>'
 
-    // ── PROYECCIÓN FLUJO 12 MESES (v1.6) ──
+    // ── PROYECCIÓN FLUJO 12 MESES (solo bonos por contrato, estimados desde promedio) ──
     +(avgNorm>0?('<div style="'+S.sec+'">'
-      +'<span style="'+S.sectl+'">Proyección de flujo · próximos 12 meses</span>'
+      +'<span style="'+S.sectl+'">Proyeccion de flujo · proximos 12 meses</span>'
       +'<table style="'+S.tbl+'"><thead><tr>'
         +'<th style="'+S.th+'">Mes</th><th style="'+S.th+'">Ingreso esperado</th><th style="'+S.th+'">Evento</th><th style="'+S.th+'">Acum. total</th>'
         +'</tr></thead><tbody>'
@@ -1636,18 +1581,16 @@ function descargarResumen(){
           const mesesNom = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
           let acum = 0;
           const filas = [];
+          // Bono estimado = promedio mensual (Bono 14 julio y Aguinaldo diciembre cada uno = 1 salario)
+          const bonoEst = Math.round(avgNorm);
           for(let i=0;i<12;i++){
             const mIdx = (mesActual + i) % 12;
             const anio = anioActual + Math.floor((mesActual + i) / 12);
             const nombre = mesesNom[mIdx] + ' ' + anio;
             let ing = avgNorm;
             let evento = '—';
-            // Julio = bono julio
-            if(mIdx === 6){ ing = avgNorm + 33000; evento = '🎁 Bono julio (~Q33K)'; }
-            // Diciembre = bono diciembre
-            if(mIdx === 11){ ing = avgNorm + 33000; evento = '🎁 Bono diciembre (~Q33K)'; }
-            // Septiembre = Bantrab meta probable
-            if(mIdx === 8 && anio === 2026){ evento = '✅ Bantrab meta Q30K (proyectado)'; }
+            if(mIdx === 6){ ing = avgNorm + bonoEst; evento = 'Bono 14 (est. '+fqR(bonoEst)+')'; }
+            if(mIdx === 11){ ing = avgNorm + bonoEst; evento = 'Aguinaldo (est. '+fqR(bonoEst)+')'; }
             acum += ing;
             filas.push('<tr>'
               +'<td style="'+S.td+'font-weight:600">'+nombre+'</td>'
@@ -1660,22 +1603,9 @@ function descargarResumen(){
         })()
       +'</tbody></table>'
       +'<div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:10px 14px;margin-top:10px;font-size:11px;color:#065f46;line-height:1.5">'
-        +'<strong>Supuestos:</strong> ingreso base = promedio histórico · bonos julio/diciembre estimados a ~Q33,000 · proyección antes de deducciones.'
+        +'<strong>Supuestos:</strong> ingreso mensual = promedio historico · Bono 14 y Aguinaldo estimados como 1 salario promedio cada uno (valores legales GT) · proyeccion antes de deducciones.'
       +'</div>'
     +'</div>'):'')
-
-    // ── BONOS PROGRAMADOS (v1.6) ──
-    +'<div style="'+S.sec+'">'
-      +'<span style="'+S.sectl+'">Bonos programados · destino definido</span>'
-      +'<table style="'+S.tbl+'"><thead><tr>'
-        +'<th style="'+S.th+'">Bono</th><th style="'+S.th+'">Hipoteca</th><th style="'+S.th+'">Inversión</th><th style="'+S.th+'">Bantrab</th>'
-        +'</tr></thead><tbody>'
-        +'<tr><td style="'+S.td+'font-weight:700">Julio 2026</td><td style="'+S.td+'color:#dc2626">40%</td><td style="'+S.td+'color:#059669">40%</td><td style="'+S.td+'color:#2563eb">20%</td></tr>'
-        +'<tr><td style="'+S.td+'" colspan="4"><span style="font-size:10px;color:#888">Inversión Julio: 60% PHA · 30% HYPE · 10% ONDO (cuando reactive)</span></td></tr>'
-        +'<tr><td style="'+S.td+'font-weight:700">Diciembre 2026</td><td style="'+S.td+'color:#dc2626">35%</td><td style="'+S.td+'color:#059669">45%</td><td style="'+S.td+'color:#2563eb">20%</td></tr>'
-        +'<tr><td style="'+S.td+'" colspan="4"><span style="font-size:10px;color:#888">Inversión Diciembre: 50% PHA · 30% HYPE · 20% ONDO</span></td></tr>'
-      +'</tbody></table>'
-    +'</div>'
 
     +'<div style="'+S.foot+'">Perfil Financiero Personal GT · Generado el '+fecha+'<br>Documento personal · Datos al '+mes+'</div>'
     +'</div></body></html>';
@@ -1997,11 +1927,15 @@ function renderReimb(){
   if(!_reimbOpen) return;
   var rows = REIMB_ITEMS.map(function(item, idx){
     var rowStyle = item.checked ? 'opacity:.5;' : '';
+    var title = item.desc ? ('WE '+(item.date?fmtShortDate(item.date):'?/?')+' ('+item.desc+')') : ('WE '+(item.date?fmtShortDate(item.date):'?/?'));
+    var sub = item.payDate ? 'Pago est: '+fmtShortDate(item.payDate) : '';
     return '<div class="reimb-item" style="'+rowStyle+'">'
       +'<input type="checkbox" class="reimb-check" '+(item.checked?'checked':'')
         +' onchange="reimbCheck('+idx+',this.checked)">'
-      +'<input type="text" class="reimb-desc" value="'+item.desc+'" placeholder="Descripcion"'
-        +' onchange="reimbDesc('+idx+',this.value)">'
+      +'<div class="reimb-item-info">'
+        +'<span class="reimb-item-title">'+title+'</span>'
+        +(sub?'<span class="reimb-item-sub">'+sub+'</span>':'')
+      +'</div>'
       +'<input type="number" class="reimb-amt-inp" value="'+item.amt+'" step="0.01" min="0" placeholder="$0.00"'
         +' onchange="reimbAmt('+idx+',this.value)">'
       +'<button class="reimb-del" onclick="reimbDel('+idx+')">✕</button>'
@@ -2019,6 +1953,134 @@ function renderReimb(){
     +'</div>'
     +'</div>';
   document.getElementById('reim-list').innerHTML = rows + footer;
+}
+
+// ── Utilidades de fecha para reembolsos ─────────────────────────
+// Input: string YYYY-MM-DD (desde <input type="date">)
+// Output: Date en zona local
+function parseISODate(iso){
+  if(!iso) return null;
+  var p = iso.split('-');
+  if(p.length !== 3) return null;
+  return new Date(parseInt(p[0]), parseInt(p[1])-1, parseInt(p[2]));
+}
+
+function fmtShortDate(iso){
+  var d = parseISODate(iso);
+  if(!d) return '?/?';
+  var dd = String(d.getDate()).padStart(2,'0');
+  var mm = String(d.getMonth()+1).padStart(2,'0');
+  return dd+'/'+mm;
+}
+
+// Calcula el jueves que sigue al domingo + 14 dias
+// Ejemplos confirmados con el usuario:
+//   Dom 12/04 -> Jue 30/04
+//   Dom 19/04 -> Jue 07/05
+//   Dom 26/04 -> Jue 14/05
+function calcPayDate(iso){
+  var d = parseISODate(iso);
+  if(!d) return '';
+  // +14 dias (domingo a domingo)
+  d.setDate(d.getDate() + 14);
+  // dias al proximo jueves (incluido si cae jueves)
+  // dow: 0=dom, 1=lun, ..., 4=jue, ..., 6=sab
+  var dow = d.getDay();
+  var diff = (4 - dow + 7) % 7;
+  d.setDate(d.getDate() + diff);
+  var yy = d.getFullYear();
+  var mm = String(d.getMonth()+1).padStart(2,'0');
+  var dd = String(d.getDate()).padStart(2,'0');
+  return yy+'-'+mm+'-'+dd;
+}
+
+function reimbAdd(){
+  // Abrir formulario inline antes de crear el item
+  var list = document.getElementById('reim-list');
+  if(!list) return;
+  if(document.getElementById('reimb-add-form')){
+    document.getElementById('reimb-add-form').remove();
+    return; // toggle: segundo click cierra form
+  }
+  // Sugerir domingo anterior como default
+  var today = new Date();
+  var dow = today.getDay();
+  var daysToLastSunday = dow === 0 ? 7 : dow;
+  var lastSunday = new Date(today);
+  lastSunday.setDate(today.getDate() - daysToLastSunday);
+  var defaultIso = lastSunday.getFullYear()+'-'
+    +String(lastSunday.getMonth()+1).padStart(2,'0')+'-'
+    +String(lastSunday.getDate()).padStart(2,'0');
+
+  var form = document.createElement('div');
+  form.id = 'reimb-add-form';
+  form.className = 'reimb-form';
+  form.innerHTML =
+    '<div class="reimb-form-row">'
+      +'<label class="reimb-form-lbl">Fecha reporte (domingo)</label>'
+      +'<input type="date" id="reimb-new-date" class="reimb-form-inp" value="'+defaultIso+'" onchange="reimbFormUpdatePreview()">'
+    +'</div>'
+    +'<div class="reimb-form-row">'
+      +'<label class="reimb-form-lbl">Descripcion</label>'
+      +'<input type="text" id="reimb-new-desc" class="reimb-form-inp" placeholder="WI, Maravilla, etc." maxlength="20">'
+    +'</div>'
+    +'<div class="reimb-form-row">'
+      +'<label class="reimb-form-lbl">Monto USD</label>'
+      +'<input type="number" id="reimb-new-amt" class="reimb-form-inp" step="0.01" min="0" placeholder="0.00">'
+    +'</div>'
+    +'<div class="reimb-form-preview" id="reimb-form-preview"></div>'
+    +'<div class="reimb-form-actions">'
+      +'<button class="reimb-form-cancel" onclick="reimbFormCancel()">Cancelar</button>'
+      +'<button class="reimb-form-save" onclick="reimbFormSave()">Agregar</button>'
+    +'</div>';
+  list.appendChild(form);
+  // Render preview inicial
+  reimbFormUpdatePreview();
+  // focus descripcion
+  setTimeout(function(){ var d = document.getElementById('reimb-new-desc'); if(d) d.focus(); }, 50);
+}
+
+function reimbFormUpdatePreview(){
+  var dateEl = document.getElementById('reimb-new-date');
+  var prev = document.getElementById('reimb-form-preview');
+  if(!dateEl || !prev) return;
+  var iso = dateEl.value;
+  if(!iso){ prev.textContent = ''; return; }
+  var pay = calcPayDate(iso);
+  if(pay){
+    prev.textContent = 'Pago estimado: '+fmtShortDate(pay)+' (etiqueta: WE '+fmtShortDate(iso)+')';
+  } else {
+    prev.textContent = '';
+  }
+}
+
+function reimbFormCancel(){
+  var f = document.getElementById('reimb-add-form');
+  if(f) f.remove();
+}
+
+function reimbFormSave(){
+  var dateEl = document.getElementById('reimb-new-date');
+  var descEl = document.getElementById('reimb-new-desc');
+  var amtEl  = document.getElementById('reimb-new-amt');
+  if(!dateEl || !descEl || !amtEl) return;
+  var date = dateEl.value;
+  var desc = (descEl.value||'').trim();
+  var amt  = parseFloat(amtEl.value)||0;
+  if(!date){ dateEl.focus(); return; }
+  if(amt <= 0){ amtEl.focus(); return; }
+  var payDate = calcPayDate(date);
+  REIMB_ITEMS.push({
+    id: Date.now(),
+    date: date,
+    desc: desc,
+    amt: amt,
+    checked: false,
+    payDate: payDate
+  });
+  saveReimbGasto();
+  reimbFormCancel();
+  renderReimb();
 }
 
 function reimbLimpiar(){
@@ -2047,10 +2109,6 @@ function reimbConfirmarLimpiar(){
   REIMB_ITEMS = REIMB_ITEMS.filter(function(i){return !i.checked;});
   saveReimbGasto();
   renderReimb();
-}
-function reimbAdd(){
-  REIMB_ITEMS.push({id: Date.now(), desc:'', amt:0, checked:false});
-  saveReimbGasto(); renderReimb();
 }
 function reimbDel(idx){
   // Si estaba checked, restar su monto antes de eliminar
@@ -2098,77 +2156,9 @@ function reimbAmt(idx, val){
   saveReimbGasto(); renderReimb();
 }
 
-// ── GASTOS PERSONALES TARJETA ─────────────────────────────────────
-var _gastoOpen = false;
-
-function toggleGasto(){
-  _gastoOpen = !_gastoOpen;
-  var list = document.getElementById('gasto-list');
-  var ico  = document.getElementById('gasto-toggle-ico');
-  if(_gastoOpen){ list.classList.add('open'); ico.classList.add('open'); }
-  else           { list.classList.remove('open'); ico.classList.remove('open'); }
-  renderGasto();
-}
-
-function gastoTotalQ(){
-  var tc = ST.tc||7.75;
-  return GASTO_ITEMS.reduce(function(s,i){
-    return s + (i.cur==='USD' ? i.amt*tc : i.amt);
-  },0);
-}
-
-function renderGasto(){
-  var tc    = ST.tc||7.75;
-  var total = gastoTotalQ();
-  var tog   = document.getElementById('gasto-toggle-total');
-  if(tog) tog.textContent = 'Q'+total.toFixed(0)+' (~$'+(total/tc).toFixed(0)+') este mes';
-
-  if(!_gastoOpen) return;
-  var rows = GASTO_ITEMS.map(function(item, idx){
-    var cur = item.cur||'Q';
-    var equiv = cur==='USD'
-      ? 'Q'+(item.amt*(tc)).toFixed(0)
-      : '$'+(item.amt/tc).toFixed(2);
-    return '<div class="gasto-item" style="grid-template-columns:1fr 60px 56px 28px 24px">'
-      +'<input type="text" class="gasto-desc" value="'+item.desc+'" placeholder="Descripcion"'
-        +' onchange="gastoDesc('+idx+',this.value)">'
-      +'<input type="number" class="gasto-amt-inp" value="'+item.amt+'" step="0.01" min="0"'
-        +' onchange="gastoAmt('+idx+',this.value)">'
-      +'<select onchange="gastoCur('+idx+',this.value)" style="font-family:\'DM Mono\',monospace;font-size:9px;background:var(--s2);color:var(--pu);border:1px solid rgba(157,127,240,.3);border-radius:4px;padding:2px 4px;outline:none;">'
-        +'<option value="Q"'+(cur==='Q'?' selected':'')+'>Q</option>'
-        +'<option value="USD"'+(cur==='USD'?' selected':'')+'>$</option>'
-      +'</select>'
-      +'<span style="font-family:\'DM Mono\',monospace;font-size:8px;color:var(--mu2);text-align:right">'+equiv+'</span>'
-      +'<button class="gasto-del" onclick="gastoDel('+idx+')">✕</button>'
-      +'</div>';
-  }).join('');
-  var footer = '<div class="gasto-footer">'
-    +'<span class="gasto-footer-lbl">Solo tracking — no afecta distribucion · Total en Q</span>'
-    +'<button class="gasto-add-btn" onclick="gastoAdd()">+ Agregar</button>'
-    +'</div>';
-  document.getElementById('gasto-list').innerHTML = rows + footer;
-}
-
-function gastoAdd(){
-  GASTO_ITEMS.push({id: Date.now(), desc:'', amt:0, cur:'Q'});
-  saveReimbGasto(); renderGasto();
-}
-function gastoDel(idx){
-  GASTO_ITEMS.splice(idx,1);
-  saveReimbGasto(); renderGasto();
-}
-function gastoDesc(idx, val){
-  GASTO_ITEMS[idx].desc = val;
-  saveReimbGasto();
-}
-function gastoAmt(idx, val){
-  GASTO_ITEMS[idx].amt = parseFloat(val)||0;
-  saveReimbGasto(); renderGasto();
-}
-function gastoCur(idx, val){
-  GASTO_ITEMS[idx].cur = val;
-  saveReimbGasto(); renderGasto();
-}
+// ── GASTOS PERSONALES TARJETA (removido — redundante con presupuesto Lulubit) ──
+// Los gastos personales se trackean directamente en Lulubit desde el estado
+// de cuenta TC. Esta seccion fue eliminada para evitar informacion redundante.
 
 // ── INIT ─────────────────────────────────────────────────────────
 loadSaved();
@@ -2179,7 +2169,6 @@ renderDCA();
 renderFijosList();
 renderSubsEnt();
 renderReimb();
-renderGasto();
 </script>
 </body>
 </html>

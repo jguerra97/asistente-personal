@@ -743,7 +743,7 @@ function onBP(tick,val){const v=parseFloat(val);if(isNaN(v)||v<=0)return;const a
 // ── RESUMEN EJECUTIVO PROFESIONAL ───────────────────────────────
 function descargarResumen(){
   const allAssets=[...L1,...L2,...BROKER];
-  let tot=0,cst=0,pnl24=0;
+  let tot=0,cst=0;
   allAssets.forEach(a=>{
     const v=(a.price||0)*a.qty;
     tot+=v; cst+=a.entry*a.qty;
@@ -753,43 +753,37 @@ function descargarResumen(){
   const mult=cst>0?(tot/cst).toFixed(2):'—';
   const pct=Math.min((tot/150000)*100,100);
   const fecha=new Date().toLocaleDateString('es-GT',{day:'2-digit',month:'long',year:'numeric'});
-
-  const v1=L1.reduce((s,a)=>s+(a.price||0)*a.qty,0);
-  const v2=L2.reduce((s,a)=>s+(a.price||0)*a.qty,0);
-  const vB=BROKER.reduce((s,a)=>s+(a.price||0)*a.qty,0);
+  const timestamp=new Date().toLocaleString('es-GT',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
 
   const fm2=n=>'$'+n.toLocaleString('en-US',{maximumFractionDigits:0});
   const fmp=n=>(n>=0?'+':'')+n.toFixed(1)+'%';
 
-  // Construir rows de acumulación (v1.7 — 4 activos meta incluyendo AKT ventana)
+  // ── Acumulacion tokens meta (data live) ──
   const ACC_SUMMARY = {
-    'HYPE':   {target:150,     label:'tokens', color:'#3db8f5', role:'Motor principal · DCA 28%'},
-    'PHA':    {target:120000,  label:'tokens', color:'#a78bfa', role:'Caballo matemático · DCA 27%'},
-    'ONDO':   {target:12000,   label:'tokens', color:'#818cf8', role:'RWA · DCA 15% redirigido'},
-    'AKT':    {target:3000,    label:'tokens', color:'#10b981', role:'Ventana abr-jul · DCA 5% + táctica'},
+    'HYPE':   {target:150,     label:'tokens', color:'#3db8f5'},
+    'PHA':    {target:120000,  label:'tokens', color:'#a78bfa'},
+    'ONDO':   {target:12000,   label:'tokens', color:'#818cf8'},
+    'AKT':    {target:3000,    label:'tokens', color:'#10b981'},
   };
   const accRows = Object.keys(ACC_SUMMARY).map(tick=>{
     const asset = allAssets.find(x=>x.tick===tick);
     if(!asset) return '';
     const tgt = ACC_SUMMARY[tick];
     const qty = asset.qty || 0;
-    const pct = Math.min((qty / tgt.target) * 100, 100);
+    const pctA = Math.min((qty / tgt.target) * 100, 100);
     const faltan = Math.max(tgt.target - qty, 0);
-    const completo = pct >= 100;
+    const completo = pctA >= 100;
     const barColor = completo ? '#059669' : tgt.color;
     const fmtQty = (n) => n >= 1000 ? n.toLocaleString('en-US',{maximumFractionDigits:0})
                        : n >= 1 ? n.toLocaleString('en-US',{maximumFractionDigits:2})
                        : n.toFixed(4);
     return `<div style="margin-bottom:12px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-        <div>
-          <span style="font-size:13px;font-weight:700;color:${tgt.color}">${tick}</span>
-          <span style="font-size:10px;color:#a0aec0;margin-left:6px">${tgt.role}</span>
-        </div>
-        <div style="font-size:12px;font-weight:700;color:${barColor}">${pct.toFixed(1)}%</div>
+        <span style="font-size:13px;font-weight:700;color:${tgt.color}">${tick}</span>
+        <span style="font-size:12px;font-weight:700;color:${barColor}">${pctA.toFixed(1)}%</span>
       </div>
       <div style="background:#edf2f7;border-radius:3px;height:6px;overflow:hidden;margin-bottom:4px">
-        <div style="height:100%;width:${pct}%;background:${barColor};border-radius:3px"></div>
+        <div style="height:100%;width:${pctA}%;background:${barColor};border-radius:3px"></div>
       </div>
       <div style="display:flex;justify-content:space-between;font-size:10px;color:#718096">
         <span>${fmtQty(qty)} ${tgt.label}</span>
@@ -804,214 +798,69 @@ function descargarResumen(){
     return acc + Math.min((asset.qty||0) / ACC_SUMMARY[tick].target, 1);
   }, 0) / Object.keys(ACC_SUMMARY).length * 100;
 
-  // DCA mensual — distribución v1.7 (5 activos con AKT ventana abr-jul)
-  const DCA_DIST = [
-    {tick:'BTC',  pct:25, usd:176, q:'1,363', color:'#f7931a', role:'colchón LF'},
-    {tick:'HYPE', pct:28, usd:197, q:'1,527', color:'#3db8f5', role:'motor principal'},
-    {tick:'PHA',  pct:27, usd:190, q:'1,472', color:'#a78bfa', role:'caballo matemático'},
-    {tick:'ONDO', pct:15, usd:105, q:'818',   color:'#818cf8', role:'RWA (redirigido)'},
-    {tick:'AKT',  pct:5,  usd:35,  q:'272',   color:'#10b981', role:'ventana abr-jul'},
-  ];
-  const dcaRows = DCA_DIST.map(d=>`<tr>
-    <td style="padding:7px 10px;border-bottom:1px solid #edf2f7"><span style="color:${d.color};font-weight:700">${d.tick}</span> <span style="color:#a0aec0;font-size:10px">· ${d.role}</span></td>
-    <td style="padding:7px 10px;border-bottom:1px solid #edf2f7;text-align:right;font-weight:600">${d.pct}%</td>
-    <td style="padding:7px 10px;border-bottom:1px solid #edf2f7;text-align:right;color:#059669">Q${d.q}</td>
-    <td style="padding:7px 10px;border-bottom:1px solid #edf2f7;text-align:right;color:#a0aec0">$${d.usd}</td>
-  </tr>`).join('');
+  // ── Lista plana de activos (reemplaza L1/L2/BROKER tiers) ──
+  const assetsSorted = [...allAssets].map(a=>({
+    tick: a.tick,
+    name: a.name || a.tick,
+    qty: a.qty,
+    price: a.price||0,
+    entry: a.entry,
+    val: (a.price||0)*a.qty,
+    cst: a.entry*a.qty,
+  })).sort((a,b)=>b.val-a.val);
 
-  // Performance y concentración
-  const timestamp = new Date().toLocaleString('es-GT',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
-  // Top 3 concentración
-  const sortedByVal = [...allAssets].map(a=>({tick:a.tick, val:(a.price||0)*a.qty})).sort((a,b)=>b.val-a.val).slice(0,3);
+  const assetRows = assetsSorted.map(a=>{
+    const p = a.val - a.cst;
+    const pp = a.cst>0 ? (p/a.cst)*100 : 0;
+    const pctPortf = tot>0 ? (a.val/tot)*100 : 0;
+    const pColor = p>=0 ? '#059669' : '#dc2626';
+    return `<tr>
+      <td style="padding:8px 10px;border-bottom:1px solid #edf2f7;font-weight:700">${a.tick}</td>
+      <td style="padding:8px 10px;border-bottom:1px solid #edf2f7;text-align:right;color:#718096;font-size:10px">${a.qty.toLocaleString('en-US',{maximumFractionDigits:4})}</td>
+      <td style="padding:8px 10px;border-bottom:1px solid #edf2f7;text-align:right">${fm2(a.val)}</td>
+      <td style="padding:8px 10px;border-bottom:1px solid #edf2f7;text-align:right;color:${pColor};font-weight:600">${p>=0?'+':''}${fm2(Math.abs(p))}<br><span style="font-size:9px;font-weight:400">${pp>=0?'+':''}${pp.toFixed(1)}%</span></td>
+      <td style="padding:8px 10px;border-bottom:1px solid #edf2f7;text-align:right;color:#a0aec0;font-size:10px">${pctPortf.toFixed(1)}%</td>
+    </tr>`;
+  }).join('');
+
+  // ── Performance y concentracion (calculado) ──
+  const sortedByVal = assetsSorted.slice(0,3);
   const top3Total = sortedByVal.reduce((s,a)=>s+a.val,0);
   const top3Pct = tot>0?((top3Total/tot)*100).toFixed(1):'0';
   const top3Names = sortedByVal.map(a=>a.tick).join(' + ');
 
-  // Herfindahl Index — concentración
   const herfindahl = allAssets.reduce((s,a)=>{
-    const pct = tot>0 ? ((a.price||0)*a.qty/tot) : 0;
-    return s + pct*pct;
+    const p = tot>0 ? ((a.price||0)*a.qty/tot) : 0;
+    return s + p*p;
   }, 0) * 10000;
   const concentrationLabel = herfindahl<1500?'Diversificado':herfindahl<2500?'Moderado':'Alto';
   const concentrationColor = herfindahl<1500?'#059669':herfindahl<2500?'#d97706':'#dc2626';
 
-  // Capital comprometido — incluye hold activos (ya tiene capital metido)
-  const capitalComprometido = cst; // ya incluye todo (L1+L2+BROKER incluye AKT/MORPHO/MSTR)
-  // DCA próximos 12 meses
-  const dca12m = 703 * 12; // $703/mes * 12
-
-  // Escenarios proyectados — basados en plan v1.6
-  const escenarios = [
-    {nombre:'Base',     pct:'70%', txt:'70% targets ejecutados + DCA sostenido', rango:'$95K – $115K', color:'#d97706', prob:'45%'},
-    {nombre:'Alcista',  pct:'100%',txt:'Todos targets + bonos desplegados',       rango:'$145K – $175K', color:'#059669', prob:'30%'},
-    {nombre:'Bajista',  pct:'30%', txt:'Ciclo termina Q4 2026, targets no ejecutan', rango:'$55K – $75K',  color:'#dc2626', prob:'25%'},
-  ];
-  const escRows = escenarios.map(e=>`<tr>
-    <td style="padding:8px 10px;border-bottom:1px solid #edf2f7;"><span style="font-weight:700;color:${e.color}">${e.nombre}</span></td>
-    <td style="padding:8px 10px;border-bottom:1px solid #edf2f7;color:#555;font-size:10px">${e.txt}</td>
-    <td style="padding:8px 10px;border-bottom:1px solid #edf2f7;text-align:right;font-weight:700;color:${e.color}">${e.rango}</td>
-    <td style="padding:8px 10px;border-bottom:1px solid #edf2f7;text-align:right;font-size:10px;color:#888">${e.prob}</td>
-  </tr>`).join('');
-
-  // Zonas de salida y tags especiales para activos específicos (v1.6)
-  const ZONAS = {
-    'PHA':  '20% $0.09 / 25% $0.27 / 25% $0.70 / 20% $1.35 / 10% $2.00+',
-    'HYPE': '20% $55 / 25% $95 / 30% $150 / 25% $220+',
-    'ONDO': '20% $0.50 / 30% $1.10 / 30% $2.25 / 20% $4.50',
-    'AKT':  'ACUMULACIÓN abr-jul 2026 (meta 3,000) → luego HOLD $1.50/$3.00+ → PHA',
-    'MORPHO':'HOLD · Salida 50% $3.50 / 50% $5.50+ → PHA',
-    'MSTR': 'Stop $145 · T1 $210-220 (50%) · T2 $260+ (25%) → PHA',
-    'BTC':  '🔒 Colchón LF · NO cuenta para meta $150K',
-    'STRC': 'LIQUIDADO · ex-capital en USDC reserva táctica',
-  };
-
-  // ── ESTRATEGIA EXTENDIDA POR ACTIVO — versión para PDF resumen ──
-  const STRAT_PDF = [
-    {tick:'BTC', color:'#f7931a', tag:'NO VENDER', tagBg:'#fef3c7', tagCol:'#92400e',
-      role:'Colchón de libertad financiera · base multi-ciclo',
-      dca:'DCA 25% · Q1,363/mes (~$176)',
-      plan:'No se vende por oportunismo táctico. Sale solo si: tesis multi-ciclo rota, meta $150K alcanzada con margen, oportunidad con asimetría superior documentada, o necesidad personal que no alcanza con reservas existentes.',
-      updated:'19 abr 2026'
-    },
-    {tick:'HYPE', color:'#3db8f5', tag:'ACUMULACIÓN', tagBg:'#dbeafe', tagCol:'#1e40af',
-      role:'Motor principal · derivatives · meta 150 tokens',
-      dca:'DCA 28% · Q1,527/mes (~$197)',
-      plan:'Salidas escalonadas en 4 zonas: 20% en $55-60 · 25% en $90-110 · 30% en $150-180 · 25% en $220-260. Capital liberado por salidas rota a PHA.',
-      updated:'18 abr 2026'
-    },
-    {tick:'PHA', color:'#a78bfa', tag:'ACUMULACIÓN', tagBg:'#ede9fe', tagCol:'#5b21b6',
-      role:'Caballo matemático · AI + TEE · meta 120,000 tokens',
-      dca:'DCA 27% · Q1,472/mes (~$190) + 50% del 15% ONDO redirigido',
-      plan:'Salidas en 5 zonas: 20% en $0.08-0.10 · 25% en $0.25-0.30 · 25% en $0.60-0.80 · 20% en $1.20-1.50 · 10% en $2.00+. Recibe capital de todas las salidas de otros activos.',
-      note:'⚠ Paciencia · sin catalyst fechado actualmente · escenario bear materializándose (nuevo mínimo $0.03). Tesis fundamental intacta pero requiere paciencia estratégica.',
-      updated:'19 abr 2026'
-    },
-    {tick:'ONDO', color:'#818cf8', tag:'PAUSADO · OVERHANG', tagBg:'#f3f4f6', tagCol:'#4c1d95',
-      role:'RWA institucional · con overhang multisig activo',
-      dca:'DCA 15% redirigido: 50% → PHA · 50% → HYPE',
-      plan:'Salidas: 20% en $0.50 · 30% en $1.00-1.20 · 30% en $2.00-2.50 · 20% en $4.00-5.00. Reactivar DCA directo a ONDO cuando multisig pare de vender on-chain.',
-      updated:'17 abr 2026'
-    },
-    {tick:'AKT', color:'#10b981', tag:'ACUMULACIÓN abr-jul 2026', tagBg:'#d1fae5', tagCol:'#065f46',
-      role:'Ventana táctica · DePIN compute · meta 3,000 tokens',
-      dca:'DCA 5% · Q272/mes (~$35) + reserva táctica',
-      plan:'Triggers reserva: <$0.45 comprar $100 · <$0.40 comprar $150 · máximo $300 durante toda la ventana. Después de julio 2026 vuelve a HOLD con salidas 50% en $1.50 / 50% en $3.00+ → capital rota a PHA.',
-      note:'Ventana activa: cierre con bono julio 2026 (20% del bono asignado a AKT para cerrar meta).',
-      updated:'18 abr 2026'
-    },
-    {tick:'MORPHO', color:'#9d7ff0', tag:'HOLD · OBSERVACIÓN', tagBg:'#ede9fe', tagCol:'#5b21b6',
-      role:'DeFi lending · candidato a reclasificación',
-      dca:'Sin DCA programático · posición inicial capital-constrained',
-      plan:'Salidas actuales: 50% en $3.50 / 50% en $5.50+ → capital a PHA.',
-      note:'⚠ Candidato a reclasificación: Apollo Global compra hasta 90M tokens (9% supply) en 48 meses. Ethereum Foundation depositó $19M en Morpho Vaults. V2 prioridad 2026. TVL $6.9B (segundo mayor DeFi lending). Resistió mercado bajista (+6.5% mientras altcoin sangraba). Revisar targets en FOMC 29 abril.',
-      updated:'19 abr 2026'
-    },
-    {tick:'MSTR', color:'#e8a020', tag:'HOLD TÁCTICO', tagBg:'#fef3c7', tagCol:'#92400e',
-      role:'Proxy BTC apalancado · broker Schwab · TradFi',
-      dca:'Sin DCA · limits activas: $155 ($100) + $145 ($150)',
-      plan:'Stop $145 · Target 1: $210-220 (50%) · Target 2: $260+ (25%). Si BTC rompe $100K con volumen y MSTR llega a $350+, evaluar salida total → capital a PHA.',
-      updated:'17 abr 2026'
-    },
-    {tick:'STRC', color:'#f5b731', tag:'LIQUIDADO', tagBg:'#fee2e2', tagCol:'#991b1b',
-      role:'Eliminado permanentemente del plan',
-      dca:'—',
-      plan:'Liquidado 17 abril 2026. Capital ($1,769 USDC) → reserva táctica. No se reconstruye salvo decisión futura del panel con justificación nueva.',
-      updated:'17 abr 2026'
-    },
-  ];
-
-  const stratRows = STRAT_PDF.map(s => `<div style="background:#fafbfc;border:1px solid #e5e7eb;border-left:3px solid ${s.color};border-radius:6px;padding:10px 14px;margin-bottom:8px;break-inside:avoid">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:5px;gap:8px">
-      <div>
-        <span style="font-size:13px;font-weight:800;color:${s.color}">${s.tick}</span>
-        <span style="font-size:10px;color:#6b7280;margin-left:6px;font-style:italic">${s.role}</span>
-      </div>
-      <span style="font-size:8px;font-weight:700;background:${s.tagBg};color:${s.tagCol};padding:2px 8px;border-radius:9px;white-space:nowrap;text-transform:uppercase;letter-spacing:.3px">${s.tag}</span>
-    </div>
-    <div style="font-size:10px;color:#1a202c;line-height:1.45;margin-bottom:3px"><span style="font-size:8px;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;font-weight:600">DCA · </span>${s.dca}</div>
-    <div style="font-size:10px;color:#1a202c;line-height:1.45"><span style="font-size:8px;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;font-weight:600">Plan · </span>${s.plan}</div>
-    ${s.note ? `<div style="margin-top:5px;padding:5px 8px;background:#fffbeb;border-left:2px solid #f59e0b;border-radius:3px;font-size:9px;color:#78350f;line-height:1.4">${s.note}</div>` : ''}
-    <div style="margin-top:5px;padding-top:4px;border-top:1px dashed #e5e7eb;font-size:8px;color:#9ca3af;text-align:right">actualizado ${s.updated}</div>
-  </div>`).join('');
-
-  // Filas de activos — diseño compacto 2 columnas en lugar de tabla ancha
-  const cards=allAssets.map(a=>{
-    const val=(a.price||0)*a.qty;
-    const inv=a.entry*a.qty;
-    const ap=val-inv;
-    const apPct=inv>0?((ap/inv)*100):0;
-    const peso=tot>0?((val/tot)*100).toFixed(1):'0';
-    const layer=L1.find(x=>x.tick===a.tick)?'Capa 1':L2.find(x=>x.tick===a.tick)?'Capa 2':'Broker';
-    const zonaTexto = ZONAS[a.tick] || '';
-    const isBTCcolchon = a.tick === 'BTC';
-    const isHold = ['AKT','MORPHO','MSTR'].includes(a.tick);
-    const borderColor = isBTCcolchon ? '#f7931a' : isHold ? '#e8a020' : '#e2e8f0';
-    const bgColor = isBTCcolchon ? '#fff7ed' : isHold ? '#fffbeb' : '#f8faff';
-    return `<div style="background:${bgColor};border:1px solid ${borderColor};border-radius:8px;padding:12px 14px;break-inside:avoid;">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
-        <div>
-          <span style="font-size:15px;font-weight:800;color:#1a202c">${a.tick}</span>
-          <span style="font-size:11px;color:#a0aec0;margin-left:6px">${a.name||''}</span>
-          <span style="font-size:9px;background:#edf2ff;color:#4c6ef5;padding:1px 6px;border-radius:3px;margin-left:4px">${layer}</span>
-        </div>
-        <div style="text-align:right">
-          <div style="font-size:16px;font-weight:800;color:#1a202c">${fm2(val)}</div>
-          <div style="font-size:10px;color:#a0aec0">${peso}% del portafolio</div>
-        </div>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;font-size:11px;">
-        <div><div style="color:#a0aec0;font-size:9px;text-transform:uppercase;margin-bottom:2px">Cantidad</div><div style="font-weight:600">${a.qty.toLocaleString('en-US',{maximumFractionDigits:4})}</div></div>
-        <div><div style="color:#a0aec0;font-size:9px;text-transform:uppercase;margin-bottom:2px">Precio</div><div style="font-weight:600">$${(a.price||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:4})}</div></div>
-        <div><div style="color:#a0aec0;font-size:9px;text-transform:uppercase;margin-bottom:2px">Invertido</div><div style="font-weight:600">${fm2(inv)}</div></div>
-      </div>
-      <div style="margin-top:8px;padding-top:8px;border-top:1px solid #edf2f7;display:flex;justify-content:space-between;align-items:center;">
-        <span style="font-size:10px;color:#a0aec0">P&L no realizado</span>
-        <span style="font-size:13px;font-weight:700;color:${ap>=0?'#00b894':'#e53e3e'}">${ap>=0?'+':''}${fm2(Math.abs(ap))} <span style="font-size:10px">(${fmp(apPct)})</span></span>
-      </div>
-      ${zonaTexto?`<div style="margin-top:8px;padding:7px 10px;background:rgba(157,127,240,.08);border-left:3px solid #9d7ff0;border-radius:3px;"><div style="font-size:8px;color:#6b46c1;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;font-weight:600">Plan</div><div style="font-size:10px;color:#4c1d95;line-height:1.4">${zonaTexto}</div></div>`:''}
-    </div>`;
-  }).join('');
-
-  const CSS=`*{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:"Segoe UI",Arial,sans-serif;background:#f7f8fc;color:#1a202c;padding:0;}
-.page{max-width:750px;margin:0 auto;padding:28px 20px 50px;}
-.cover{background:linear-gradient(135deg,#0d1117 0%,#0f2442 50%,#0d1117 100%);
-  color:#fff;border-radius:14px;padding:28px 32px;margin-bottom:20px;position:relative;overflow:hidden;}
-.cover::before{content:'';position:absolute;top:-40%;right:-10%;width:60%;height:180%;
-  background:radial-gradient(ellipse,rgba(61,184,245,.1) 0%,transparent 60%);pointer-events:none;}
-.cover h1{font-size:22px;font-weight:800;margin-bottom:3px;}
-.cover .sub{font-size:11px;opacity:.5;margin-bottom:20px;}
-.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
-.kpi{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.08);border-radius:9px;padding:12px 10px;}
-.k-lbl{font-size:8px;text-transform:uppercase;letter-spacing:.8px;opacity:.5;margin-bottom:4px;}
-.k-val{font-size:18px;font-weight:800;letter-spacing:-1px;}
-.k-sub{font-size:9px;opacity:.4;margin-top:2px;}
-.sec{background:#fff;border-radius:12px;padding:18px 22px;margin-bottom:14px;
-  box-shadow:0 1px 3px rgba(0,0,0,.05),0 0 0 1px rgba(0,0,0,.04);}
-.sec-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;
-  padding-bottom:9px;border-bottom:1px solid #eef0f4;}
-.sec-t{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#3db8f5;}
-.sec-sub{font-size:11px;color:#a0aec0;}
-.layers{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;}
-.layer{background:#f7f9ff;border:1px solid #e2e8f7;border-radius:8px;padding:10px 12px;text-align:center;}
-.l-lbl{font-size:8px;color:#a0aec0;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
-.l-val{font-size:14px;font-weight:800;}
-.l-pct{font-size:9px;color:#a0aec0;margin-top:2px;}
-.pbar-wrap{margin-bottom:4px;}
-.pbar-lbl{display:flex;justify-content:space-between;font-size:11px;color:#718096;margin-bottom:4px;}
-.pbar{background:#edf2f7;border-radius:5px;height:9px;overflow:hidden;}
-.pbar-fill{height:100%;border-radius:5px;}
-.assets-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-.note{background:#fffbeb;border:1px solid #fbd38d;border-radius:8px;padding:10px 14px;
-  font-size:10px;color:#744210;margin-top:12px;line-height:1.5;}
-.foot{text-align:center;margin-top:20px;padding-top:12px;border-top:1px solid #edf2f7;font-size:10px;color:#a0aec0;}
-.g{color:#00b894;}.r{color:#e53e3e;}.b{color:#3db8f5;}.pu{color:#9d7ff0;}
-@media print{
-  body{background:#fff;}
-  .cover{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-  .assets-grid{grid-template-columns:1fr 1fr;}
-}
-@media(max-width:600px){.kpis{grid-template-columns:1fr 1fr;}.assets-grid{grid-template-columns:1fr;}.layers{grid-template-columns:1fr;}}`;
+  // CSS inline minimalista
+  const CSS = `
+    body{margin:0;padding:0;background:#f5f6fa;font-family:Helvetica,Arial,sans-serif;color:#1a1a2e}
+    .page{max-width:680px;margin:0 auto;padding:24px 16px 48px}
+    .cover{background:#1e1b4b;color:#fff;border-radius:12px;padding:24px 28px;margin-bottom:18px}
+    .cover h1{font-size:22px;font-weight:800;margin:0 0 4px;letter-spacing:-.5px}
+    .sub{font-size:12px;opacity:.55;margin:0 0 18px}
+    .kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+    .kpi{background:rgba(255,255,255,.1);border-radius:8px;padding:12px 14px}
+    .k-lbl{font-size:9px;text-transform:uppercase;letter-spacing:.7px;opacity:.55;display:block;margin-bottom:3px}
+    .k-val{font-size:18px;font-weight:800;letter-spacing:-1px;display:block}
+    .k-sub{font-size:10px;opacity:.45;display:block;margin-top:2px}
+    .sec{background:#fff;border-radius:10px;padding:18px 20px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,.07)}
+    .sec-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid #ede9fe}
+    .sec-t{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#4c1d95}
+    .sec-sub{font-size:10px;color:#a0aec0}
+    .pbar-wrap{margin-top:12px}
+    .pbar-lbl{display:flex;justify-content:space-between;font-size:10px;color:#6b7280;margin-bottom:4px}
+    .pbar{background:#e5e7eb;border-radius:4px;height:8px;overflow:hidden}
+    .pbar-fill{height:100%;border-radius:4px}
+    table{width:100%;border-collapse:collapse;font-size:11px}
+    th{background:#ede9fe;color:#4c1d95;font-weight:600;font-size:10px;text-transform:uppercase;padding:7px 10px;text-align:left;letter-spacing:.5px}
+    .note{background:#fff7ed;border-left:3px solid #f59e0b;border-radius:3px;padding:8px 12px;font-size:10px;color:#78350f;line-height:1.5;margin-top:16px}
+    .foot{text-align:center;margin-top:20px;padding-top:12px;border-top:1px solid #e5e7eb;font-size:10px;color:#9ca3af}
+  `;
 
   const html2=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -1021,109 +870,60 @@ body{font-family:"Segoe UI",Arial,sans-serif;background:#f7f8fc;color:#1a202c;pa
 <div class="cover">
   <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;flex-wrap:wrap;gap:8px;">
     <div><h1>Estado de Resultados</h1><div class="sub">Cartera de Activos Digitales · ${fecha}</div></div>
-    <div style="background:rgba(61,184,245,.12);border:1px solid rgba(61,184,245,.25);color:#3db8f5;font-size:9px;padding:4px 10px;border-radius:20px;align-self:flex-start">Informe Confidencial</div>
+    <div style="background:rgba(61,184,245,.12);border:1px solid rgba(61,184,245,.25);color:#3db8f5;font-size:9px;padding:4px 10px;border-radius:20px;align-self:flex-start">Informe Personal</div>
   </div>
   <div class="kpis">
     <div class="kpi"><div class="k-lbl">Valor mercado</div><div class="k-val">${fm2(tot)}</div><div class="k-sub">${pct.toFixed(1)}% de meta</div></div>
-    <div class="kpi"><div class="k-lbl">Capital</div><div class="k-val">${fm2(cst)}</div><div class="k-sub">costo entrada</div></div>
-    <div class="kpi"><div class="k-lbl">P&L</div><div class="k-val" style="color:${pnl>=0?'#34d07a':'#f25c5c'}">${pnl>=0?'+':''}${fm2(Math.abs(pnl))}</div><div class="k-sub">${pnlPct}%</div></div>
-    <div class="kpi"><div class="k-lbl">Múltiplo</div><div class="k-val" style="color:${parseFloat(mult)>=1?'#34d07a':'#f25c5c'}">${mult}x</div><div class="k-sub">retorno</div></div>
-  </div>
-</div>
-
-<div class="sec">
-  <div class="sec-hdr"><div class="sec-t">Distribución por capa</div><div class="sec-sub">${allAssets.length} activos</div></div>
-  <div class="layers">
-    <div class="layer"><div class="l-lbl">Capa 1 · Sólidos</div><div class="l-val b">${fm2(v1)}</div><div class="l-pct">${tot>0?((v1/tot)*100).toFixed(1):0}%</div></div>
-    <div class="layer"><div class="l-lbl">Capa 2 · Explosivos</div><div class="l-val pu">${fm2(v2)}</div><div class="l-pct">${tot>0?((v2/tot)*100).toFixed(1):0}%</div></div>
-    <div class="layer"><div class="l-lbl">Broker / TradFi</div><div class="l-val">${fm2(vB)}</div><div class="l-pct">${tot>0?((vB/tot)*100).toFixed(1):0}%</div></div>
+    <div class="kpi"><div class="k-lbl">Capital invertido</div><div class="k-val">${fm2(cst)}</div><div class="k-sub">costo entrada</div></div>
+    <div class="kpi"><div class="k-lbl">P&L no realizado</div><div class="k-val" style="color:${pnl>=0?'#34d07a':'#f25c5c'}">${pnl>=0?'+':''}${fm2(Math.abs(pnl))}</div><div class="k-sub">${pnlPct}%</div></div>
+    <div class="kpi"><div class="k-lbl">Multiplo</div><div class="k-val" style="color:${parseFloat(mult)>=1?'#34d07a':'#f25c5c'}">${mult}x</div><div class="k-sub">retorno</div></div>
   </div>
   <div class="pbar-wrap">
-    <div class="pbar-lbl"><span>Progreso → $150,000</span><span><strong>${pct.toFixed(1)}%</strong></span></div>
+    <div class="pbar-lbl"><span>Progreso hacia $150,000</span><span><strong>${pct.toFixed(1)}%</strong></span></div>
     <div class="pbar"><div class="pbar-fill" style="width:${pct.toFixed(1)}%;background:linear-gradient(90deg,#3db8f5,#9d7ff0)"></div></div>
   </div>
 </div>
 
 <div class="sec">
-  <div class="sec-hdr"><div class="sec-t">Performance y concentración</div><div class="sec-sub">Precios al ${timestamp}</div></div>
-  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">
-    <div style="background:#f7f9ff;border:1px solid #e2e8f7;border-radius:8px;padding:10px 12px">
-      <div style="font-size:8px;color:#a0aec0;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Top 3 concentración</div>
-      <div style="font-size:18px;font-weight:800;color:#1a202c">${top3Pct}%</div>
-      <div style="font-size:9px;color:#a0aec0">${top3Names}</div>
-    </div>
-    <div style="background:#f7f9ff;border:1px solid #e2e8f7;border-radius:8px;padding:10px 12px">
-      <div style="font-size:8px;color:#a0aec0;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">HHI Concentración</div>
-      <div style="font-size:18px;font-weight:800;color:${concentrationColor}">${herfindahl.toFixed(0)}</div>
-      <div style="font-size:9px;color:${concentrationColor}">${concentrationLabel}</div>
-    </div>
-    <div style="background:#f7f9ff;border:1px solid #e2e8f7;border-radius:8px;padding:10px 12px">
-      <div style="font-size:8px;color:#a0aec0;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Capital 12 meses</div>
-      <div style="font-size:18px;font-weight:800;color:#059669">+${fm2(dca12m)}</div>
-      <div style="font-size:9px;color:#a0aec0">DCA comprometido</div>
-    </div>
-  </div>
-  <div style="background:#fff7ed;border-left:3px solid #f59e0b;border-radius:3px;padding:8px 12px;font-size:10px;color:#78350f;line-height:1.5">
-    <strong>Fuentes:</strong> HYPE/ONDO/AKT/PHA/MORPHO via CoinGecko · BTC/MSTR manual. HHI &lt;1500 diversificado · 1500-2500 moderado · &gt;2500 concentrado.
-  </div>
+  <div class="sec-hdr"><div class="sec-t">Composicion del portafolio</div><div class="sec-sub">${allAssets.length} activos</div></div>
+  <table>
+    <thead><tr>
+      <th>Activo</th>
+      <th style="text-align:right">Cantidad</th>
+      <th style="text-align:right">Valor</th>
+      <th style="text-align:right">P&L</th>
+      <th style="text-align:right">% Port.</th>
+    </tr></thead>
+    <tbody>${assetRows}</tbody>
+  </table>
 </div>
 
 <div class="sec">
-  <div class="sec-hdr"><div class="sec-t">Composición detallada</div><div class="sec-sub">${fm2(tot)} valor total</div></div>
-  <div class="assets-grid">${cards}</div>
-</div>
-
-<div class="sec">
-  <div class="sec-hdr"><div class="sec-t">Progreso de acumulación · meta tokens</div><div class="sec-sub">${promedioAcc.toFixed(1)}% promedio · 4 activos</div></div>
+  <div class="sec-hdr"><div class="sec-t">Progreso de acumulacion · meta tokens</div><div class="sec-sub">${promedioAcc.toFixed(1)}% promedio</div></div>
   ${accRows}
-  <div style="background:#f5f3ff;border:1px solid #ddd6fe;border-radius:8px;padding:10px 12px;margin-top:8px;font-size:10px;color:#4c1d95;line-height:1.5">
-    <strong>Plan v1.7:</strong> acumular tokens de los 4 activos meta (AKT en ventana abr-jul 2026) hasta alcanzar cantidades objetivo.<br>
-    Al ejecutar zonas de salida, capital liberado → 100% PHA hasta completar meta $150K.
-  </div>
 </div>
 
 <div class="sec">
-  <div class="sec-hdr"><div class="sec-t">Estrategia por activo</div><div class="sec-sub">plan vigente · v1.7</div></div>
-  ${stratRows}
-  <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:10px 12px;margin-top:8px;font-size:10px;color:#0c4a6e;line-height:1.5">
-    <strong>Nota operativa:</strong> el plan vigente es guía, no ley. Toda regla es heurística revalidable ante cambio material de contexto. Las estrategias se revisan en cada FOMC y checkpoints trimestrales.
+  <div class="sec-hdr"><div class="sec-t">Performance y concentracion</div><div class="sec-sub">Precios al ${timestamp}</div></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+    <div style="background:#f7f9ff;border:1px solid #e2e8f7;border-radius:8px;padding:12px 14px">
+      <div style="font-size:9px;color:#a0aec0;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Top 3 concentracion</div>
+      <div style="font-size:20px;font-weight:800;color:#1a202c;letter-spacing:-.5px">${top3Pct}%</div>
+      <div style="font-size:10px;color:#718096;margin-top:2px">${top3Names}</div>
+    </div>
+    <div style="background:#f7f9ff;border:1px solid #e2e8f7;border-radius:8px;padding:12px 14px">
+      <div style="font-size:9px;color:#a0aec0;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Indice Herfindahl</div>
+      <div style="font-size:20px;font-weight:800;color:${concentrationColor};letter-spacing:-.5px">${herfindahl.toFixed(0)}</div>
+      <div style="font-size:10px;color:${concentrationColor};margin-top:2px">${concentrationLabel}</div>
+    </div>
+  </div>
+  <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:8px 12px;font-size:9px;color:#6b7280;line-height:1.5">
+    HHI &lt;1500 diversificado · 1500-2500 moderado · &gt;2500 concentrado.
   </div>
 </div>
 
-<div class="sec">
-  <div class="sec-hdr"><div class="sec-t">Distribución DCA mensual</div><div class="sec-sub">$703/mes · Q5,452</div></div>
-  <table style="width:100%;border-collapse:collapse;font-size:11px">
-    <thead><tr style="background:#f9fafb">
-      <th style="padding:7px 10px;text-align:left;font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e5e7eb">Activo</th>
-      <th style="padding:7px 10px;text-align:right;font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e5e7eb">%</th>
-      <th style="padding:7px 10px;text-align:right;font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e5e7eb">Quetzales</th>
-      <th style="padding:7px 10px;text-align:right;font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e5e7eb">USD</th>
-    </tr></thead>
-    <tbody>${dcaRows}</tbody>
-  </table>
-  <div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:6px;padding:8px 12px;margin-top:10px;font-size:10px;color:#065f46;line-height:1.5">
-    <strong>Nota:</strong> mientras ONDO tenga overhang multisig activo, ese 15% se redirige 50/50 a PHA y HYPE.
-  </div>
-</div>
-
-<div class="sec">
-  <div class="sec-hdr"><div class="sec-t">Escenarios proyectados · horizonte 2027-2028</div><div class="sec-sub">Meta $150K neto</div></div>
-  <table style="width:100%;border-collapse:collapse;font-size:11px">
-    <thead><tr style="background:#f9fafb">
-      <th style="padding:7px 10px;text-align:left;font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e5e7eb">Escenario</th>
-      <th style="padding:7px 10px;text-align:left;font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e5e7eb">Condición</th>
-      <th style="padding:7px 10px;text-align:right;font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e5e7eb">Valor esperado</th>
-      <th style="padding:7px 10px;text-align:right;font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e5e7eb">Prob.</th>
-    </tr></thead>
-    <tbody>${escRows}</tbody>
-  </table>
-  <div style="background:#fffbeb;border:1px solid #fbd38d;border-radius:6px;padding:8px 12px;margin-top:10px;font-size:10px;color:#744210;line-height:1.5">
-    <strong>Thesis breakers:</strong> Oil &gt;$110 · BTC &lt;$62K con volumen · VIX &gt;25 · Powell "no cuts 2026". Probabilidades son estimaciones del panel, no garantías.
-  </div>
-</div>
-
-<div class="note">⚠ Estado de resultados no realizado. Valores al momento de generación. No constituye asesoramiento financiero regulado.</div>
-<div class="foot">Cartera de Activos Digitales · ${fecha} · Documento personal</div>
+<div class="note">Estado de resultados no realizado. Valores al momento de generacion. Documento personal.</div>
+<div class="foot">Cartera de Activos Digitales · ${fecha}</div>
 </div></body></html>`;
 
   const blob=new Blob([html2],{type:'text/html'});
@@ -1132,6 +932,7 @@ body{font-family:"Segoe UI",Arial,sans-serif;background:#f7f8fc;color:#1a202c;pa
   a.download='estado-resultados-'+new Date().toISOString().slice(0,10)+'.html';
   a.click();URL.revokeObjectURL(a.href);
 }
+
 
 
 // ── DISTRIBUCIÓN DONUT ──────────────────────────────────────────

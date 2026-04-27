@@ -2426,7 +2426,7 @@ function renderSnap(){
     +'<div class="snap-action-info">'
       +(dias === Infinity ? 'Captura el primer snapshot' : 'Ultimo: '+fmtDateShort(lastSnap().date)+' · hace '+dias+' '+(dias===1?'dia':'dias'))
     +'</div>'
-    +'<button class="snap-btn" '+(dias===0?'disabled':'')+' onclick="manualSnapshot()">+ Snapshot ahora</button>'
+    +'<button class="snap-btn" onclick="manualSnapshot()">'+(dias===0?'↻ Actualizar snapshot de hoy':'+ Snapshot ahora')+'</button>'
     +'</div>';
 
   var recent = SNAPSHOTS.slice(-5).reverse();

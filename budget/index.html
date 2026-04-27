@@ -125,6 +125,26 @@ body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--tx);min-heig
 .reimb-item-info{display:flex;flex-direction:column;gap:2px;min-width:0;}
 .reimb-item-title{font-family:'DM Mono',monospace;font-size:10px;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .reimb-item-sub{font-family:'DM Mono',monospace;font-size:8px;color:var(--mu);}
+
+/* ── SNAPSHOTS DE RESERVAS ───────────────────────────────── */
+.snap-toggle{display:flex;justify-content:space-between;align-items:center;cursor:pointer;padding:8px 12px;background:rgba(52,208,122,.06);border:1px solid rgba(52,208,122,.18);border-radius:7px;margin-top:8px;user-select:none;}
+.snap-toggle-lbl{font-family:'DM Mono',monospace;font-size:9px;color:var(--gr);letter-spacing:.05em;text-transform:uppercase;}
+.snap-toggle-total{font-family:'DM Mono',monospace;font-size:11px;font-weight:700;color:var(--gr);}
+.snap-toggle-ico{font-size:12px;color:var(--gr);transition:transform .25s;}
+.snap-toggle-ico.open{transform:rotate(180deg);}
+.snap-list{display:none;border:1px solid rgba(52,208,122,.12);border-radius:7px;overflow:hidden;margin-top:4px;background:var(--s1);}
+.snap-list.open{display:block;}
+.snap-banner{background:rgba(217,119,6,.08);border-left:3px solid #d97706;padding:8px 12px;font-family:'DM Mono',monospace;font-size:9px;color:#d97706;line-height:1.5;}
+.snap-action{padding:10px 12px;display:flex;justify-content:space-between;align-items:center;gap:8px;border-bottom:1px solid var(--bd);}
+.snap-action-info{font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);line-height:1.4;}
+.snap-btn{font-family:'DM Mono',monospace;font-size:9px;color:var(--gr);background:rgba(52,208,122,.1);border:1px solid rgba(52,208,122,.25);border-radius:4px;padding:4px 10px;cursor:pointer;font-weight:600;white-space:nowrap;}
+.snap-btn:disabled{opacity:.4;cursor:not-allowed;}
+.snap-row{display:grid;grid-template-columns:60px 1fr 24px;gap:6px;padding:6px 12px;border-bottom:1px solid var(--bd);align-items:center;font-family:'DM Mono',monospace;font-size:9px;}
+.snap-row:last-child{border-bottom:none;}
+.snap-row-date{color:var(--mu);}
+.snap-row-total{color:var(--tx);font-weight:600;text-align:right;}
+.snap-row-del{background:none;border:none;color:var(--rd);cursor:pointer;font-size:11px;padding:0;opacity:.5;}
+.snap-row-del:hover{opacity:1;}
 /* ── GASTOS PERSONALES TARJETA (removido, redundante con presupuesto Lulubit) ── */
 .badge{font-family:'DM Mono',monospace;font-size:9px;padding:2px 7px;border-radius:4px;}
 .ok{background:rgba(52,208,122,.12);color:var(--gr);border:1px solid rgba(52,208,122,.2);}
@@ -383,6 +403,16 @@ body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--tx);min-heig
 </div>
 <div class="reimb-list" id="reim-list"></div>
 
+<!-- SNAPSHOTS DE RESERVAS -->
+<div class="snap-toggle" onclick="toggleSnap()" id="snap-toggle-btn">
+  <div>
+    <div class="snap-toggle-lbl">📸 Snapshots de reservas</div>
+    <div class="snap-toggle-total" id="snap-toggle-total">0 capturados</div>
+  </div>
+  <span class="snap-toggle-ico" id="snap-toggle-ico">▾</span>
+</div>
+<div class="snap-list" id="snap-list"></div>
+
 <!-- HIPOTECA -->
 <div class="sec"><div class="ld" style="background:var(--pk);box-shadow:0 0 5px var(--pk)"></div><div class="lt">Hipoteca <span>Q1,480,000 · 7.26% · 15 años · Feb 2026</span></div></div>
 <div class="card">
@@ -529,7 +559,7 @@ function svS(d){try{localStorage.setItem(LS,JSON.stringify(d));}catch(e){}}
 
 // ── ESTADO ────────────────────────────────────────────────────────
 let ST={tc:7.75,mes:3,anio:2026,q1:0,q2:0,sprev:30052.58,reservaLulu:0,bacDeuda:0,bacDeudaUsd:0,bamDeuda:0};
-var COLS={emer:54275,bant:14204,imp:0,buf:119,reimb:0};
+var COLS={emer:54275,bant:14204,imp:0,buf:119,reimb:0,btc:0};
 const CUOTA=13959.61;
 const MESES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const MNOMBRES=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
@@ -587,6 +617,7 @@ function loadSaved(){
     if(d.cols.imp!=null) COLS.imp =d.cols.imp;
     if(d.cols.buf!=null) COLS.buf =d.cols.buf;
     if(d.cols.reimb!=null)COLS.reimb=d.cols.reimb;
+    if(d.cols.btc!=null) COLS.btc =d.cols.btc;
   }
   // Cargar q1/q2 del mes-año guardado
   const _qd=ldS();
@@ -700,6 +731,7 @@ function renderCols(){
     {k:'bant',ttl:'✈️ Bantrab',            meta:30000,      cuenta:'Bantrab',     col:'var(--ac)'},
     {k:'buf', ttl:'🔧 Monetaria BI · caja chica',meta:3000,cuenta:'Monetaria BI',col:'var(--mu)'},
     {k:'reimb',ttl:'💵 Reembolsos trabajo',meta:null,       cuenta:'USD cash',    col:'var(--ac)',usd:true},
+    {k:'btc', ttl:'₿ BTC colchon LF',      meta:null,       cuenta:'SeedSigner',  col:'var(--go)',usd:true,manual:true},
   ];
   const tc=ST.tc||7.75;
   document.getElementById('col-grid').innerHTML=defs.map(c=>{
@@ -708,32 +740,26 @@ function renderCols(){
     const pct=c.meta?Math.min((val/c.meta)*100,100):100;
     const pctCol=pct>=100?'var(--gr)':pct>=50?'var(--go)':'var(--rd)';
     const pctTxt=c.meta?(pct>=100?'✅':pct.toFixed(0)+'%'):'—';
-    const valDisplay=c.usd?`<span style="color:${c.col}">$${val.toFixed(0)} · Q${(val*tc).toFixed(0)}</span>`
-      :`<input class="col-inp" type="number" value="${val}" step="1" min="0"
-         onchange="onColChange('${c.k}',this.value)"
-         style="color:${c.col};border-color:${c.col}44">`;
-    const usdInp=c.usd?`<div class="col-inp-wrap" style="margin-top:4px">
-      <input class="col-inp" type="number" value="${val}" step="0.01" min="0"
-        onchange="onColChange('${c.k}',this.value)"
-        placeholder="$ USD" style="color:${c.col};border-color:${c.col}44">
-      </div>`:valDisplay;
+    const noteHtml=c.manual?`<div style="font-size:8px;color:var(--mu2);margin-top:2px;font-style:italic">Edicion manual · sincroniza con portafolio</div>`:'';
     return `<div class="col-card">
       <div class="col-ttl">${c.ttl}</div>
       <div class="col-cuenta">🏦 ${c.cuenta}</div>
       <div class="col-row"><span class="col-lbl">Meta</span><span class="col-val" style="color:var(--mu)">${metaLbl}</span></div>
-      <div class="col-row"><span class="col-lbl">Actual</span><span class="col-val">${c.usd?'':''}</span></div>
+      <div class="col-row"><span class="col-lbl">Actual</span><span class="col-val">${c.usd?'$'+val.toFixed(0)+' · Q'+(val*tc).toFixed(0):''}</span></div>
       ${c.usd
-        ?`<input class="col-inp" type="number" value="${val}" step="0.01" min="0" onchange="onColChange('${c.k}',this.value)" style="color:${c.col};border-color:${c.col}44;margin:4px 0">`
+        ?`<input class="col-inp" type="number" value="${val}" step="0.01" min="0" onchange="onColChange('${c.k}',this.value)" placeholder="$ USD" style="color:${c.col};border-color:${c.col}44;margin:4px 0">`
         :`<input class="col-inp" type="number" value="${val}" step="1" min="0" onchange="onColChange('${c.k}',this.value)" style="color:${c.col};border-color:${c.col}44;margin:4px 0">`
       }
       <div class="col-row"><span class="col-lbl">Progreso</span><span class="col-val" style="color:${pctCol}">${pctTxt}</span></div>
       <div class="pbar"><div class="pbar-fill" style="background:${c.col};width:${Math.min(pct,100).toFixed(1)}%"></div></div>
+      ${noteHtml}
     </div>`;
   }).join('');
 
-  // Total reservas
-  const total=COLS.emer+COLS.bant+COLS.buf+(COLS.reimb*(ST.tc||7.75)); // imp unificado en emer
-  document.getElementById('r-reservas').textContent=fq(total)+' (incl. $'+COLS.reimb.toFixed(0)+'USD)';
+  // Total reservas (incluye BTC y reembolsos en USD convertidos)
+  const total=COLS.emer+COLS.bant+COLS.buf+(COLS.reimb*tc)+((COLS.btc||0)*tc);
+  const btcQ = (COLS.btc||0) * tc;
+  document.getElementById('r-reservas').textContent=fq(total)+' (incl. $'+COLS.reimb.toFixed(0)+' reemb · $'+(COLS.btc||0).toFixed(0)+' BTC)';
 }
 
 // ── HIPOTECA ─────────────────────────────────────────────────────
@@ -1321,7 +1347,7 @@ function descargarResumen(){
   const tc=ST.tc||7.75, tf=FIJOS_TOTAL;
   const ingTotal=ST.q1+ST.q2;
   const excMes=Math.max(ingTotal-tf,0);
-  const totalRes=COLS.emer+COLS.bant+COLS.buf+(COLS.reimb*tc); // imp unificado en emer
+  const totalRes=COLS.emer+COLS.bant+COLS.buf+(COLS.reimb*tc)+((COLS.btc||0)*tc);
   const salHip=(()=>{
     const anio=ST.anio||2026;
     const mD=Math.max((anio-2026)*12+(ST.mes-1),0);
@@ -1542,9 +1568,136 @@ function descargarResumen(){
         +'<tr><td style="'+S.td+'">Bantrab (viajes)</td><td style="'+S.td+'">Bantrab</td><td style="'+S.td+'">'+fqR(COLS.bant)+'</td><td style="'+S.td+'">Q30,000</td></tr>'
         +'<tr><td style="'+S.td+'">Buffer operativo</td><td style="'+S.td+'">Monetaria BI</td><td style="'+S.td+'">'+fqR(COLS.buf)+'</td><td style="'+S.td+'">Q3,000</td></tr>'
         +(COLS.reimb>0?'<tr><td style="'+S.td+'">Reembolsos</td><td style="'+S.td+'">USD cash</td><td style="'+S.td+'">'+'$'+COLS.reimb.toFixed(0)+' ('+fqR(COLS.reimb*tc)+')</td><td style="'+S.td+'">—</td></tr>':'')
+        +((COLS.btc||0)>0?'<tr><td style="'+S.td+'">BTC colchon LF</td><td style="'+S.td+'">SeedSigner</td><td style="'+S.td+'color:#d97706;font-weight:600">'+'$'+(COLS.btc||0).toFixed(0)+' ('+fqR((COLS.btc||0)*tc)+')</td><td style="'+S.td+'color:#888;font-size:9px;font-style:italic">colchon LF</td></tr>':'')
         +'<tr><td style="'+S.td+'font-weight:700" colspan="2">Total reservas</td><td style="'+S.td+'font-weight:700;color:#4c1d95" colspan="2">'+fqR(totalRes)+'</td></tr>'
       +'</tbody></table>'
     +'</div>'
+
+    // ── EVOLUCION DE RESERVAS (snapshots historicos) ──
+    +(SNAPSHOTS && SNAPSHOTS.length >= 1 ? ('<div style="'+S.sec+'">'
+      +'<span style="'+S.sectl+'">Evolucion de reservas en el tiempo</span>'
+      +(function(){
+        if(SNAPSHOTS.length === 1){
+          var s = SNAPSHOTS[0];
+          return '<div style="background:#f5f3ff;border:1px solid #ddd6fe;border-radius:8px;padding:14px;text-align:center">'
+            +'<div style="font-size:11px;color:#666;line-height:1.6">Primer snapshot capturado el '+fmtDateShort(s.date)+'.<br>La grafica de tendencia aparecera con mas snapshots.</div>'
+            +'<div style="margin-top:8px;font-size:18px;font-weight:700;color:#4c1d95">Q'+s.total.toLocaleString('es-GT',{maximumFractionDigits:0})+'</div>'
+            +'</div>';
+        }
+
+        const chartW = 580, chartH = 200;
+        const padL = 60, padR = 12, padT = 18, padB = 36;
+        const innerW = chartW - padL - padR;
+        const innerH = chartH - padT - padB;
+
+        const totals = SNAPSHOTS.map(s => s.total);
+        const minVal = Math.min.apply(null, totals);
+        const maxVal = Math.max.apply(null, totals);
+        const range = Math.max(maxVal - minVal, 1);
+        const yMin = Math.max(0, minVal - range * 0.1);
+        const yMax = maxVal + range * 0.1;
+        const yRange = yMax - yMin;
+
+        const stepX = SNAPSHOTS.length > 1 ? innerW / (SNAPSHOTS.length - 1) : 0;
+
+        let pathD = '';
+        let pointsHtml = '';
+        let labelsHtml = '';
+        const showLabels = SNAPSHOTS.length <= 12;
+
+        SNAPSHOTS.forEach(function(s, i){
+          const x = padL + i * stepX;
+          const y = padT + innerH - ((s.total - yMin) / yRange) * innerH;
+          pathD += (i === 0 ? 'M' : 'L') + x.toFixed(1) + ',' + y.toFixed(1) + ' ';
+          pointsHtml += '<circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="3" fill="#7c3aed" stroke="#fff" stroke-width="1.5"/>';
+          if(showLabels || i === 0 || i === SNAPSHOTS.length - 1 || i % Math.ceil(SNAPSHOTS.length/8) === 0){
+            labelsHtml += '<text x="'+x.toFixed(1)+'" y="'+(chartH - padB + 14).toFixed(1)+'" text-anchor="middle" font-family="monospace" font-size="8" fill="#718096">'+fmtDateShort(s.date)+'</text>';
+          }
+        });
+
+        const yTicks = [yMin, (yMin+yMax)/2, yMax];
+        let yAxisHtml = '';
+        yTicks.forEach(function(v){
+          const yPos = padT + innerH - ((v - yMin) / yRange) * innerH;
+          yAxisHtml += '<line x1="'+padL+'" y1="'+yPos.toFixed(1)+'" x2="'+(chartW-padR)+'" y2="'+yPos.toFixed(1)+'" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="2,2"/>';
+          yAxisHtml += '<text x="'+(padL-6)+'" y="'+(yPos+3).toFixed(1)+'" text-anchor="end" font-family="monospace" font-size="8" fill="#a0aec0">Q'+(v/1000).toFixed(0)+'K</text>';
+        });
+
+        let areaPath = pathD + 'L'+(padL + (SNAPSHOTS.length-1)*stepX).toFixed(1)+','+(padT+innerH).toFixed(1)+' L'+padL+','+(padT+innerH).toFixed(1)+' Z';
+
+        const svg = '<svg viewBox="0 0 '+chartW+' '+chartH+'" style="width:100%;max-width:100%;height:auto;display:block;margin-bottom:6px" preserveAspectRatio="xMidYMid meet">'
+          +'<defs><linearGradient id="snapgrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#7c3aed" stop-opacity=".22"/><stop offset="100%" stop-color="#7c3aed" stop-opacity="0"/></linearGradient></defs>'
+          +yAxisHtml
+          +'<path d="'+areaPath+'" fill="url(#snapgrad)"/>'
+          +'<path d="'+pathD+'" stroke="#7c3aed" stroke-width="2" fill="none" stroke-linejoin="round" stroke-linecap="round"/>'
+          +pointsHtml
+          +labelsHtml
+          +'</svg>';
+
+        const first = SNAPSHOTS[0];
+        const last = SNAPSHOTS[SNAPSHOTS.length-1];
+        const delta = last.total - first.total;
+        const deltaPct = first.total > 0 ? (delta/first.total)*100 : 0;
+        const deltaColor = delta >= 0 ? '#059669' : '#dc2626';
+        const sign = delta >= 0 ? '+' : '';
+
+        const kpis = '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">'
+          +'<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:8px 10px;text-align:center">'
+            +'<div style="font-size:8px;color:#a0aec0;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">Inicio</div>'
+            +'<div style="font-size:13px;font-weight:700;color:#4a5568">Q'+(first.total/1000).toFixed(1)+'K</div>'
+            +'<div style="font-size:8px;color:#a0aec0">'+fmtDateShort(first.date)+'</div>'
+          +'</div>'
+          +'<div style="background:#f5f3ff;border:1px solid #ddd6fe;border-radius:6px;padding:8px 10px;text-align:center">'
+            +'<div style="font-size:8px;color:#a0aec0;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">Actual</div>'
+            +'<div style="font-size:13px;font-weight:800;color:#4c1d95">Q'+(last.total/1000).toFixed(1)+'K</div>'
+            +'<div style="font-size:8px;color:#a0aec0">'+fmtDateShort(last.date)+'</div>'
+          +'</div>'
+          +'<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:8px 10px;text-align:center">'
+            +'<div style="font-size:8px;color:#a0aec0;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">Cambio</div>'
+            +'<div style="font-size:13px;font-weight:700;color:'+deltaColor+'">'+sign+'Q'+(Math.abs(delta)/1000).toFixed(1)+'K</div>'
+            +'<div style="font-size:8px;color:'+deltaColor+'">'+sign+deltaPct.toFixed(1)+'%</div>'
+          +'</div>'
+        +'</div>';
+
+        const recentSnaps = SNAPSHOTS.slice(-12);
+        const tableRows = recentSnaps.map(function(s, idx){
+          const prev = idx > 0 ? recentSnaps[idx-1] : null;
+          function arr(curr, p){
+            if(p===null||p===undefined) return '';
+            if(curr > p) return '<span style="color:#059669;font-size:8px"> &uarr;</span>';
+            if(curr < p) return '<span style="color:#dc2626;font-size:8px"> &darr;</span>';
+            return '<span style="color:#a0aec0;font-size:8px"> =</span>';
+          }
+          var btcCol = (s.btc||0) > 0 ? '<td style="'+S.td+'">$'+(s.btc||0).toFixed(0)+arr(s.btc||0, prev?(prev.btc||0):null)+'</td>' : '<td style="'+S.td+'color:#a0aec0">—</td>';
+          return '<tr>'
+            +'<td style="'+S.td+'font-weight:600">'+fmtDateShort(s.date)+'</td>'
+            +'<td style="'+S.td+'">Q'+(s.emer/1000).toFixed(1)+'K'+arr(s.emer, prev?prev.emer:null)+'</td>'
+            +'<td style="'+S.td+'">Q'+(s.bant/1000).toFixed(1)+'K'+arr(s.bant, prev?prev.bant:null)+'</td>'
+            +'<td style="'+S.td+'">Q'+s.buf.toFixed(0)+arr(s.buf, prev?prev.buf:null)+'</td>'
+            +'<td style="'+S.td+'">$'+(s.reimb||0).toFixed(0)+arr(s.reimb||0, prev?(prev.reimb||0):null)+'</td>'
+            +btcCol
+            +'<td style="'+S.td+'font-weight:700;color:#4c1d95">Q'+(s.total/1000).toFixed(1)+'K</td>'
+          +'</tr>';
+        }).join('');
+
+        const tableNote = SNAPSHOTS.length > 12
+          ? '<div style="font-size:9px;color:#a0aec0;margin-top:6px;text-align:center;font-style:italic">Mostrando ultimos 12 snapshots de '+SNAPSHOTS.length+' totales</div>'
+          : '';
+
+        return svg
+          +kpis
+          +'<table style="'+S.tbl+'"><thead><tr>'
+            +'<th style="'+S.th+'">Fecha</th>'
+            +'<th style="'+S.th+'">Ahorro BI</th>'
+            +'<th style="'+S.th+'">Bantrab</th>'
+            +'<th style="'+S.th+'">Buffer</th>'
+            +'<th style="'+S.th+'">Reembolsos</th>'
+            +'<th style="'+S.th+'">BTC</th>'
+            +'<th style="'+S.th+'">Total</th>'
+          +'</tr></thead><tbody>'+tableRows+'</tbody></table>'
+          +tableNote;
+      })()
+    +'</div>') : '')
 
     // ── HIPOTECA ──
     +'<div style="'+S.sec+'">'
@@ -1889,16 +2042,23 @@ var _reimbOpen = false;
 var REIMB_ITEMS = []; // [{id, desc, amt, checked}]
 var GASTO_ITEMS = []; // [{id, desc, amt}]
 
+// ── SNAPSHOTS DE RESERVAS ─────────────────────────────────────────
+var _snapOpen = false;
+var SNAPSHOTS = []; // [{date, emer, bant, buf, reimb, btc, total}]
+var SNAPSHOT_MAX = 80;
+
 function loadReimbGasto(){
   var d = ldS();
   if(d.reimb_items) REIMB_ITEMS = d.reimb_items;
   if(d.gasto_items) GASTO_ITEMS = d.gasto_items;
+  if(d.snapshots) SNAPSHOTS = d.snapshots;
 }
 
 function saveReimbGasto(){
   var d = ldS();
   d.reimb_items = REIMB_ITEMS;
   d.gasto_items = GASTO_ITEMS;
+  d.snapshots = SNAPSHOTS;
   svS(d);
 }
 
@@ -2160,6 +2320,132 @@ function reimbAmt(idx, val){
 // Los gastos personales se trackean directamente en Lulubit desde el estado
 // de cuenta TC. Esta seccion fue eliminada para evitar informacion redundante.
 
+// ── SNAPSHOTS DE RESERVAS ─────────────────────────────────────────
+
+function todayISO(){
+  var d = new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+
+function fmtDateShort(iso){
+  if(!iso) return '?';
+  var p = iso.split('-');
+  if(p.length !== 3) return iso;
+  return p[2]+'/'+p[1];
+}
+
+function lastSnap(){
+  return SNAPSHOTS.length ? SNAPSHOTS[SNAPSHOTS.length-1] : null;
+}
+
+function daysSinceLastSnap(){
+  var last = lastSnap();
+  if(!last) return Infinity;
+  var d1 = new Date(last.date);
+  var d2 = new Date(todayISO());
+  return Math.floor((d2 - d1) / (1000*60*60*24));
+}
+
+// Captura snapshot del estado actual (incluye BTC en USD)
+function takeSnapshot(){
+  if(!COLS) return false;
+  var iso = todayISO();
+  var emer  = +(COLS.emer||0);
+  var bant  = +(COLS.bant||0);
+  var buf   = +(COLS.buf||0);
+  var reimb = +(COLS.reimb||0); // USD
+  var btc   = +(COLS.btc||0);   // USD
+  var tc    = ST.tc || 7.75;
+  var total = emer + bant + buf + (reimb * tc) + (btc * tc);
+
+  var existing = SNAPSHOTS.findIndex(s => s.date === iso);
+  var snap = {date: iso, emer: emer, bant: bant, buf: buf, reimb: reimb, btc: btc, total: total};
+  if(existing >= 0){
+    SNAPSHOTS[existing] = snap;
+  } else {
+    SNAPSHOTS.push(snap);
+    SNAPSHOTS.sort((a,b) => a.date.localeCompare(b.date));
+    if(SNAPSHOTS.length > SNAPSHOT_MAX){
+      SNAPSHOTS = SNAPSHOTS.slice(-SNAPSHOT_MAX);
+    }
+  }
+  saveReimbGasto();
+  return true;
+}
+
+function autoSnapshotIfNewMonth(){
+  if(!COLS) return;
+  var iso = todayISO();
+  var thisMonth = iso.slice(0,7);
+  var hasThisMonth = SNAPSHOTS.some(s => s.date.slice(0,7) === thisMonth);
+  if(!hasThisMonth){
+    takeSnapshot();
+  }
+}
+
+function delSnapshot(idx){
+  if(idx < 0 || idx >= SNAPSHOTS.length) return;
+  if(!confirm('Eliminar snapshot del '+fmtDateShort(SNAPSHOTS[idx].date)+'?')) return;
+  SNAPSHOTS.splice(idx,1);
+  saveReimbGasto();
+  renderSnap();
+}
+
+function manualSnapshot(){
+  takeSnapshot();
+  renderSnap();
+}
+
+function toggleSnap(){
+  _snapOpen = !_snapOpen;
+  var list = document.getElementById('snap-list');
+  var ico  = document.getElementById('snap-toggle-ico');
+  if(_snapOpen){ list.classList.add('open'); ico.classList.add('open'); }
+  else           { list.classList.remove('open'); ico.classList.remove('open'); }
+  renderSnap();
+}
+
+function renderSnap(){
+  var tog = document.getElementById('snap-toggle-total');
+  if(tog){
+    var n = SNAPSHOTS.length;
+    tog.textContent = n + (n===1?' capturado':' capturados');
+  }
+
+  if(!_snapOpen) return;
+
+  var dias = daysSinceLastSnap();
+  var bannerHtml = '';
+  if(dias === Infinity){
+    bannerHtml = '<div class="snap-banner">Sin snapshots aun. Captura el estado actual para empezar a ver tendencia.</div>';
+  } else if(dias >= 7){
+    bannerHtml = '<div class="snap-banner">Han pasado '+dias+' dias desde el ultimo snapshot. Considera capturar el estado actual.</div>';
+  }
+
+  var actionHtml = '<div class="snap-action">'
+    +'<div class="snap-action-info">'
+      +(dias === Infinity ? 'Captura el primer snapshot' : 'Ultimo: '+fmtDateShort(lastSnap().date)+' · hace '+dias+' '+(dias===1?'dia':'dias'))
+    +'</div>'
+    +'<button class="snap-btn" '+(dias===0?'disabled':'')+' onclick="manualSnapshot()">+ Snapshot ahora</button>'
+    +'</div>';
+
+  var recent = SNAPSHOTS.slice(-5).reverse();
+  var rowsHtml = recent.map(function(snap, i){
+    var realIdx = SNAPSHOTS.length - 1 - i;
+    return '<div class="snap-row">'
+      +'<span class="snap-row-date">'+fmtDateShort(snap.date)+'</span>'
+      +'<span class="snap-row-total">Q'+snap.total.toLocaleString('es-GT',{maximumFractionDigits:0})+'</span>'
+      +'<button class="snap-row-del" onclick="delSnapshot('+realIdx+')" title="Eliminar">✕</button>'
+      +'</div>';
+  }).join('');
+
+  if(!rowsHtml && !bannerHtml){
+    bannerHtml = '<div class="snap-banner">Sin snapshots aun.</div>';
+  }
+
+  document.getElementById('snap-list').innerHTML = bannerHtml + actionHtml + rowsHtml;
+}
+
 // ── INIT ─────────────────────────────────────────────────────────
 loadSaved();
 loadReimbGasto();
@@ -2169,6 +2455,8 @@ renderDCA();
 renderFijosList();
 renderSubsEnt();
 renderReimb();
+autoSnapshotIfNewMonth();
+renderSnap();
 </script>
 </body>
 </html>

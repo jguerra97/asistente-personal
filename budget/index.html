@@ -559,7 +559,7 @@ function svS(d){try{localStorage.setItem(LS,JSON.stringify(d));}catch(e){}}
 
 // ── ESTADO ────────────────────────────────────────────────────────
 let ST={tc:7.75,mes:3,anio:2026,q1:0,q2:0,sprev:30052.58,reservaLulu:0,bacDeuda:0,bacDeudaUsd:0,bamDeuda:0};
-var COLS={emer:54275,bant:14204,imp:0,buf:119,reimb:0,btc:0};
+var COLS={emer:54275,bant:14204,imp:0,buf:119,reimb:0};
 const CUOTA=13959.61;
 const MESES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const MNOMBRES=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
@@ -617,7 +617,6 @@ function loadSaved(){
     if(d.cols.imp!=null) COLS.imp =d.cols.imp;
     if(d.cols.buf!=null) COLS.buf =d.cols.buf;
     if(d.cols.reimb!=null)COLS.reimb=d.cols.reimb;
-    if(d.cols.btc!=null) COLS.btc =d.cols.btc;
   }
   // Cargar q1/q2 del mes-año guardado
   const _qd=ldS();
@@ -731,7 +730,6 @@ function renderCols(){
     {k:'bant',ttl:'✈️ Bantrab',            meta:30000,      cuenta:'Bantrab',     col:'var(--ac)'},
     {k:'buf', ttl:'🔧 Monetaria BI · caja chica',meta:3000,cuenta:'Monetaria BI',col:'var(--mu)'},
     {k:'reimb',ttl:'💵 Reembolsos trabajo',meta:null,       cuenta:'USD cash',    col:'var(--ac)',usd:true},
-    {k:'btc', ttl:'₿ BTC colchon LF',      meta:null,       cuenta:'SeedSigner',  col:'var(--go)',usd:true,manual:true},
   ];
   const tc=ST.tc||7.75;
   document.getElementById('col-grid').innerHTML=defs.map(c=>{
@@ -740,26 +738,32 @@ function renderCols(){
     const pct=c.meta?Math.min((val/c.meta)*100,100):100;
     const pctCol=pct>=100?'var(--gr)':pct>=50?'var(--go)':'var(--rd)';
     const pctTxt=c.meta?(pct>=100?'✅':pct.toFixed(0)+'%'):'—';
-    const noteHtml=c.manual?`<div style="font-size:8px;color:var(--mu2);margin-top:2px;font-style:italic">Edicion manual · sincroniza con portafolio</div>`:'';
+    const valDisplay=c.usd?`<span style="color:${c.col}">$${val.toFixed(0)} · Q${(val*tc).toFixed(0)}</span>`
+      :`<input class="col-inp" type="number" value="${val}" step="1" min="0"
+         onchange="onColChange('${c.k}',this.value)"
+         style="color:${c.col};border-color:${c.col}44">`;
+    const usdInp=c.usd?`<div class="col-inp-wrap" style="margin-top:4px">
+      <input class="col-inp" type="number" value="${val}" step="0.01" min="0"
+        onchange="onColChange('${c.k}',this.value)"
+        placeholder="$ USD" style="color:${c.col};border-color:${c.col}44">
+      </div>`:valDisplay;
     return `<div class="col-card">
       <div class="col-ttl">${c.ttl}</div>
       <div class="col-cuenta">🏦 ${c.cuenta}</div>
       <div class="col-row"><span class="col-lbl">Meta</span><span class="col-val" style="color:var(--mu)">${metaLbl}</span></div>
-      <div class="col-row"><span class="col-lbl">Actual</span><span class="col-val">${c.usd?'$'+val.toFixed(0)+' · Q'+(val*tc).toFixed(0):''}</span></div>
+      <div class="col-row"><span class="col-lbl">Actual</span><span class="col-val">${c.usd?'':''}</span></div>
       ${c.usd
-        ?`<input class="col-inp" type="number" value="${val}" step="0.01" min="0" onchange="onColChange('${c.k}',this.value)" placeholder="$ USD" style="color:${c.col};border-color:${c.col}44;margin:4px 0">`
+        ?`<input class="col-inp" type="number" value="${val}" step="0.01" min="0" onchange="onColChange('${c.k}',this.value)" style="color:${c.col};border-color:${c.col}44;margin:4px 0">`
         :`<input class="col-inp" type="number" value="${val}" step="1" min="0" onchange="onColChange('${c.k}',this.value)" style="color:${c.col};border-color:${c.col}44;margin:4px 0">`
       }
       <div class="col-row"><span class="col-lbl">Progreso</span><span class="col-val" style="color:${pctCol}">${pctTxt}</span></div>
       <div class="pbar"><div class="pbar-fill" style="background:${c.col};width:${Math.min(pct,100).toFixed(1)}%"></div></div>
-      ${noteHtml}
     </div>`;
   }).join('');
 
-  // Total reservas (incluye BTC y reembolsos en USD convertidos)
-  const total=COLS.emer+COLS.bant+COLS.buf+(COLS.reimb*tc)+((COLS.btc||0)*tc);
-  const btcQ = (COLS.btc||0) * tc;
-  document.getElementById('r-reservas').textContent=fq(total)+' (incl. $'+COLS.reimb.toFixed(0)+' reemb · $'+(COLS.btc||0).toFixed(0)+' BTC)';
+  // Total reservas
+  const total=COLS.emer+COLS.bant+COLS.buf+(COLS.reimb*(ST.tc||7.75)); // imp unificado en emer
+  document.getElementById('r-reservas').textContent=fq(total)+' (incl. $'+COLS.reimb.toFixed(0)+'USD)';
 }
 
 // ── HIPOTECA ─────────────────────────────────────────────────────
@@ -1333,10 +1337,22 @@ function importData(input){
   reader.onload=e=>{
     try{
       const d=JSON.parse(e.target.result);
-      svS(d);loadSaved();recalc();
+      svS(d);
+      // Refrescar todo el estado (mismo flujo que init)
+      loadSaved();
+      loadReimbGasto();
+      recalc();
+      renderStats();
+      renderDCA();
+      renderFijosList();
+      renderSubsEnt();
+      renderReimb();
+      renderSnap();
       document.getElementById('hdr-mes').textContent='✅ Datos importados';
-      setTimeout(recalc,100);
-    }catch(err){alert('Archivo inválido');}
+    }catch(err){
+      console.error('Error importando:', err);
+      alert('Archivo inválido o formato incorrecto');
+    }
     input.value='';
   };
   reader.readAsText(file);
@@ -1347,7 +1363,7 @@ function descargarResumen(){
   const tc=ST.tc||7.75, tf=FIJOS_TOTAL;
   const ingTotal=ST.q1+ST.q2;
   const excMes=Math.max(ingTotal-tf,0);
-  const totalRes=COLS.emer+COLS.bant+COLS.buf+(COLS.reimb*tc)+((COLS.btc||0)*tc);
+  const totalRes=COLS.emer+COLS.bant+COLS.buf+(COLS.reimb*tc); // imp unificado en emer
   const salHip=(()=>{
     const anio=ST.anio||2026;
     const mD=Math.max((anio-2026)*12+(ST.mes-1),0);
@@ -1568,7 +1584,6 @@ function descargarResumen(){
         +'<tr><td style="'+S.td+'">Bantrab (viajes)</td><td style="'+S.td+'">Bantrab</td><td style="'+S.td+'">'+fqR(COLS.bant)+'</td><td style="'+S.td+'">Q30,000</td></tr>'
         +'<tr><td style="'+S.td+'">Buffer operativo</td><td style="'+S.td+'">Monetaria BI</td><td style="'+S.td+'">'+fqR(COLS.buf)+'</td><td style="'+S.td+'">Q3,000</td></tr>'
         +(COLS.reimb>0?'<tr><td style="'+S.td+'">Reembolsos</td><td style="'+S.td+'">USD cash</td><td style="'+S.td+'">'+'$'+COLS.reimb.toFixed(0)+' ('+fqR(COLS.reimb*tc)+')</td><td style="'+S.td+'">—</td></tr>':'')
-        +((COLS.btc||0)>0?'<tr><td style="'+S.td+'">BTC colchon LF</td><td style="'+S.td+'">SeedSigner</td><td style="'+S.td+'color:#d97706;font-weight:600">'+'$'+(COLS.btc||0).toFixed(0)+' ('+fqR((COLS.btc||0)*tc)+')</td><td style="'+S.td+'color:#888;font-size:9px;font-style:italic">colchon LF</td></tr>':'')
         +'<tr><td style="'+S.td+'font-weight:700" colspan="2">Total reservas</td><td style="'+S.td+'font-weight:700;color:#4c1d95" colspan="2">'+fqR(totalRes)+'</td></tr>'
       +'</tbody></table>'
     +'</div>'
@@ -1577,6 +1592,7 @@ function descargarResumen(){
     +(SNAPSHOTS && SNAPSHOTS.length >= 1 ? ('<div style="'+S.sec+'">'
       +'<span style="'+S.sectl+'">Evolucion de reservas en el tiempo</span>'
       +(function(){
+        // Si solo hay 1 snapshot, mostrar mensaje suave
         if(SNAPSHOTS.length === 1){
           var s = SNAPSHOTS[0];
           return '<div style="background:#f5f3ff;border:1px solid #ddd6fe;border-radius:8px;padding:14px;text-align:center">'
@@ -1585,6 +1601,7 @@ function descargarResumen(){
             +'</div>';
         }
 
+        // ── SVG CHART: linea TOTAL reservas en el tiempo ──
         const chartW = 580, chartH = 200;
         const padL = 60, padR = 12, padT = 18, padB = 36;
         const innerW = chartW - padL - padR;
@@ -1593,13 +1610,16 @@ function descargarResumen(){
         const totals = SNAPSHOTS.map(s => s.total);
         const minVal = Math.min.apply(null, totals);
         const maxVal = Math.max.apply(null, totals);
+        // Padding visual del eje Y
         const range = Math.max(maxVal - minVal, 1);
         const yMin = Math.max(0, minVal - range * 0.1);
         const yMax = maxVal + range * 0.1;
         const yRange = yMax - yMin;
 
+        // X positions (lineales, no por fecha real)
         const stepX = SNAPSHOTS.length > 1 ? innerW / (SNAPSHOTS.length - 1) : 0;
 
+        // Build path
         let pathD = '';
         let pointsHtml = '';
         let labelsHtml = '';
@@ -1615,6 +1635,7 @@ function descargarResumen(){
           }
         });
 
+        // Y axis ticks
         const yTicks = [yMin, (yMin+yMax)/2, yMax];
         let yAxisHtml = '';
         yTicks.forEach(function(v){
@@ -1623,6 +1644,7 @@ function descargarResumen(){
           yAxisHtml += '<text x="'+(padL-6)+'" y="'+(yPos+3).toFixed(1)+'" text-anchor="end" font-family="monospace" font-size="8" fill="#a0aec0">Q'+(v/1000).toFixed(0)+'K</text>';
         });
 
+        // Area path (relleno bajo la linea)
         let areaPath = pathD + 'L'+(padL + (SNAPSHOTS.length-1)*stepX).toFixed(1)+','+(padT+innerH).toFixed(1)+' L'+padL+','+(padT+innerH).toFixed(1)+' Z';
 
         const svg = '<svg viewBox="0 0 '+chartW+' '+chartH+'" style="width:100%;max-width:100%;height:auto;display:block;margin-bottom:6px" preserveAspectRatio="xMidYMid meet">'
@@ -1634,6 +1656,7 @@ function descargarResumen(){
           +labelsHtml
           +'</svg>';
 
+        // KPIs cambio
         const first = SNAPSHOTS[0];
         const last = SNAPSHOTS[SNAPSHOTS.length-1];
         const delta = last.total - first.total;
@@ -1659,23 +1682,24 @@ function descargarResumen(){
           +'</div>'
         +'</div>';
 
+        // Tabla con desglose por reserva (ultimos 12 snapshots para no saturar)
         const recentSnaps = SNAPSHOTS.slice(-12);
         const tableRows = recentSnaps.map(function(s, idx){
           const prev = idx > 0 ? recentSnaps[idx-1] : null;
+          const reimbQ = (s.reimb || 0) * (ST.tc || 7.75);
+          // arrows
           function arr(curr, p){
-            if(p===null||p===undefined) return '';
+            if(!p) return '';
             if(curr > p) return '<span style="color:#059669;font-size:8px"> &uarr;</span>';
             if(curr < p) return '<span style="color:#dc2626;font-size:8px"> &darr;</span>';
             return '<span style="color:#a0aec0;font-size:8px"> =</span>';
           }
-          var btcCol = (s.btc||0) > 0 ? '<td style="'+S.td+'">$'+(s.btc||0).toFixed(0)+arr(s.btc||0, prev?(prev.btc||0):null)+'</td>' : '<td style="'+S.td+'color:#a0aec0">—</td>';
           return '<tr>'
             +'<td style="'+S.td+'font-weight:600">'+fmtDateShort(s.date)+'</td>'
             +'<td style="'+S.td+'">Q'+(s.emer/1000).toFixed(1)+'K'+arr(s.emer, prev?prev.emer:null)+'</td>'
             +'<td style="'+S.td+'">Q'+(s.bant/1000).toFixed(1)+'K'+arr(s.bant, prev?prev.bant:null)+'</td>'
             +'<td style="'+S.td+'">Q'+s.buf.toFixed(0)+arr(s.buf, prev?prev.buf:null)+'</td>'
             +'<td style="'+S.td+'">$'+(s.reimb||0).toFixed(0)+arr(s.reimb||0, prev?(prev.reimb||0):null)+'</td>'
-            +btcCol
             +'<td style="'+S.td+'font-weight:700;color:#4c1d95">Q'+(s.total/1000).toFixed(1)+'K</td>'
           +'</tr>';
         }).join('');
@@ -1692,7 +1716,6 @@ function descargarResumen(){
             +'<th style="'+S.th+'">Bantrab</th>'
             +'<th style="'+S.th+'">Buffer</th>'
             +'<th style="'+S.th+'">Reembolsos</th>'
-            +'<th style="'+S.th+'">BTC</th>'
             +'<th style="'+S.th+'">Total</th>'
           +'</tr></thead><tbody>'+tableRows+'</tbody></table>'
           +tableNote;
@@ -2044,8 +2067,8 @@ var GASTO_ITEMS = []; // [{id, desc, amt}]
 
 // ── SNAPSHOTS DE RESERVAS ─────────────────────────────────────────
 var _snapOpen = false;
-var SNAPSHOTS = []; // [{date, emer, bant, buf, reimb, btc, total}]
-var SNAPSHOT_MAX = 80;
+var SNAPSHOTS = []; // [{date:"YYYY-MM-DD", emer, bant, buf, reimb, total}]
+var SNAPSHOT_MAX = 80; // limite de puntos historicos
 
 function loadReimbGasto(){
   var d = ldS();
@@ -2334,10 +2357,12 @@ function fmtDateShort(iso){
   return p[2]+'/'+p[1];
 }
 
+// Devuelve el ultimo snapshot capturado (si existe)
 function lastSnap(){
   return SNAPSHOTS.length ? SNAPSHOTS[SNAPSHOTS.length-1] : null;
 }
 
+// Dias desde el ultimo snapshot
 function daysSinceLastSnap(){
   var last = lastSnap();
   if(!last) return Infinity;
@@ -2346,7 +2371,7 @@ function daysSinceLastSnap(){
   return Math.floor((d2 - d1) / (1000*60*60*24));
 }
 
-// Captura snapshot del estado actual (incluye BTC en USD)
+// Captura un snapshot del estado actual de COLS (saldos vivos)
 function takeSnapshot(){
   if(!COLS) return false;
   var iso = todayISO();
@@ -2354,17 +2379,19 @@ function takeSnapshot(){
   var bant  = +(COLS.bant||0);
   var buf   = +(COLS.buf||0);
   var reimb = +(COLS.reimb||0); // USD
-  var btc   = +(COLS.btc||0);   // USD
   var tc    = ST.tc || 7.75;
-  var total = emer + bant + buf + (reimb * tc) + (btc * tc);
+  var total = emer + bant + buf + (reimb * tc);
 
+  // Si ya hay snapshot del mismo dia, sobrescribe (rate-limit por dia)
   var existing = SNAPSHOTS.findIndex(s => s.date === iso);
-  var snap = {date: iso, emer: emer, bant: bant, buf: buf, reimb: reimb, btc: btc, total: total};
+  var snap = {date: iso, emer: emer, bant: bant, buf: buf, reimb: reimb, total: total};
   if(existing >= 0){
     SNAPSHOTS[existing] = snap;
   } else {
     SNAPSHOTS.push(snap);
+    // Mantener orden cronologico
     SNAPSHOTS.sort((a,b) => a.date.localeCompare(b.date));
+    // Limite max
     if(SNAPSHOTS.length > SNAPSHOT_MAX){
       SNAPSHOTS = SNAPSHOTS.slice(-SNAPSHOT_MAX);
     }
@@ -2373,10 +2400,11 @@ function takeSnapshot(){
   return true;
 }
 
+// Auto-captura: al cargar el tracker, si no hay snapshot este mes, lo crea
 function autoSnapshotIfNewMonth(){
   if(!COLS) return;
   var iso = todayISO();
-  var thisMonth = iso.slice(0,7);
+  var thisMonth = iso.slice(0,7); // YYYY-MM
   var hasThisMonth = SNAPSHOTS.some(s => s.date.slice(0,7) === thisMonth);
   if(!hasThisMonth){
     takeSnapshot();
@@ -2426,9 +2454,10 @@ function renderSnap(){
     +'<div class="snap-action-info">'
       +(dias === Infinity ? 'Captura el primer snapshot' : 'Ultimo: '+fmtDateShort(lastSnap().date)+' · hace '+dias+' '+(dias===1?'dia':'dias'))
     +'</div>'
-    +'<button class="snap-btn" onclick="manualSnapshot()">'+(dias===0?'↻ Actualizar snapshot de hoy':'+ Snapshot ahora')+'</button>'
+    +'<button class="snap-btn" '+(dias===0?'disabled':'')+' onclick="manualSnapshot()">+ Snapshot ahora</button>'
     +'</div>';
 
+  // Mostrar ultimos 5 snapshots
   var recent = SNAPSHOTS.slice(-5).reverse();
   var rowsHtml = recent.map(function(snap, i){
     var realIdx = SNAPSHOTS.length - 1 - i;

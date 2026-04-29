@@ -1973,9 +1973,28 @@ async function driveLoad(){
       );
       if(!res.ok) throw new Error(await res.text());
       const data = await res.json();
+
+      // Resetear arrays globales para evitar que data anterior persista
+      // si el JSON descargado no contiene esas keys
+      REIMB_ITEMS = [];
+      GASTO_ITEMS = [];
+      SNAPSHOTS = [];
       localStorage.setItem(LS, JSON.stringify(data));
       driveMsg('✅ Datos cargados desde Drive','ok');
-      setTimeout(()=>{ loadSaved(); recalc(); }, 400);
+
+      // Refrescar todo el estado (mismo flujo que init)
+      setTimeout(()=>{
+        loadSaved();
+        loadReimbGasto();
+        recalc();
+        renderStats();
+        renderDCA();
+        renderFijosList();
+        renderSubsEnt();
+        renderReimb();
+        autoSnapshotIfNewMonth();
+        renderSnap();
+      }, 400);
     } catch(e){
       driveToken=null;
       driveMsg('Error al cargar: '+e.message,'err');

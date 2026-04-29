@@ -1337,6 +1337,11 @@ function importData(input){
   reader.onload=e=>{
     try{
       const d=JSON.parse(e.target.result);
+      // Resetear arrays globales para evitar que data anterior persista
+      // si el JSON importado no contiene esas keys
+      REIMB_ITEMS = [];
+      GASTO_ITEMS = [];
+      SNAPSHOTS = [];
       svS(d);
       // Refrescar todo el estado (mismo flujo que init)
       loadSaved();
@@ -1347,6 +1352,7 @@ function importData(input){
       renderFijosList();
       renderSubsEnt();
       renderReimb();
+      autoSnapshotIfNewMonth();
       renderSnap();
       document.getElementById('hdr-mes').textContent='✅ Datos importados';
     }catch(err){

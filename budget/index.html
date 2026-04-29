@@ -559,7 +559,7 @@ function svS(d){try{localStorage.setItem(LS,JSON.stringify(d));}catch(e){}}
 
 // ── ESTADO ────────────────────────────────────────────────────────
 let ST={tc:7.75,mes:3,anio:2026,q1:0,q2:0,sprev:30052.58,reservaLulu:0,bacDeuda:0,bacDeudaUsd:0,bamDeuda:0};
-var COLS={emer:54275,bant:14204,imp:0,buf:119,reimb:0};
+var COLS={emer:54275,bant:14204,imp:0,buf:119,reimb:0,btcQty:0,btcPx:0};
 const CUOTA=13959.61;
 const MESES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const MNOMBRES=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
@@ -617,6 +617,8 @@ function loadSaved(){
     if(d.cols.imp!=null) COLS.imp =d.cols.imp;
     if(d.cols.buf!=null) COLS.buf =d.cols.buf;
     if(d.cols.reimb!=null)COLS.reimb=d.cols.reimb;
+    if(d.cols.btcQty!=null)COLS.btcQty=d.cols.btcQty;
+    if(d.cols.btcPx!=null) COLS.btcPx =d.cols.btcPx;
   }
   // Cargar q1/q2 del mes-año guardado
   const _qd=ldS();
@@ -725,28 +727,21 @@ function renderQ(d, fijProp, pago){
 // ── RESERVAS (COLCHONES) ─────────────────────────────────────────
 function renderCols(){
   const tf=FIJOS_TOTAL;
+  const tc=ST.tc||7.75;
   const defs=[
     {k:'emer',ttl:'💰 Ahorro BI',          meta:tf*3, cuenta:'Ahorro BI',   col:'var(--gr)'},
     {k:'bant',ttl:'✈️ Bantrab',            meta:30000,      cuenta:'Bantrab',     col:'var(--ac)'},
     {k:'buf', ttl:'🔧 Monetaria BI · caja chica',meta:3000,cuenta:'Monetaria BI',col:'var(--mu)'},
     {k:'reimb',ttl:'💵 Reembolsos trabajo',meta:null,       cuenta:'USD cash',    col:'var(--ac)',usd:true},
   ];
-  const tc=ST.tc||7.75;
-  document.getElementById('col-grid').innerHTML=defs.map(c=>{
+
+  // Render cards normales
+  let cardsHtml = defs.map(c=>{
     const val=COLS[c.k]||0;
     const metaLbl=c.meta?fq(c.meta):'Sin meta';
     const pct=c.meta?Math.min((val/c.meta)*100,100):100;
     const pctCol=pct>=100?'var(--gr)':pct>=50?'var(--go)':'var(--rd)';
     const pctTxt=c.meta?(pct>=100?'✅':pct.toFixed(0)+'%'):'—';
-    const valDisplay=c.usd?`<span style="color:${c.col}">$${val.toFixed(0)} · Q${(val*tc).toFixed(0)}</span>`
-      :`<input class="col-inp" type="number" value="${val}" step="1" min="0"
-         onchange="onColChange('${c.k}',this.value)"
-         style="color:${c.col};border-color:${c.col}44">`;
-    const usdInp=c.usd?`<div class="col-inp-wrap" style="margin-top:4px">
-      <input class="col-inp" type="number" value="${val}" step="0.01" min="0"
-        onchange="onColChange('${c.k}',this.value)"
-        placeholder="$ USD" style="color:${c.col};border-color:${c.col}44">
-      </div>`:valDisplay;
     return `<div class="col-card">
       <div class="col-ttl">${c.ttl}</div>
       <div class="col-cuenta">🏦 ${c.cuenta}</div>
@@ -761,9 +756,42 @@ function renderCols(){
     </div>`;
   }).join('');
 
-  // Total reservas
-  const total=COLS.emer+COLS.bant+COLS.buf+(COLS.reimb*(ST.tc||7.75)); // imp unificado en emer
-  document.getElementById('r-reservas').textContent=fq(total)+' (incl. $'+COLS.reimb.toFixed(0)+'USD)';
+  // Card BTC reserva (especial: cantidad + precio = USD = Q)
+  const btcQty = parseFloat(COLS.btcQty)||0;
+  const btcPx  = parseFloat(COLS.btcPx)||0;
+  const btcUsd = btcQty * btcPx;
+  const btcQ   = btcUsd * tc;
+  const btcOrange = '#f7931a';
+  cardsHtml += `<div class="col-card" style="border-color:${btcOrange}33">
+    <div class="col-ttl" style="color:${btcOrange}">₿ BTC reserva</div>
+    <div class="col-cuenta">🏦 SeedSigner · HODL</div>
+    <div class="col-row"><span class="col-lbl">Cantidad BTC</span></div>
+    <input class="col-inp" type="number" value="${btcQty}" step="0.00000001" min="0"
+      onchange="onColChange('btcQty',this.value)"
+      placeholder="0.10289" style="color:${btcOrange};border-color:${btcOrange}55;margin:4px 0">
+    <div class="col-row" style="margin-top:6px"><span class="col-lbl">Precio BTC (USD)</span></div>
+    <input class="col-inp" type="number" value="${btcPx}" step="1" min="0"
+      onchange="onColChange('btcPx',this.value)"
+      placeholder="78670" style="color:${btcOrange};border-color:${btcOrange}55;margin:4px 0">
+    <div class="col-row" style="margin-top:8px;border-top:1px solid var(--bd);padding-top:6px">
+      <span class="col-lbl">Valor USD</span>
+      <span class="col-val" style="color:${btcOrange}">$${btcUsd.toLocaleString('en-US',{maximumFractionDigits:0})}</span>
+    </div>
+    <div class="col-row">
+      <span class="col-lbl">Equivalente Q</span>
+      <span class="col-val" style="color:${btcOrange};font-weight:700">${fq(btcQ)}</span>
+    </div>
+  </div>`;
+
+  document.getElementById('col-grid').innerHTML = cardsHtml;
+
+  // Total reservas (incluye BTC convertido a Q)
+  const total=COLS.emer+COLS.bant+COLS.buf+(COLS.reimb*tc)+btcQ;
+  const reimbUSD = COLS.reimb || 0;
+  const breakdown = btcUsd > 0
+    ? '$'+reimbUSD.toFixed(0)+'USD · ₿'+btcQty.toFixed(4)
+    : '$'+reimbUSD.toFixed(0)+'USD';
+  document.getElementById('r-reservas').textContent=fq(total)+' (incl. '+breakdown+')';
 }
 
 // ── HIPOTECA ─────────────────────────────────────────────────────
@@ -1369,7 +1397,11 @@ function descargarResumen(){
   const tc=ST.tc||7.75, tf=FIJOS_TOTAL;
   const ingTotal=ST.q1+ST.q2;
   const excMes=Math.max(ingTotal-tf,0);
-  const totalRes=COLS.emer+COLS.bant+COLS.buf+(COLS.reimb*tc); // imp unificado en emer
+  const btcQty = +(COLS.btcQty||0);
+  const btcPx  = +(COLS.btcPx||0);
+  const btcUsd = btcQty * btcPx;
+  const btcQ   = btcUsd * tc;
+  const totalRes=COLS.emer+COLS.bant+COLS.buf+(COLS.reimb*tc)+btcQ; // imp unificado en emer; BTC sumado al total
   const salHip=(()=>{
     const anio=ST.anio||2026;
     const mD=Math.max((anio-2026)*12+(ST.mes-1),0);
@@ -1590,6 +1622,7 @@ function descargarResumen(){
         +'<tr><td style="'+S.td+'">Bantrab (viajes)</td><td style="'+S.td+'">Bantrab</td><td style="'+S.td+'">'+fqR(COLS.bant)+'</td><td style="'+S.td+'">Q30,000</td></tr>'
         +'<tr><td style="'+S.td+'">Buffer operativo</td><td style="'+S.td+'">Monetaria BI</td><td style="'+S.td+'">'+fqR(COLS.buf)+'</td><td style="'+S.td+'">Q3,000</td></tr>'
         +(COLS.reimb>0?'<tr><td style="'+S.td+'">Reembolsos</td><td style="'+S.td+'">USD cash</td><td style="'+S.td+'">'+'$'+COLS.reimb.toFixed(0)+' ('+fqR(COLS.reimb*tc)+')</td><td style="'+S.td+'">—</td></tr>':'')
+        +(btcQty>0?'<tr><td style="'+S.td+'color:#f7931a">₿ BTC reserva</td><td style="'+S.td+'">SeedSigner</td><td style="'+S.td+'color:#f7931a;font-weight:600">₿'+btcQty.toFixed(4)+' · '+fqR(btcQ)+'</td><td style="'+S.td+'color:#888">$'+btcUsd.toLocaleString('en-US',{maximumFractionDigits:0})+'</td></tr>':'')
         +'<tr><td style="'+S.td+'font-weight:700" colspan="2">Total reservas</td><td style="'+S.td+'font-weight:700;color:#4c1d95" colspan="2">'+fqR(totalRes)+'</td></tr>'
       +'</tbody></table>'
     +'</div>'
@@ -2385,12 +2418,16 @@ function takeSnapshot(){
   var bant  = +(COLS.bant||0);
   var buf   = +(COLS.buf||0);
   var reimb = +(COLS.reimb||0); // USD
+  var btcQty = +(COLS.btcQty||0);
+  var btcPx  = +(COLS.btcPx||0);
   var tc    = ST.tc || 7.75;
-  var total = emer + bant + buf + (reimb * tc);
+  var btcQ  = btcQty * btcPx * tc;
+  var total = emer + bant + buf + (reimb * tc) + btcQ;
 
   // Si ya hay snapshot del mismo dia, sobrescribe (rate-limit por dia)
   var existing = SNAPSHOTS.findIndex(s => s.date === iso);
-  var snap = {date: iso, emer: emer, bant: bant, buf: buf, reimb: reimb, total: total};
+  var snap = {date: iso, emer: emer, bant: bant, buf: buf, reimb: reimb,
+              btcQty: btcQty, btcPx: btcPx, btcQ: btcQ, total: total};
   if(existing >= 0){
     SNAPSHOTS[existing] = snap;
   } else {

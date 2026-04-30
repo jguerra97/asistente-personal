@@ -2514,9 +2514,13 @@ function renderSnap(){
 
   var actionHtml = '<div class="snap-action">'
     +'<div class="snap-action-info">'
-      +(dias === Infinity ? 'Captura el primer snapshot' : 'Ultimo: '+fmtDateShort(lastSnap().date)+' · hace '+dias+' '+(dias===1?'dia':'dias'))
+      +(dias === Infinity ? 'Captura el primer snapshot'
+        : dias === 0 ? 'Snapshot de hoy ya capturado · puedes actualizar'
+        : 'Ultimo: '+fmtDateShort(lastSnap().date)+' · hace '+dias+' '+(dias===1?'dia':'dias'))
     +'</div>'
-    +'<button class="snap-btn" '+(dias===0?'disabled':'')+' onclick="manualSnapshot()">+ Snapshot ahora</button>'
+    +'<button class="snap-btn" onclick="manualSnapshot()">'
+      +(dias===0 ? '↻ Actualizar hoy' : '+ Snapshot ahora')
+    +'</button>'
     +'</div>';
 
   // Mostrar ultimos 5 snapshots

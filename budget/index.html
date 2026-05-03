@@ -1444,36 +1444,22 @@ function descargarResumen(){
   const deltaExc = excAnterior > 0 ? ((excActual - excAnterior) / excAnterior * 100) : 0;
 
   // ── Proyección hipoteca con bonos del plan ──
-  // Plan: jul 40% / dic 35% del bono a hipoteca (bono = 1 sueldo)
-  // Excepción: dic 2026 → Italia (no a hipoteca)
-  // Asumir sueldo = ingreso promedio histórico
   const sueldoBase = avgNorm > 0 ? avgNorm : 31500;
-
-  // Calcular saldo proyectado mes 26 desde hoy con cuotas + bonos jul (siguiendo plan)
   const proyHipoteca = (() => {
     const tM = 0.0726/12;
-    let s = salHip;
-    const eventos = []; // bonos a aplicar en mes futuro
-    const mesActual = (ST.mes - 1) + ((ST.anio||2026) - 2026) * 12; // 0-indexed
-    // Bonos jul: meses 6, 18, 30 del calendario 2026+; dic: meses 11, 23
-    // Nuestro horizonte: 12, 24, 30 meses futuros
+    const mesActual = (ST.mes - 1) + ((ST.anio||2026) - 2026) * 12;
     const horizontes = [12, 24, 30];
     const proys = {};
     horizontes.forEach(h => {
       let saldo = salHip;
       for (let i = 1; i <= h; i++) {
         const mesGlobal = mesActual + i;
-        const mesEnAno = mesGlobal % 12; // 0-11
-        const anoEnRel = Math.floor(mesGlobal / 12);
-        // Cuota normal
+        const mesEnAno = mesGlobal % 12;
         const intereses = saldo * tM;
         saldo -= (CUOTA - intereses);
-        // Si es jul (mes 6 = índice 6) → 40% del bono
-        if (mesEnAno === 6) saldo -= sueldoBase * 0.40;
-        // Si es dic (mes 11) y NO es 2026 → 35% del bono
-        // 2026 es relativo: si anoEnRel desde mesActual coincide con dic 2026, saltar
+        if (mesEnAno === 6) saldo -= sueldoBase * 0.40; // jul: 40%
         const anoActualReal = (ST.anio||2026) + Math.floor((ST.mes - 1 + i) / 12);
-        if (mesEnAno === 11 && anoActualReal !== 2026) saldo -= sueldoBase * 0.35;
+        if (mesEnAno === 11 && anoActualReal !== 2026) saldo -= sueldoBase * 0.35; // dic: 35%, excepto 2026 (Italia)
         if (saldo < 0) saldo = 0;
       }
       proys[h] = saldo;
@@ -1540,7 +1526,6 @@ function descargarResumen(){
       +'<div style="'+S.kpis+'">'
         +'<div style="'+S.kpi+'"><span style="'+S.klbl+'">Ingreso promedio</span><span style="'+S.kval+'">'+(avgNorm>0?fqR(avgNorm):'—')+'</span><span style="'+S.ksub+'">'+fusd(avgNorm)+' · '+normales.length+' meses</span></div>'
         +(()=>{
-          // KPI ingreso del mes con delta vs mes anterior
           const deltaTxt = mesAntHist
             ? (deltaIng >= 0 ? '↑' : '↓') + ' ' + Math.abs(deltaIng).toFixed(1) + '% vs ant.'
             : 'sin comparativa';

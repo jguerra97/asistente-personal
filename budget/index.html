@@ -137,13 +137,6 @@ body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--tx);min-heig
 .snap-banner{background:rgba(217,119,6,.08);border-left:3px solid #d97706;padding:8px 12px;font-family:'DM Mono',monospace;font-size:9px;color:#d97706;line-height:1.5;}
 .snap-action{padding:10px 12px;display:flex;justify-content:space-between;align-items:center;gap:8px;border-bottom:1px solid var(--bd);}
 .snap-action-info{font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);line-height:1.4;}
-.snap-pdf-range{padding:10px 12px;border-top:1px solid var(--bd);background:rgba(124,58,237,.04);}
-.snap-pdf-range-lbl{font-family:'DM Mono',monospace;font-size:9px;color:#7c3aed;letter-spacing:.05em;text-transform:uppercase;margin-bottom:6px;}
-.snap-pdf-range-opts{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:4px;}
-.snap-pdf-range-btn{font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);background:transparent;border:1px solid var(--bd);border-radius:4px;padding:4px 9px;cursor:pointer;transition:all .15s;}
-.snap-pdf-range-btn:hover{border-color:#7c3aed;color:#7c3aed;}
-.snap-pdf-range-btn.sel{background:rgba(124,58,237,.18);border-color:#7c3aed;color:#7c3aed;font-weight:700;}
-.snap-pdf-range-info{font-family:'DM Mono',monospace;font-size:8px;color:var(--mu);margin-top:4px;}
 .snap-btn{font-family:'DM Mono',monospace;font-size:9px;color:var(--gr);background:rgba(52,208,122,.1);border:1px solid rgba(52,208,122,.25);border-radius:4px;padding:4px 10px;cursor:pointer;font-weight:600;white-space:nowrap;}
 .snap-btn:disabled{opacity:.4;cursor:not-allowed;}
 .snap-row{display:grid;grid-template-columns:60px 1fr 24px;gap:6px;padding:6px 12px;border-bottom:1px solid var(--bd);align-items:center;font-family:'DM Mono',monospace;font-size:9px;}
@@ -300,6 +293,7 @@ body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--tx);min-heig
     <button class="io-btn exp" onclick="exportData()">⬇ Exportar</button>
     <button class="io-btn imp" onclick="document.getElementById('imp-file').click()">⬆ Importar</button>
     <button class="io-btn dl" onclick="descargarResumen()">📄 Resumen</button>
+    <button class="io-btn" style="background:rgba(242,92,92,.15);color:#f25c5c;border:1px solid rgba(242,92,92,.3)" onclick="limpiarMes()">✕ Limpiar mes</button>
     <input type="file" id="imp-file" accept=".json" onchange="importData(this)">
   </div>
   <div class="io-row">
@@ -564,7 +558,7 @@ function ldS(){try{return JSON.parse(localStorage.getItem(LS))||{};}catch(e){ret
 function svS(d){try{localStorage.setItem(LS,JSON.stringify(d));}catch(e){}}
 
 // ── ESTADO ────────────────────────────────────────────────────────
-let ST={tc:7.75,mes:3,anio:2026,q1:0,q2:0,sprev:30052.58,reservaLulu:0,bacDeuda:0,bacDeudaUsd:0,bamDeuda:0,pdfRange:'6m'};
+let ST={tc:7.75,mes:3,anio:2026,q1:0,q2:0,sprev:30052.58,reservaLulu:0,bacDeuda:0,bacDeudaUsd:0,bamDeuda:0};
 var COLS={emer:54275,bant:14204,imp:0,buf:119,reimb:0,btcQty:0,btcPx:0};
 const CUOTA=13959.61;
 const MESES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
@@ -617,7 +611,6 @@ function loadSaved(){
   if(d.bacDeuda!=null)    ST.bacDeuda   =parseFloat(d.bacDeuda)||0;
   if(d.bacDeudaUsd!=null) ST.bacDeudaUsd=parseFloat(d.bacDeudaUsd)||0;
   if(d.bamDeuda!=null)    ST.bamDeuda   =parseFloat(d.bamDeuda)||0;
-  if(d.pdfRange) ST.pdfRange = d.pdfRange;
   if(d.cols){
     if(d.cols.emer!=null)COLS.emer=d.cols.emer;
     if(d.cols.bant!=null)COLS.bant=d.cols.bant;
@@ -648,7 +641,6 @@ function saveState(){
   const d=ldS();
   d.tc=ST.tc;d.mes=ST.mes;d.anio=ST.anio;d.sprev=ST.sprev;
   d.reservaLulu=ST.reservaLulu;d.bacDeuda=ST.bacDeuda;d.bacDeudaUsd=ST.bacDeudaUsd;d.bamDeuda=ST.bamDeuda;
-  d.pdfRange=ST.pdfRange;
   // Guardar q1/q2 por mes-año para que no se pisen al cambiar de mes
   if(!d.quincenas)d.quincenas={};
   d.quincenas[qKey()]={q1:ST.q1,q2:ST.q2};
@@ -1440,6 +1432,55 @@ function descargarResumen(){
   const dcaAcum=dcaMeses.reduce((s,h)=>s+(h.invUSD||0),0);
   const dcaTotal=dcaBase+dcaAcum;
 
+  // ── Comparativa mes anterior ──
+  const mesActualKey = mOrdR[ST.mes-1] + ' ' + (ST.anio||2026);
+  const mesActualIdx = hist.findIndex(h => h.mes === mesActualKey);
+  const mesAntHist = mesActualIdx > 0 ? hist[mesActualIdx-1] : null;
+  const ingActual = ingTotal;
+  const ingAnterior = mesAntHist ? (mesAntHist.ingreso || 0) : 0;
+  const deltaIng = ingAnterior > 0 ? ((ingActual - ingAnterior) / ingAnterior * 100) : 0;
+  const excActual = excMes;
+  const excAnterior = mesAntHist ? Math.max((mesAntHist.ingreso||0) - tf, 0) : 0;
+  const deltaExc = excAnterior > 0 ? ((excActual - excAnterior) / excAnterior * 100) : 0;
+
+  // ── Proyección hipoteca con bonos del plan ──
+  // Plan: jul 40% / dic 35% del bono a hipoteca (bono = 1 sueldo)
+  // Excepción: dic 2026 → Italia (no a hipoteca)
+  // Asumir sueldo = ingreso promedio histórico
+  const sueldoBase = avgNorm > 0 ? avgNorm : 31500;
+
+  // Calcular saldo proyectado mes 26 desde hoy con cuotas + bonos jul (siguiendo plan)
+  const proyHipoteca = (() => {
+    const tM = 0.0726/12;
+    let s = salHip;
+    const eventos = []; // bonos a aplicar en mes futuro
+    const mesActual = (ST.mes - 1) + ((ST.anio||2026) - 2026) * 12; // 0-indexed
+    // Bonos jul: meses 6, 18, 30 del calendario 2026+; dic: meses 11, 23
+    // Nuestro horizonte: 12, 24, 30 meses futuros
+    const horizontes = [12, 24, 30];
+    const proys = {};
+    horizontes.forEach(h => {
+      let saldo = salHip;
+      for (let i = 1; i <= h; i++) {
+        const mesGlobal = mesActual + i;
+        const mesEnAno = mesGlobal % 12; // 0-11
+        const anoEnRel = Math.floor(mesGlobal / 12);
+        // Cuota normal
+        const intereses = saldo * tM;
+        saldo -= (CUOTA - intereses);
+        // Si es jul (mes 6 = índice 6) → 40% del bono
+        if (mesEnAno === 6) saldo -= sueldoBase * 0.40;
+        // Si es dic (mes 11) y NO es 2026 → 35% del bono
+        // 2026 es relativo: si anoEnRel desde mesActual coincide con dic 2026, saltar
+        const anoActualReal = (ST.anio||2026) + Math.floor((ST.mes - 1 + i) / 12);
+        if (mesEnAno === 11 && anoActualReal !== 2026) saldo -= sueldoBase * 0.35;
+        if (saldo < 0) saldo = 0;
+      }
+      proys[h] = saldo;
+    });
+    return proys;
+  })();
+
   // helpers — sin clases, todo inline
   const fqR=n=>'Q'+n.toLocaleString('es-GT',{maximumFractionDigits:0});
   const fusd=n=>'$'+(n/tc).toLocaleString('en-US',{maximumFractionDigits:0});
@@ -1498,6 +1539,14 @@ function descargarResumen(){
       +'<p style="'+S.sub+'">Preparado al '+fecha+' · '+mes+'</p>'
       +'<div style="'+S.kpis+'">'
         +'<div style="'+S.kpi+'"><span style="'+S.klbl+'">Ingreso promedio</span><span style="'+S.kval+'">'+(avgNorm>0?fqR(avgNorm):'—')+'</span><span style="'+S.ksub+'">'+fusd(avgNorm)+' · '+normales.length+' meses</span></div>'
+        +(()=>{
+          // KPI ingreso del mes con delta vs mes anterior
+          const deltaTxt = mesAntHist
+            ? (deltaIng >= 0 ? '↑' : '↓') + ' ' + Math.abs(deltaIng).toFixed(1) + '% vs ant.'
+            : 'sin comparativa';
+          const deltaCol = deltaIng >= 0 ? '#34d07a' : '#f25c5c';
+          return '<div style="'+S.kpi+'"><span style="'+S.klbl+'">Ingreso del mes</span><span style="'+S.kval+'">'+fqR(ingActual)+'</span><span style="'+S.ksub+';color:'+deltaCol+'">'+deltaTxt+'</span></div>';
+        })()
         +'<div style="'+S.kpi+'"><span style="'+S.klbl+'">Total reservas</span><span style="'+S.kval+'">'+fqR(totalRes)+'</span><span style="'+S.ksub+'">'+fusd(totalRes)+' USD</span></div>'
         +'<div style="'+S.kpi+'"><span style="'+S.klbl+'">Invertido portafolio</span><span style="'+S.kval+'">'+(dcaTotal>0?'$'+dcaTotal.toLocaleString('en-US',{maximumFractionDigits:0}):'—')+'</span><span style="'+S.ksub+'">capital acumulado</span></div>'
       +'</div>'
@@ -1635,21 +1684,13 @@ function descargarResumen(){
       +'</tbody></table>'
     +'</div>'
 
-    // ── EVOLUCION DE RESERVAS (snapshots historicos, filtrados por rango ST.pdfRange) ──
+    // ── EVOLUCION DE RESERVAS (snapshots historicos) ──
     +(SNAPSHOTS && SNAPSHOTS.length >= 1 ? ('<div style="'+S.sec+'">'
       +'<span style="'+S.sectl+'">Evolucion de reservas en el tiempo</span>'
       +(function(){
-        // Aplicar filtro de rango seleccionado por usuario
-        var snaps = filterSnapshotsByRange(ST.pdfRange || '6m');
-        var rangeLabels = {'3m':'últimos 3 meses', '6m':'últimos 6 meses', '1a':'último año', 'all':'historial completo'};
-        var rangeLabel = rangeLabels[ST.pdfRange || '6m'];
-
-        // Si el rango filtrado queda vacio, fallback a todo
-        if(snaps.length === 0){ snaps = SNAPSHOTS.slice(); rangeLabel = 'historial completo'; }
-
-        // Si solo hay 1 snapshot (despues del filtro), mostrar mensaje suave
-        if(snaps.length === 1){
-          var s = snaps[0];
+        // Si solo hay 1 snapshot, mostrar mensaje suave
+        if(SNAPSHOTS.length === 1){
+          var s = SNAPSHOTS[0];
           return '<div style="background:#f5f3ff;border:1px solid #ddd6fe;border-radius:8px;padding:14px;text-align:center">'
             +'<div style="font-size:11px;color:#666;line-height:1.6">Primer snapshot capturado el '+fmtDateShort(s.date)+'.<br>La grafica de tendencia aparecera con mas snapshots.</div>'
             +'<div style="margin-top:8px;font-size:18px;font-weight:700;color:#4c1d95">Q'+s.total.toLocaleString('es-GT',{maximumFractionDigits:0})+'</div>'
@@ -1662,7 +1703,7 @@ function descargarResumen(){
         const innerW = chartW - padL - padR;
         const innerH = chartH - padT - padB;
 
-        const totals = snaps.map(s => s.total);
+        const totals = SNAPSHOTS.map(s => s.total);
         const minVal = Math.min.apply(null, totals);
         const maxVal = Math.max.apply(null, totals);
         // Padding visual del eje Y
@@ -1672,20 +1713,20 @@ function descargarResumen(){
         const yRange = yMax - yMin;
 
         // X positions (lineales, no por fecha real)
-        const stepX = snaps.length > 1 ? innerW / (snaps.length - 1) : 0;
+        const stepX = SNAPSHOTS.length > 1 ? innerW / (SNAPSHOTS.length - 1) : 0;
 
         // Build path
         let pathD = '';
         let pointsHtml = '';
         let labelsHtml = '';
-        const showLabels = snaps.length <= 12;
+        const showLabels = SNAPSHOTS.length <= 12;
 
-        snaps.forEach(function(s, i){
+        SNAPSHOTS.forEach(function(s, i){
           const x = padL + i * stepX;
           const y = padT + innerH - ((s.total - yMin) / yRange) * innerH;
           pathD += (i === 0 ? 'M' : 'L') + x.toFixed(1) + ',' + y.toFixed(1) + ' ';
           pointsHtml += '<circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="3" fill="#7c3aed" stroke="#fff" stroke-width="1.5"/>';
-          if(showLabels || i === 0 || i === snaps.length - 1 || i % Math.ceil(snaps.length/8) === 0){
+          if(showLabels || i === 0 || i === SNAPSHOTS.length - 1 || i % Math.ceil(SNAPSHOTS.length/8) === 0){
             labelsHtml += '<text x="'+x.toFixed(1)+'" y="'+(chartH - padB + 14).toFixed(1)+'" text-anchor="middle" font-family="monospace" font-size="8" fill="#718096">'+fmtDateShort(s.date)+'</text>';
           }
         });
@@ -1700,10 +1741,7 @@ function descargarResumen(){
         });
 
         // Area path (relleno bajo la linea)
-        let areaPath = pathD + 'L'+(padL + (snaps.length-1)*stepX).toFixed(1)+','+(padT+innerH).toFixed(1)+' L'+padL+','+(padT+innerH).toFixed(1)+' Z';
-
-        // Etiqueta del rango aplicado
-        var rangeNote = '<div style="font-family:monospace;font-size:9px;color:#7c3aed;margin-bottom:6px">Rango: '+rangeLabel+' · '+snaps.length+' snapshots</div>';
+        let areaPath = pathD + 'L'+(padL + (SNAPSHOTS.length-1)*stepX).toFixed(1)+','+(padT+innerH).toFixed(1)+' L'+padL+','+(padT+innerH).toFixed(1)+' Z';
 
         const svg = '<svg viewBox="0 0 '+chartW+' '+chartH+'" style="width:100%;max-width:100%;height:auto;display:block;margin-bottom:6px" preserveAspectRatio="xMidYMid meet">'
           +'<defs><linearGradient id="snapgrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#7c3aed" stop-opacity=".22"/><stop offset="100%" stop-color="#7c3aed" stop-opacity="0"/></linearGradient></defs>'
@@ -1715,8 +1753,8 @@ function descargarResumen(){
           +'</svg>';
 
         // KPIs cambio
-        const first = snaps[0];
-        const last = snaps[snaps.length-1];
+        const first = SNAPSHOTS[0];
+        const last = SNAPSHOTS[SNAPSHOTS.length-1];
         const delta = last.total - first.total;
         const deltaPct = first.total > 0 ? (delta/first.total)*100 : 0;
         const deltaColor = delta >= 0 ? '#059669' : '#dc2626';
@@ -1740,15 +1778,12 @@ function descargarResumen(){
           +'</div>'
         +'</div>';
 
-        const tableNote = snaps.length > 12
-          ? '<div style="font-size:9px;color:#a0aec0;margin-top:6px;text-align:center;font-style:italic">Mostrando ultimos 12 snapshots de '+snaps.length+' en el rango ('+SNAPSHOTS.length+' totales en historial)</div>'
-          : '';
-
-        // Recortar tabla a ultimos 12 dentro del rango
-        const recentSnapsTable = snaps.slice(-12);
-        const tableRowsHtml = recentSnapsTable.map(function(s, idx){
-          const prev = idx > 0 ? recentSnapsTable[idx-1] : null;
+        // Tabla con desglose por reserva (ultimos 12 snapshots para no saturar)
+        const recentSnaps = SNAPSHOTS.slice(-12);
+        const tableRows = recentSnaps.map(function(s, idx){
+          const prev = idx > 0 ? recentSnaps[idx-1] : null;
           const reimbQ = (s.reimb || 0) * (ST.tc || 7.75);
+          // arrows
           function arr(curr, p){
             if(!p) return '';
             if(curr > p) return '<span style="color:#059669;font-size:8px"> &uarr;</span>';
@@ -1765,8 +1800,11 @@ function descargarResumen(){
           +'</tr>';
         }).join('');
 
-        return rangeNote
-          +svg
+        const tableNote = SNAPSHOTS.length > 12
+          ? '<div style="font-size:9px;color:#a0aec0;margin-top:6px;text-align:center;font-style:italic">Mostrando ultimos 12 snapshots de '+SNAPSHOTS.length+' totales</div>'
+          : '';
+
+        return svg
           +kpis
           +'<table style="'+S.tbl+'"><thead><tr>'
             +'<th style="'+S.th+'">Fecha</th>'
@@ -1775,10 +1813,29 @@ function descargarResumen(){
             +'<th style="'+S.th+'">Buffer</th>'
             +'<th style="'+S.th+'">Reembolsos</th>'
             +'<th style="'+S.th+'">Total</th>'
-          +'</tr></thead><tbody>'+tableRowsHtml+'</tbody></table>'
+          +'</tr></thead><tbody>'+tableRows+'</tbody></table>'
           +tableNote;
       })()
     +'</div>') : '')
+
+    // ── DESGLOSE GASTOS FIJOS ──
+    +'<div style="'+S.sec+'">'
+      +'<span style="'+S.sectl+'">Desglose de gastos fijos</span>'
+      +'<div style="font-size:10px;color:#718096;margin-bottom:10px">Total mensual: <strong style="color:#dc2626">'+fqR(tf)+'</strong> ('+(avgNorm>0?(tf/avgNorm*100).toFixed(0):'—')+'% del ingreso promedio)</div>'
+      +'<table style="'+S.tbl+'"><thead><tr>'
+        +'<th style="'+S.th+'">Concepto</th><th style="'+S.th+'">Monto</th><th style="'+S.th+'">% Total</th>'
+      +'</tr></thead><tbody>'
+      +FIJOS_RUBROS.map(function(r){
+        const pct = (r.amt/tf*100).toFixed(1);
+        return '<tr>'
+          +'<td style="'+S.td+'">'+r.ico+' '+r.nom+'</td>'
+          +'<td style="'+S.td+'font-family:monospace">Q'+r.amt.toLocaleString('es-GT',{maximumFractionDigits:2})+'</td>'
+          +'<td style="'+S.td+'color:#a0aec0;font-size:10px">'+pct+'%</td>'
+        +'</tr>';
+      }).join('')
+      +'<tr style="background:#fef2f2"><td style="'+S.td+'font-weight:700">Total</td><td style="'+S.td+'font-weight:700;color:#dc2626;font-family:monospace">'+fqR(tf)+'</td><td style="'+S.td+'font-weight:700;color:#dc2626">100%</td></tr>'
+      +'</tbody></table>'
+    +'</div>'
 
     // ── HIPOTECA ──
     +'<div style="'+S.sec+'">'
@@ -1800,6 +1857,29 @@ function descargarResumen(){
         +'<tr><td style="'+S.td+'color:#888">Saldo estimado</td><td style="'+S.td+'color:#dc2626;font-weight:600">'+fqR(salHip)+' ('+fusd(salHip)+')</td></tr>'
         +'<tr><td style="'+S.td+'color:#888">Capital pagado</td><td style="'+S.td+'color:#059669;font-weight:600">'+fqR(1480000-salHip)+' ('+((1480000-salHip)/1480000*100).toFixed(1)+'%)</td></tr>'
       +'</tbody></table>'
+
+      // Proyeccion de saldo con bonos del plan
+      +'<div style="margin-top:14px;padding-top:10px;border-top:1px solid #e5e7eb">'
+        +'<div style="font-size:11px;font-weight:700;color:#4c1d95;margin-bottom:8px">Proyección saldo (cuotas + bonos plan)</div>'
+        +'<table style="'+S.tbl+'"><thead><tr>'
+          +'<th style="'+S.th+'">Horizonte</th><th style="'+S.th+'">Saldo estimado</th><th style="'+S.th+'">Reducción</th>'
+        +'</tr></thead><tbody>'
+        +(function(){
+          const horizontes = [{m:12,lbl:'12 meses'},{m:24,lbl:'24 meses (mes 26 plan)'},{m:30,lbl:'30 meses (mes 32 fallback)'}];
+          return horizontes.map(function(h){
+            const saldoH = proyHipoteca[h.m];
+            const reduccion = salHip - saldoH;
+            const pctRed = (reduccion/salHip*100).toFixed(1);
+            return '<tr>'
+              +'<td style="'+S.td+'">'+h.lbl+'</td>'
+              +'<td style="'+S.td+'font-family:monospace;color:#4c1d95;font-weight:600">'+fqR(saldoH)+'</td>'
+              +'<td style="'+S.td+'font-family:monospace;color:#059669;font-size:10px">-'+fqR(reduccion)+' ('+pctRed+'%)</td>'
+            +'</tr>';
+          }).join('');
+        })()
+        +'</tbody></table>'
+        +'<div style="font-size:9px;color:#a0aec0;margin-top:6px;line-height:1.5">Asume cuotas regulares + bonos jul (40%) y dic (35%) sobre sueldo promedio Q'+sueldoBase.toLocaleString('es-GT',{maximumFractionDigits:0})+'. Excepción: bono dic 2026 → Italia.</div>'
+      +'</div>'
     +'</div>'
 
     // ── PROYECCIÓN FLUJO 12 MESES (solo bonos por contrato, estimados desde promedio) ──
@@ -1841,7 +1921,7 @@ function descargarResumen(){
       +'</div>'
     +'</div>'):'')
 
-    +'<div style="'+S.foot+'">Perfil Financiero Personal GT · Generado el '+fecha+'<br>Documento personal · Datos al '+mes+'</div>'
+    +'<div style="'+S.foot+'">Perfil Financiero Personal GT · Generado el '+fecha+'<br>Resumen mensual de '+mes+' (cierre)</div>'
     +'</div></body></html>';
 
   const blob=new Blob([out],{type:'text/html'});
@@ -2449,25 +2529,6 @@ function daysSinceLastSnap(){
 }
 
 // Captura un snapshot del estado actual de COLS (saldos vivos)
-// Filtrar snapshots por rango temporal (para gráfica del PDF)
-function filterSnapshotsByRange(rng){
-  if(!SNAPSHOTS || SNAPSHOTS.length === 0) return [];
-  if(rng === 'all') return SNAPSHOTS.slice();
-
-  var months = {'3m':3, '6m':6, '1a':12}[rng] || 6;
-  var cutoff = new Date();
-  cutoff.setMonth(cutoff.getMonth() - months);
-  var cutoffISO = cutoff.toISOString().slice(0,10);
-
-  return SNAPSHOTS.filter(function(s){ return s.date >= cutoffISO; });
-}
-
-function setPdfRange(rng){
-  ST.pdfRange = rng;
-  saveState();
-  renderSnap();
-}
-
 function takeSnapshot(){
   if(!COLS) return false;
   var iso = todayISO();
@@ -2561,8 +2622,8 @@ function renderSnap(){
     +'</button>'
     +'</div>';
 
-  // Mostrar ultimos 10 snapshots (resto sigue en localStorage para grafica/calculos)
-  var recent = SNAPSHOTS.slice(-10).reverse();
+  // Mostrar ultimos 5 snapshots
+  var recent = SNAPSHOTS.slice(-5).reverse();
   var rowsHtml = recent.map(function(snap, i){
     var realIdx = SNAPSHOTS.length - 1 - i;
     return '<div class="snap-row">'
@@ -2576,30 +2637,7 @@ function renderSnap(){
     bannerHtml = '<div class="snap-banner">Sin snapshots aun.</div>';
   }
 
-  // Selector de rango para grafica del PDF (siempre visible si hay snapshots)
-  var rangeHtml = '';
-  if(SNAPSHOTS.length >= 1){
-    var currentRange = ST.pdfRange || '6m';
-    var rangeOptions = [
-      {k:'3m',  l:'3 meses'},
-      {k:'6m',  l:'6 meses'},
-      {k:'1a',  l:'1 año'},
-      {k:'all', l:'Todo'}
-    ];
-    var filteredCount = filterSnapshotsByRange(currentRange).length;
-    rangeHtml = '<div class="snap-pdf-range">'
-      +'<div class="snap-pdf-range-lbl">📄 Rango para gráfica del PDF</div>'
-      +'<div class="snap-pdf-range-opts">'
-        + rangeOptions.map(function(o){
-            var sel = o.k === currentRange;
-            return '<button class="snap-pdf-range-btn'+(sel?' sel':'')+'" onclick="setPdfRange(\''+o.k+'\')">'+o.l+'</button>';
-          }).join('')
-      +'</div>'
-      +'<div class="snap-pdf-range-info">'+filteredCount+' snapshot'+(filteredCount===1?'':'s')+' incluido'+(filteredCount===1?'':'s')+' en gráfica</div>'
-      +'</div>';
-  }
-
-  document.getElementById('snap-list').innerHTML = bannerHtml + actionHtml + rowsHtml + rangeHtml;
+  document.getElementById('snap-list').innerHTML = bannerHtml + actionHtml + rowsHtml;
 }
 
 // ── INIT ─────────────────────────────────────────────────────────

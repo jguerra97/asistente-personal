@@ -863,7 +863,6 @@ function descargarResumen(){
   const concentrationColor = herfindahl<1500?'#059669':herfindahl<2500?'#d97706':'#dc2626';
 
   // ── BALANCE vs CONVICCION (excluye BTC colchon) ──
-  // Total operativo sin BTC para calcular % de convicción
   const totSinBTC = allAssets
     .filter(a => a.tick !== 'BTC')
     .reduce((s,a) => s + (a.price||0)*a.qty, 0);

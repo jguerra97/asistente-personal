@@ -751,12 +751,25 @@ function descargarResumen(){
   const pnl=tot-cst;
   const pnlPct=cst>0?((pnl/cst)*100).toFixed(1):'0';
   const mult=cst>0?(tot/cst).toFixed(2):'—';
-  const pct=Math.min((tot/150000)*100,100);
+  const META = 88000; // Meta nueva: capital cripto + MSTR para reducir cuota hipoteca a Q10K
+  const META_CAPITAL = 50000; // Capital invertido objetivo
+  const pct=Math.min((tot/META)*100,100);
+  const pctCapital=Math.min((cst/META_CAPITAL)*100,100);
   const fecha=new Date().toLocaleDateString('es-GT',{day:'2-digit',month:'long',year:'numeric'});
   const timestamp=new Date().toLocaleString('es-GT',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
 
   const fm2=n=>'$'+n.toLocaleString('en-US',{maximumFractionDigits:0});
   const fmp=n=>(n>=0?'+':'')+n.toFixed(1)+'%';
+
+  // Hitos del portafolio (datos historicos hardcoded)
+  const HITOS = [
+    {label:'Inicio (ene 2026)',  capital: 12038, valor: 12038},
+    {label:'Hoy ('+fecha+')',    capital: cst,   valor: tot},
+    {label:'Meta (jul 2028)',    capital: META_CAPITAL, valor: META},
+  ];
+  const cambioCapital = cst - 12038;
+  const cambioValor = tot - 12038;
+  const cambioPct = ((tot/12038 - 1) * 100).toFixed(1);
 
   // ── Acumulacion tokens meta (data live) ──
   const ACC_SUMMARY = {
@@ -764,7 +777,20 @@ function descargarResumen(){
     'PHA':    {target:120000,  label:'tokens', color:'#a78bfa'},
     'ONDO':   {target:12000,   label:'tokens', color:'#818cf8'},
     'AKT':    {target:3000,    label:'tokens', color:'#10b981'},
+    'MORPHO': {target:4154,    label:'tokens', color:'#6366f1'},
+    'MSTR':   {target:105,     label:'acciones', color:'#f25c5c'},
   };
+
+  // ── Targets de conviccion (% del portafolio sin BTC colchon) ──
+  const TARGETS_CONV = {
+    'MSTR':   20,
+    'HYPE':   20,
+    'MORPHO': 18,
+    'ONDO':   12,
+    'AKT':    8,
+    'PHA':    7,
+  };
+  // BTC excluido del balance vs convicción (es colchón LF separado)
   const accRows = Object.keys(ACC_SUMMARY).map(tick=>{
     const asset = allAssets.find(x=>x.tick===tick);
     if(!asset) return '';
@@ -836,6 +862,52 @@ function descargarResumen(){
   const concentrationLabel = herfindahl<1500?'Diversificado':herfindahl<2500?'Moderado':'Alto';
   const concentrationColor = herfindahl<1500?'#059669':herfindahl<2500?'#d97706':'#dc2626';
 
+  // ── BALANCE vs CONVICCION (excluye BTC colchon) ──
+  // Total operativo sin BTC para calcular % de convicción
+  const totSinBTC = allAssets
+    .filter(a => a.tick !== 'BTC')
+    .reduce((s,a) => s + (a.price||0)*a.qty, 0);
+
+  const balanceRows = Object.keys(TARGETS_CONV).map(tick => {
+    const asset = allAssets.find(x=>x.tick===tick);
+    const target = TARGETS_CONV[tick];
+    const val = asset ? (asset.price||0) * asset.qty : 0;
+    const real = totSinBTC > 0 ? (val/totSinBTC) * 100 : 0;
+    const gap = real - target;
+    const absGap = Math.abs(gap);
+
+    let estado, estadoColor, icon;
+    if (absGap <= 1.5) {
+      estado = 'en línea'; estadoColor = '#059669'; icon = '✅';
+    } else if (absGap <= 4) {
+      estado = gap > 0 ? 'leve sobrepeso' : 'leve sub-asignado';
+      estadoColor = '#d97706'; icon = '⚠️';
+    } else {
+      estado = gap > 0 ? 'sobrepeso' : 'MUY sub-asignado';
+      estadoColor = '#dc2626'; icon = gap > 0 ? '⚠️' : '🚨';
+    }
+
+    return `<tr>
+      <td style="padding:7px 10px;border-bottom:1px solid #edf2f7;font-weight:700">${tick}</td>
+      <td style="padding:7px 10px;border-bottom:1px solid #edf2f7;text-align:right;font-family:monospace">${real.toFixed(1)}%</td>
+      <td style="padding:7px 10px;border-bottom:1px solid #edf2f7;text-align:right;color:#718096;font-family:monospace">${target}%</td>
+      <td style="padding:7px 10px;border-bottom:1px solid #edf2f7;text-align:right;font-size:10px;color:${estadoColor}">${icon} ${estado}</td>
+    </tr>`;
+  }).join('');
+
+  // Tabla hitos
+  const hitosRows = HITOS.map((h,i) => {
+    const isMeta = i === HITOS.length - 1;
+    const isHoy = i === HITOS.length - 2;
+    const bgColor = isMeta ? '#f5f3ff' : (isHoy ? '#ecfdf5' : '#f9fafb');
+    const fontWeight = (isHoy || isMeta) ? '700' : '500';
+    return `<tr style="background:${bgColor}">
+      <td style="padding:8px 10px;border-bottom:1px solid #edf2f7;font-weight:${fontWeight};font-size:11px">${h.label}</td>
+      <td style="padding:8px 10px;border-bottom:1px solid #edf2f7;text-align:right;font-family:monospace;font-weight:${fontWeight}">${fm2(h.capital)}</td>
+      <td style="padding:8px 10px;border-bottom:1px solid #edf2f7;text-align:right;font-family:monospace;font-weight:${fontWeight}">${fm2(h.valor)}</td>
+    </tr>`;
+  }).join('');
+
   // CSS inline minimalista
   const CSS = `
     body{margin:0;padding:0;background:#f5f6fa;font-family:Helvetica,Arial,sans-serif;color:#1a1a2e}
@@ -874,13 +946,44 @@ function descargarResumen(){
   </div>
   <div class="kpis">
     <div class="kpi"><div class="k-lbl">Valor mercado</div><div class="k-val">${fm2(tot)}</div><div class="k-sub">${pct.toFixed(1)}% de meta</div></div>
-    <div class="kpi"><div class="k-lbl">Capital invertido</div><div class="k-val">${fm2(cst)}</div><div class="k-sub">costo entrada</div></div>
+    <div class="kpi"><div class="k-lbl">Capital invertido</div><div class="k-val">${fm2(cst)}</div><div class="k-sub">${pctCapital.toFixed(1)}% del capital meta</div></div>
     <div class="kpi"><div class="k-lbl">P&L no realizado</div><div class="k-val" style="color:${pnl>=0?'#34d07a':'#f25c5c'}">${pnl>=0?'+':''}${fm2(Math.abs(pnl))}</div><div class="k-sub">${pnlPct}%</div></div>
     <div class="kpi"><div class="k-lbl">Multiplo</div><div class="k-val" style="color:${parseFloat(mult)>=1?'#34d07a':'#f25c5c'}">${mult}x</div><div class="k-sub">retorno</div></div>
   </div>
   <div class="pbar-wrap">
-    <div class="pbar-lbl"><span>Progreso hacia $150,000</span><span><strong>${pct.toFixed(1)}%</strong></span></div>
+    <div class="pbar-lbl"><span>Progreso hacia ${fm2(META)}</span><span><strong>${pct.toFixed(1)}%</strong></span></div>
     <div class="pbar"><div class="pbar-fill" style="width:${pct.toFixed(1)}%;background:linear-gradient(90deg,#3db8f5,#9d7ff0)"></div></div>
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sec-hdr"><div class="sec-t">Progreso · Hitos</div><div class="sec-sub">capital + valor</div></div>
+  <table>
+    <thead><tr>
+      <th>Hito</th>
+      <th style="text-align:right">Capital</th>
+      <th style="text-align:right">Valor</th>
+    </tr></thead>
+    <tbody>${hitosRows}</tbody>
+  </table>
+  <div style="margin-top:10px;padding:10px;background:#ecfdf5;border-left:3px solid #059669;border-radius:3px;font-size:10px;color:#065f46;line-height:1.5">
+    <strong>+${fm2(cambioValor)}</strong> en valor desde inicio (+${cambioPct}%) · Capital aportado: <strong>+${fm2(cambioCapital)}</strong>
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sec-hdr"><div class="sec-t">Balance vs convicción</div><div class="sec-sub">% sobre $${(totSinBTC).toLocaleString('en-US',{maximumFractionDigits:0})} (sin BTC colchón)</div></div>
+  <table>
+    <thead><tr>
+      <th>Activo</th>
+      <th style="text-align:right">Real</th>
+      <th style="text-align:right">Target</th>
+      <th style="text-align:right">Estado</th>
+    </tr></thead>
+    <tbody>${balanceRows}</tbody>
+  </table>
+  <div style="margin-top:8px;padding:8px 10px;background:#fff7ed;border-left:3px solid #f59e0b;border-radius:3px;font-size:9px;color:#78350f;line-height:1.5">
+    BTC excluido del balance: es <strong>colchón LF en SeedSigner</strong>, no cuenta para meta operativa.
   </div>
 </div>
 

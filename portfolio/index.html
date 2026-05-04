@@ -307,18 +307,18 @@ td:first-child{text-align:left;}
 </div>
 <div class="broker-grid" id="broker-grid"></div>
 
-<!-- META $150K -->
+<!-- META $88K (cripto + MSTR para reducir cuota hipoteca) -->
 <div class="sec">
   <div class="ld" style="background:var(--gr);box-shadow:0 0 6px var(--gr)"></div>
-  <div class="lt">Meta $150,000</div>
+  <div class="lt">Meta $88,000</div>
 </div>
 <div class="goal-card">
   <div class="goal-top">
-    <div><div class="goal-num" id="gnum">—</div><div class="goal-sub">de $150,000 meta</div></div>
+    <div><div class="goal-num" id="gnum">—</div><div class="goal-sub">de $88,000 meta</div></div>
     <div style="text-align:right"><div class="goal-pct" id="gpct">—%</div><div class="goal-rem" id="grem">Faltan —</div></div>
   </div>
   <div class="pbar-outer"><div class="pbar-fill" id="pbar" style="width:0%"></div></div>
-  <div class="pbar-marks"><span class="pm">$0</span><span class="pm">$37.5K</span><span class="pm">$75K</span><span class="pm">$112.5K</span><span class="pm">$150K</span></div>
+  <div class="pbar-marks"><span class="pm">$0</span><span class="pm">$22K</span><span class="pm">$44K</span><span class="pm">$66K</span><span class="pm">$88K</span></div>
   <div class="ms-grid" id="ms-grid"></div>
   <div class="scen-grid" id="scen-grid"></div>
 </div>
@@ -577,15 +577,15 @@ function renderBroker(){
 
 // ── GOAL ─────────────────────────────────────────────────────────
 function renderGoal(total){
-  const target=150000,pct=Math.min((total/target)*100,100);
+  const target=88000,pct=Math.min((total/target)*100,100);
   document.getElementById('gnum').textContent=fm(total);
   document.getElementById('gpct').textContent=pct.toFixed(1)+'%';
   document.getElementById('grem').textContent='Faltan '+fm(target-total);
   document.getElementById('pbar').style.width=pct+'%';
   const ms=[
-    {l:'Inicio',v:8512,d:'Abr 2026'},{l:'25%',v:37500,d:'~2026'},
-    {l:'50%',v:75000,d:'~2027'},{l:'75%',v:112500,d:'~2027'},
-    {l:'90%',v:135000,d:'~2028'},{l:'META 🎯',v:150000,d:'~2028'},
+    {l:'Inicio',v:12038,d:'Ene 2026'},{l:'25%',v:22000,d:'~2026'},
+    {l:'50%',v:44000,d:'~2027'},{l:'75%',v:66000,d:'~2028'},
+    {l:'90%',v:79200,d:'~2028'},{l:'META 🎯',v:88000,d:'jul 2028'},
   ];
   document.getElementById('ms-grid').innerHTML=ms.map(m=>
     `<div class="ms ${total>=m.v?'done':''}"><label>${m.l}</label>

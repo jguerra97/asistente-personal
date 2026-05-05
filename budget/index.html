@@ -379,7 +379,7 @@ body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--tx);min-heig
 <div class="fijos-toggle" onclick="toggleFijos()" id="fijos-toggle-btn">
   <div class="fijos-toggle-left">
     <span class="fijos-toggle-lbl">Total reservado al Ahorro BI</span>
-    <span class="fijos-toggle-amt" id="fijos-toggle-total">Q19,863.69</span>
+    <span class="fijos-toggle-amt" id="fijos-toggle-total">Q19,065.73</span>
   </div>
   <span class="fijos-toggle-ico" id="fijos-toggle-ico">▾</span>
 </div>
@@ -562,36 +562,36 @@ var COLS={emer:54275,bant:14204,imp:0,buf:119,reimb:0,btcQty:0,btcPx:0};
 const CUOTA=13959.61;
 const MESES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const MNOMBRES=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-const FIJOS_TOTAL=13959.61+900+1355+510+250+400+115+25.39+115+1267+969; // Q19,865.00
+const FIJOS_TOTAL=13959.61+900+1355+510+430.12+400+25+17+969+500; // Q19,065.73 (incluye buffer fijos Q500)
 const FIJOS_RUBROS=[
   {ico:'🏠',nom:'Hipoteca BI',amt:13959.61},
-  {ico:'🏛️',nom:'IUSI',amt:900},
   {ico:'🔧',nom:'Mantenimiento',amt:1355},
-  {ico:'💡',nom:'Luz',amt:115},
-  {ico:'📡',nom:'Internet',amt:510},
-  {ico:'📱',nom:'Conectividad',amt:250},
-  {ico:'⛽',nom:'Gasolina',amt:400},
-  {ico:'🏦',nom:'Cobros bancarios',amt:25.39},
-  {ico:'🛒',nom:'Supermercado',amt:115},
   {ico:'🤖',nom:'Claude AI Max',amt:969},
-  {ico:'🔒',nom:'Imprevistos fijos',amt:1267},
+  {ico:'🏛️',nom:'IUSI',amt:900},
+  {ico:'📡',nom:'Internet',amt:510},
+  {ico:'🛡️',nom:'Buffer Fijos (Ahorro BI)',amt:500},
+  {ico:'📱',nom:'Conectividad (Fi+Airalo)',amt:430.12},
+  {ico:'⛽',nom:'Gasolina',amt:400},
+  {ico:'🏦',nom:'Cobros bancarios',amt:25},
+  {ico:'💡',nom:'Luz (mínimo)',amt:17},
 ];
 const SUBS_ENT=[
   {nom:'Spotify',usd:6.49,freq:'mensual'},
-  {nom:'Disney+',usd:10.99,freq:'mensual'},
+  {nom:'Disney+',usd:11.49,freq:'mensual'},
   {nom:'Netflix',usd:4.99,freq:'mensual'},
   {nom:'Amazon Prime',usd:11.58,freq:'~$139/año'},
 ];
 
 // Distribución estimada del disfrute personal (referencia visual — no afecta cálculos)
+// Suma Q1,918 = disfrute regular base. El resto del 40% va al Buffer Lulubit (tope Q10K)
 const LULU_CATS=[
-  {ico:'🎬',nom:'Suscripciones',amt:256,  col:'#e879a0'},
-  {ico:'🍔',nom:'Delivery personal',amt:225,  col:'#f59e0b'},
-  {ico:'🎉',nom:'Salidas',amt:1050, col:'#3db8f5'},
-  {ico:'🛍️',nom:'Compras',amt:1500, col:'#a78bfa'},
-  {ico:'💰',nom:'Buffer',amt:800,  col:'#10b981'},
+  {ico:'🍔',nom:'Salidas',amt:750, col:'#3db8f5'},
+  {ico:'💐',nom:'Flores',amt:400, col:'#e879a0'},
+  {ico:'🎁',nom:'Regalos',amt:350, col:'#a78bfa'},
+  {ico:'🎬',nom:'Suscripciones streaming',amt:268, col:'#f59e0b'},
+  {ico:'📦',nom:'Otros',amt:150, col:'#10b981'},
 ];
-const LULU_EST_TOTAL=LULU_CATS.reduce((s,c)=>s+c.amt,0); // Q3,831
+const LULU_EST_TOTAL=LULU_CATS.reduce((s,c)=>s+c.amt,0); // Q1,918 disfrute regular
 
 // ── FORMATO ───────────────────────────────────────────────────────
 const fq=(n,d=0)=>'Q'+n.toLocaleString('es-GT',{minimumFractionDigits:d,maximumFractionDigits:d});

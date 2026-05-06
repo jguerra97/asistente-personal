@@ -359,6 +359,24 @@ td:first-child{text-align:left;}
 </div>
 <div id="strat-list" style="display:none;margin-bottom:10px"></div>
 
+<!-- PROYECCIÓN A META (TRANCHES + MOONSHOT) -->
+<div class="lbl" style="margin-top:16px;margin-bottom:8px">
+  <span class="dot" style="background:#10b981"></span>
+  <div class="lt">Proyección a meta $88K <span>tokens actuales × precios objetivo</span></div>
+</div>
+<div class="acc-toggle" onclick="toggleProy()" id="proy-toggle-btn"
+  style="background:var(--s1);border:1px solid var(--bd);border-radius:10px;
+  padding:11px 14px;display:flex;justify-content:space-between;align-items:center;
+  cursor:pointer;-webkit-tap-highlight-color:rgba(16,185,129,.2);margin-bottom:6px;
+  transition:background .15s;">
+  <div>
+    <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--mu);letter-spacing:.08em;text-transform:uppercase">🎯 Proyección con venta escalonada</div>
+    <div id="proy-summary" style="font-family:'DM Mono',monospace;font-size:11px;font-weight:600;color:#10b981;margin-top:2px">Tap para ver detalle</div>
+  </div>
+  <span id="proy-toggle-ico" style="font-size:14px;color:var(--mu);transition:transform .2s">▾</span>
+</div>
+<div id="proy-list" style="display:none;margin-bottom:10px"></div>
+
 <!-- DISTRIBUCIÓN -->
 <div class="sec">
   <div class="ld" style="background:var(--pu);box-shadow:0 0 5px var(--pu)"></div>
@@ -705,6 +723,8 @@ async function load(){
   rb.classList.remove('busy');sp.classList.remove('go');
   renderDist();
   renderAcc();
+  updateProySummary();
+  if(_proyOpen) renderProy();
 }
 function onQC(tick,val){const v=parseFloat(val);if(isNaN(v)||v<0)return;const a=[...L1,...L2].find(x=>x.tick===tick);if(a){a.qty=v;svS(tick,'qty',v);load();}}
 function onEC(tick,val){const v=parseFloat(val);if(isNaN(v)||v<=0)return;const a=[...L1,...L2].find(x=>x.tick===tick);if(a){a.entry=v;svS(tick,'entry',v);load();}}
@@ -877,6 +897,58 @@ function descargarResumen(){
     </tr>`;
   }).join('');
 
+  // ── PROYECCIÓN A META — TRANCHES Y TRAILING ──
+  // Mismo cálculo que el panel del tracker, replicado aquí para autocontenido
+  const PROY_TRANCHES = {
+    'HYPE':   { t1:{pct:10,px:46.50}, t2:{pct:15,px:48.50}, t3:{pct:20,px:58.00}, moon:{pct:30,px:100.00}, trailing:{pct:25,px:150.00} },
+    'ONDO':   { t1:{pct:15,px:0.525}, t2:{pct:15,px:0.705}, t3:{pct:20,px:0.885}, moon:{pct:30,px:1.90},   trailing:{pct:20,px:2.80}   },
+    'AKT':    { t1:{pct:20,px:1.12},  t2:{pct:25,px:2.45},  t3:{pct:20,px:3.13},  moon:{pct:15,px:5.30},   trailing:{pct:20,px:7.50}   },
+    'MORPHO': { t1:{pct:15,px:2.96},  t2:{pct:15,px:3.30},  t3:{pct:25,px:4.10},  moon:{pct:30,px:8.60},   trailing:{pct:15,px:12.00}  },
+    'MSTR':   { t1:{pct:25,px:237.5}, t2:{pct:30,px:295.0}, t3:{pct:25,px:375.0}, moon:null,               trailing:{pct:20,px:450.00} },
+  };
+  const PROY_BTC_PEAK = { pct:10, px:250000 };
+  const PROY_META = 88000;
+
+  let proyTotal = 0;
+  const proyRows = Object.keys(PROY_TRANCHES).map(tick => {
+    const tr = PROY_TRANCHES[tick];
+    const asset = allAssets.find(x=>x.tick===tick);
+    const qty = asset ? asset.qty : 0;
+    let avgPx;
+    if(tr.moon){
+      avgPx = (tr.t1.pct*tr.t1.px + tr.t2.pct*tr.t2.px + tr.t3.pct*tr.t3.px + tr.moon.pct*tr.moon.px + tr.trailing.pct*tr.trailing.px) / 100;
+    } else {
+      avgPx = (tr.t1.pct*tr.t1.px + tr.t2.pct*tr.t2.px + tr.t3.pct*tr.t3.px + tr.trailing.pct*tr.trailing.px) / 100;
+    }
+    const valor = qty * avgPx;
+    proyTotal += valor;
+    const decimals = tick==='ONDO' ? 3 : 2;
+    return `<tr>
+      <td style="padding:7px 10px;border-bottom:1px solid #edf2f7;font-weight:700">${tick}</td>
+      <td style="padding:7px 10px;border-bottom:1px solid #edf2f7;text-align:right;color:#718096;font-family:monospace;font-size:10px">${qty.toLocaleString('en-US',{maximumFractionDigits:tick==='MSTR'?2:4})}</td>
+      <td style="padding:7px 10px;border-bottom:1px solid #edf2f7;text-align:right;font-family:monospace;font-size:10px">$${avgPx.toFixed(decimals)}</td>
+      <td style="padding:7px 10px;border-bottom:1px solid #edf2f7;text-align:right;font-family:monospace;font-weight:700;color:#059669">${fm2(valor)}</td>
+    </tr>`;
+  }).join('');
+
+  // BTC peak fila aparte
+  const btcAsset = allAssets.find(x=>x.tick==='BTC');
+  const btcQty = btcAsset ? btcAsset.qty : 0;
+  const btcQtySell = btcQty * (PROY_BTC_PEAK.pct/100);
+  const btcValor = btcQtySell * PROY_BTC_PEAK.px;
+  proyTotal += btcValor;
+  const btcRow = `<tr style="background:#fef9f1">
+    <td style="padding:7px 10px;border-bottom:1px solid #edf2f7;font-weight:700;color:#c97400">BTC <span style="font-size:9px;font-weight:400;color:#a0aec0">(peak 10%)</span></td>
+    <td style="padding:7px 10px;border-bottom:1px solid #edf2f7;text-align:right;color:#718096;font-family:monospace;font-size:10px">${btcQtySell.toFixed(5)}</td>
+    <td style="padding:7px 10px;border-bottom:1px solid #edf2f7;text-align:right;font-family:monospace;font-size:10px">$${PROY_BTC_PEAK.px.toLocaleString('en-US')}</td>
+    <td style="padding:7px 10px;border-bottom:1px solid #edf2f7;text-align:right;font-family:monospace;font-weight:700;color:#059669">${fm2(btcValor)}</td>
+  </tr>`;
+
+  const proyPctMeta = (proyTotal / PROY_META) * 100;
+  const proyBarColor = proyPctMeta >= 100 ? '#059669' : proyPctMeta >= 70 ? '#22c55e' : proyPctMeta >= 40 ? '#d97706' : '#dc2626';
+  const proyBarWidth = Math.min(proyPctMeta, 100);
+  const proyFalta = PROY_META - proyTotal;
+
   // CSS inline minimalista
   const CSS = `
     body{margin:0;padding:0;background:#f5f6fa;font-family:Helvetica,Arial,sans-serif;color:#1a1a2e}
@@ -994,6 +1066,40 @@ function descargarResumen(){
   </div>
 </div>
 
+<div class="sec">
+  <div class="sec-hdr"><div class="sec-t">Proyección a meta · venta escalonada</div><div class="sec-sub">tokens × precio promedio ponderado</div></div>
+  <div style="background:#f7f9ff;border:1px solid #e2e8f7;border-radius:8px;padding:14px 16px;margin-bottom:12px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:10px;gap:10px;flex-wrap:wrap">
+      <div>
+        <div style="font-size:9px;color:#a0aec0;text-transform:uppercase;letter-spacing:.7px;margin-bottom:3px">Total proyectado · escalonado</div>
+        <div style="font-size:24px;font-weight:800;color:${proyBarColor};letter-spacing:-1px">${fm2(proyTotal)}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:9px;color:#a0aec0;text-transform:uppercase;letter-spacing:.7px;margin-bottom:3px">de meta $${(PROY_META/1000).toFixed(0)}K</div>
+        <div style="font-size:18px;font-weight:800;color:${proyBarColor}">${proyPctMeta.toFixed(1)}%</div>
+      </div>
+    </div>
+    <div style="background:#e5e7eb;border-radius:5px;height:10px;overflow:hidden">
+      <div style="height:100%;width:${proyBarWidth}%;background:${proyBarColor};border-radius:5px"></div>
+    </div>
+    <div style="font-size:10px;color:#6b7280;margin-top:8px;line-height:1.5">
+      ${proyPctMeta < 100 ? `Falta capturar <strong style="color:${proyBarColor}">${fm2(proyFalta)}</strong> · cubierto por DCA mensual + ejecución del cycle.` : 'Meta cubierta solo con tokens actuales en zonas TA.'}
+    </div>
+  </div>
+  <table>
+    <thead><tr>
+      <th>Activo</th>
+      <th style="text-align:right">Tokens</th>
+      <th style="text-align:right">Prom. ponderado</th>
+      <th style="text-align:right">Valor proyectado</th>
+    </tr></thead>
+    <tbody>${proyRows}${btcRow}</tbody>
+  </table>
+  <div style="margin-top:10px;padding:10px;background:#f0f9ff;border-left:3px solid #3b82f6;border-radius:3px;font-size:10px;color:#1e40af;line-height:1.5">
+    <strong>Distribución por activo:</strong> 3 tranches en zonas TA (T1/T2/T3) + Moonshot fundamental + Trailing arriba del moonshot. BTC excepcional: 10% único en cycle peak ~$250K. 90% restante mantiene función de colchón LF.
+  </div>
+</div>
+
 <div class="note">Estado de resultados no realizado. Valores al momento de generacion. Documento personal.</div>
 <div class="foot">Cartera de Activos Digitales · ${fecha}</div>
 </div></body></html>`;
@@ -1027,62 +1133,204 @@ const ACC_TARGETS = {
   'AKT':    {target:3000,    label:'tokens · ventana abr-jul', color:'#10b981'},
 };
 
-// ── ESTRATEGIA POR ACTIVO (HARDCODED v1.7) ─────────────────────
+// ── PROYECCIÓN A META — TRANCHES Y TRAILING (HARDCODED v2.1) ───
+// Distribución personalizada por activo. Trailing con precio explícito (bull moderado).
+// BTC se modela distinto: solo 10% en cycle peak, resto se mantiene como colchón LF.
+// Editar solo en sesiones de revisión TA con datos nuevos.
+const META_OBJETIVO = 88000;
+const TRANCHES = {
+  'HYPE':   { t1: {pct:10, px:46.50}, t2: {pct:15, px:48.50}, t3: {pct:20, px:58.00}, moon: {pct:30, px:100.00}, trailing: {pct:25, px:150.00} },
+  'ONDO':   { t1: {pct:15, px:0.525}, t2: {pct:15, px:0.705}, t3: {pct:20, px:0.885}, moon: {pct:30, px:1.90},   trailing: {pct:20, px:2.80}   },
+  'AKT':    { t1: {pct:20, px:1.12},  t2: {pct:25, px:2.45},  t3: {pct:20, px:3.13},  moon: {pct:15, px:5.30},   trailing: {pct:20, px:7.50}   },
+  'MORPHO': { t1: {pct:15, px:2.96},  t2: {pct:15, px:3.30},  t3: {pct:25, px:4.10},  moon: {pct:30, px:8.60},   trailing: {pct:15, px:12.00}  },
+  'MSTR':   { t1: {pct:25, px:237.5}, t2: {pct:30, px:295.0}, t3: {pct:25, px:375.0}, moon: null,                trailing: {pct:20, px:450.00} },
+};
+// BTC se calcula aparte: solo 10% del holding actual en cycle peak
+const BTC_PEAK = { pct: 10, px: 250000 };
+
+function calcProyeccion(){
+  const rows = [];
+  let total = 0;
+
+  // 5 activos con tranches escalonados
+  Object.keys(TRANCHES).forEach(tick => {
+    const t = TRANCHES[tick];
+    let qty = 0;
+    if(tick === 'MSTR'){
+      const a = BROKER.find(x => x.tick === 'MSTR');
+      qty = a ? a.qty : 0;
+    } else {
+      const a = L2.find(x => x.tick === tick) || L1.find(x => x.tick === tick);
+      qty = a ? a.qty : 0;
+    }
+    let avgPx;
+    if(t.moon){
+      avgPx = (t.t1.pct*t.t1.px + t.t2.pct*t.t2.px + t.t3.pct*t.t3.px + t.moon.pct*t.moon.px + t.trailing.pct*t.trailing.px) / 100;
+    } else {
+      avgPx = (t.t1.pct*t.t1.px + t.t2.pct*t.t2.px + t.t3.pct*t.t3.px + t.trailing.pct*t.trailing.px) / 100;
+    }
+    const valor = qty * avgPx;
+    total += valor;
+    rows.push({ tick, qty, avgPx, valor, t, isBTC: false });
+  });
+
+  // BTC: solo 10% del holding actual en cycle peak
+  const btcAsset = BROKER.find(x => x.tick === 'BTC');
+  const btcQty = btcAsset ? btcAsset.qty : 0;
+  const btcQtySell = btcQty * (BTC_PEAK.pct / 100);
+  const btcValor = btcQtySell * BTC_PEAK.px;
+  total += btcValor;
+  rows.push({
+    tick: 'BTC',
+    qty: btcQty,
+    qtySell: btcQtySell,
+    avgPx: BTC_PEAK.px,
+    valor: btcValor,
+    t: { peak: BTC_PEAK },
+    isBTC: true
+  });
+
+  const pctMeta = (total / META_OBJETIVO) * 100;
+  return { rows, total, pctMeta };
+}
+
+let _proyOpen = false;
+function toggleProy(){
+  _proyOpen = !_proyOpen;
+  const list = document.getElementById('proy-list');
+  const ico  = document.getElementById('proy-toggle-ico');
+  if(!list||!ico) return;
+  if(_proyOpen){
+    list.style.display='block';
+    ico.style.transform='rotate(180deg)';
+    renderProy();
+  } else {
+    list.style.display='none';
+    ico.style.transform='rotate(0deg)';
+  }
+}
+
+function renderProy(){
+  const list = document.getElementById('proy-list');
+  if(!list) return;
+  const { rows, total, pctMeta } = calcProyeccion();
+
+  // Color de barra según progreso
+  const barColor = pctMeta >= 100 ? '#10b981' : pctMeta >= 70 ? '#22c55e' : pctMeta >= 40 ? '#f59e0b' : '#ef4444';
+  const barWidth = Math.min(pctMeta, 100);
+
+  // Header con barra de progreso
+  const header = `<div style="background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:12px 14px;margin-bottom:10px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:8px;gap:10px;flex-wrap:wrap">
+      <div>
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);letter-spacing:.08em;text-transform:uppercase">Total proyectado · venta escalonada</div>
+        <div style="font-family:'DM Mono',monospace;font-size:20px;font-weight:700;color:${barColor};margin-top:2px">$${total.toLocaleString('en-US',{maximumFractionDigits:0})}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);letter-spacing:.08em;text-transform:uppercase">de meta $${(META_OBJETIVO/1000).toFixed(0)}K</div>
+        <div style="font-family:'DM Mono',monospace;font-size:16px;font-weight:700;color:${barColor};margin-top:2px">${pctMeta.toFixed(1)}%</div>
+      </div>
+    </div>
+    <div style="background:var(--s2);border-radius:6px;height:10px;overflow:hidden;border:1px solid var(--bd)">
+      <div style="height:100%;width:${barWidth}%;background:${barColor};border-radius:5px;transition:width .4s"></div>
+    </div>
+    <div style="font-size:9px;color:var(--mu);margin-top:8px;line-height:1.4">
+      Tokens actuales × precio promedio ponderado de tranches definidos.
+      ${pctMeta < 100 ? `Falta capturar <b style="color:${barColor}">$${(META_OBJETIVO-total).toLocaleString('en-US',{maximumFractionDigits:0})}</b> · DCA mensual + cycle hacen el resto.` : 'Meta cubierta solo con tokens actuales en zonas TA.'}
+    </div>
+  </div>`;
+
+  // Filas por activo
+  const detail = rows.map(r => {
+    const t = r.t;
+
+    // BTC tiene render distinto: un solo tranche peak
+    if(r.isBTC){
+      return `<div style="background:var(--s1);border:1px solid var(--bd);border-left:3px solid #f7931a;border-radius:8px;padding:10px 12px;margin-bottom:6px">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
+          <div style="font-size:12px;font-weight:800;color:#f7931a">BTC</div>
+          <div style="font-family:'DM Mono',monospace;font-size:13px;font-weight:700;color:#10b981">$${r.valor.toLocaleString('en-US',{maximumFractionDigits:0})}</div>
+        </div>
+        <div style="font-size:10px;color:var(--mu);margin-bottom:4px">${r.qty.toLocaleString('en-US',{maximumFractionDigits:5})} BTC holding · 90% queda como colchón LF</div>
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--fg);padding:2px 0"><span><b style="color:#f7931a">Peak ${t.peak.pct}%</b> @ $${t.peak.px.toLocaleString('en-US')} · vende ${r.qtySell.toFixed(5)} BTC</span><span style="color:var(--mu)">→ $${r.valor.toLocaleString('en-US',{maximumFractionDigits:0})}</span></div>
+      </div>`;
+    }
+
+    // 5 activos con tranches escalonados
+    const moonRow = t.moon
+      ? `<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--fg);padding:2px 0"><span><b style="color:#a78bfa">Moonshot ${t.moon.pct}%</b> @ $${t.moon.px}</span><span style="color:var(--mu)">→ $${(r.qty*t.moon.pct/100*t.moon.px).toLocaleString('en-US',{maximumFractionDigits:0})}</span></div>`
+      : '';
+    return `<div style="background:var(--s1);border:1px solid var(--bd);border-left:3px solid var(--mu);border-radius:8px;padding:10px 12px;margin-bottom:6px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
+        <div style="font-size:12px;font-weight:800">${r.tick}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:13px;font-weight:700;color:#10b981">$${r.valor.toLocaleString('en-US',{maximumFractionDigits:0})}</div>
+      </div>
+      <div style="font-size:10px;color:var(--mu);margin-bottom:4px">${r.qty.toLocaleString('en-US',{maximumFractionDigits:2})} ${r.tick==='MSTR'?'acc':'tokens'} · prom. $${r.avgPx.toFixed(r.tick==='ONDO'?3:2)}</div>
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--fg);padding:2px 0"><span>T1 ${t.t1.pct}% @ $${t.t1.px}</span><span style="color:var(--mu)">→ $${(r.qty*t.t1.pct/100*t.t1.px).toLocaleString('en-US',{maximumFractionDigits:0})}</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--fg);padding:2px 0"><span>T2 ${t.t2.pct}% @ $${t.t2.px}</span><span style="color:var(--mu)">→ $${(r.qty*t.t2.pct/100*t.t2.px).toLocaleString('en-US',{maximumFractionDigits:0})}</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--fg);padding:2px 0"><span>T3 ${t.t3.pct}% @ $${t.t3.px}</span><span style="color:var(--mu)">→ $${(r.qty*t.t3.pct/100*t.t3.px).toLocaleString('en-US',{maximumFractionDigits:0})}</span></div>
+      ${moonRow}
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--fg);padding:2px 0"><span><b style="color:#3db8f5">Trailing ${t.trailing.pct}%</b> @ $${t.trailing.px}</span><span style="color:var(--mu)">→ $${(r.qty*t.trailing.pct/100*t.trailing.px).toLocaleString('en-US',{maximumFractionDigits:0})}</span></div>
+    </div>`;
+  }).join('');
+
+  list.innerHTML = header + detail;
+
+  // Actualizar resumen del toggle (visible cuando está colapsado)
+  const summary = document.getElementById('proy-summary');
+  if(summary) summary.textContent = `$${total.toLocaleString('en-US',{maximumFractionDigits:0})} · ${pctMeta.toFixed(1)}% de meta · tap para detalle`;
+}
+
+// Actualizar resumen del toggle al cargar (sin abrir el panel)
+function updateProySummary(){
+  const summary = document.getElementById('proy-summary');
+  if(!summary) return;
+  const { total, pctMeta } = calcProyeccion();
+  summary.textContent = `$${total.toLocaleString('en-US',{maximumFractionDigits:0})} · ${pctMeta.toFixed(1)}% de meta · tap para detalle`;
+}
+
+// ── ESTRATEGIA POR ACTIVO (HARDCODED v2.0) ─────────────────────
 // Actualizar "updated" cuando cambie algo de un activo específico
 const STRAT = {
   'BTC': {
     color:'#f7931a', ico:'₿', name:'Bitcoin',
-    tag:'NO VENDER', tagColor:'#f7931a',
-    role:'Colchón de libertad financiera',
-    dca:'DCA semanal $50 (de reembolsos USD)',
-    plan:'Sale solo si: tesis multi-ciclo rota, meta direccional alcanzada con margen, o necesidad personal que no alcanza con reservas.',
+    tag:'COLCHÓN · 10% PEAK', tagColor:'#f7931a',
+    plan:'Colchón LF · DCA semanal $50 (de reembolsos USD). Venta única: 10% del holding @ ~$250K (cycle peak) para cerrar meta. 90% restante se mantiene como reserva multi-ciclo. Sale antes solo si tesis multi-ciclo rota o necesidad personal extrema.',
     updated:'6 may 2026'
   },
   'HYPE': {
     color:'#3db8f5', ico:'H', name:'Hyperliquid',
-    tag:'ACUMULACIÓN', tagColor:'#3db8f5',
-    role:'Motor principal · tesis derivatives',
-    dca:'DCA por scoring tesis · meta 150 tokens',
-    plan:'Salidas: 20% $55-60 · 25% $90-110 · 30% $150-180 · 25% $220-260. Capital liberado → reasignar por scoring DCA.',
+    tag:'VENTA ESCALONADA', tagColor:'#3db8f5',
+    plan:'Compra: $33-36 si pullback / $23-26 reserva. Venta: T1 10% @ $46.50 · T2 15% @ $48.50 · T3 20% @ $58 · Moonshot 30% @ $100 · Trailing 25% @ $150.',
     updated:'6 may 2026'
   },
   'ONDO': {
     color:'#818cf8', ico:'O', name:'Ondo Finance',
     tag:'ACUMULACIÓN', tagColor:'#818cf8',
-    role:'RWA institucional · catalysts vivos (Morpho integration, STRC tokenizado)',
-    dca:'DCA por scoring tesis',
-    plan:'Salidas: 20% $0.50 · 30% $1.10 · 30% $2.25 · 20% $4.50.',
+    plan:'Compra: $0.31-0.33 (precio actual zona) · $0.24-0.28 si pullback. Venta: T1 15% @ $0.525 · T2 15% @ $0.705 · T3 20% @ $0.885 · Moonshot 30% @ $1.90 · Trailing 20% @ $2.80.',
     updated:'6 may 2026'
   },
   'AKT': {
     color:'#10b981', ico:'A', name:'Akash Network',
-    tag:'ACUMULACIÓN abr-jul 2026', tagColor:'#10b981',
-    role:'Ventana táctica · DePIN compute',
-    dca:'DCA por scoring tesis + reserva táctica · meta 3,000 tokens',
-    plan:'Triggers reserva: <$0.45 comprar $100 · <$0.40 comprar $150 · máx $300 ventana. Post-julio: HOLD con salidas 50% $1.50 / 50% $3.00+ → reasignar por scoring DCA.',
+    tag:'ACUMULACIÓN', tagColor:'#10b981',
+    plan:'Compra: $0.64-0.72 (precio actual zona) · $0.38-0.42 reserva. Venta: T1 20% @ $1.12 · T2 25% @ $2.45 · T3 20% @ $3.13 · Moonshot 15% @ $5.30 · Trailing 20% @ $7.50.',
     updated:'6 may 2026'
   },
   'MORPHO': {
     color:'#9d7ff0', ico:'M', name:'Morpho Protocol',
-    tag:'ACUMULACIÓN', tagColor:'#9d7ff0',
-    role:'DeFi lending institucional · catalysts vivos (Apollo 90M/48m, Coinbase UK, V2)',
-    dca:'DCA por scoring tesis · destino capital ex-PHA',
-    plan:'Tranches: T1 ejecutado 6 may ($403 @ ~$2.28). T2 ($363) si pullback $2.00-$2.05. T3 ($259) si breakout $2.35 + vol >$30M sostenido. Salidas largo plazo: 50% $3.50 / 50% $5.50+.',
+    tag:'TRANCHES ACTIVOS', tagColor:'#9d7ff0',
+    plan:'Compra: T2 ($363) si pullback $1.90-1.99 · T3 ($259) si breakout $2.35 con vol o pullback $1.56-1.68. Venta: T1 15% @ $2.96 · T2 15% @ $3.30 · T3 25% @ $4.10 · Moonshot 30% @ $8.60 · Trailing 15% @ $12.',
     updated:'6 may 2026'
   },
   'MSTR': {
     color:'#e8a020', ico:'M', name:'MicroStrategy',
     tag:'HOLD · TRIGGERS', tagColor:'#e8a020',
-    role:'Proxy BTC apalancado · broker Schwab',
-    dca:'Sin DCA programático. Tranche $441 ejecutado 6 may post-earnings (~3 acc adicionales).',
-    plan:'Reactivar compra solo si: mNAV >1.2x sostenido 2 sem · Saylor reanuda BTC con fondeo claro · breakout $205 con vol · BTC cierra mes >$90K · CLARITY Act recobra momentum. Cerrar lista compra si: mNAV <0.7x sostenido · dilución agresiva common · Stretch problema dividendo · pierde $174.81 · BTC <$70K sostenido.',
+    plan:'No compra adicional sin triggers (mNAV >1.2x sostenido · Saylor reanuda BTC · breakout $205 · BTC cierra >$90K). Venta: T1 25% @ $237.50 · T2 30% @ $295 · T3 25% @ $375 · Trailing 20% @ $450.',
     updated:'6 may 2026'
   },
   'STRC': {
     color:'#f5b731', ico:'S', name:'Strategy Stretch',
     tag:'LIQUIDADO', tagColor:'#dc2626',
-    role:'Eliminado permanentemente',
-    dca:'—',
     plan:'Liquidado 17 abril 2026. $1,769 USDC → reserva táctica. No se reconstruye.',
     updated:'17 abr 2026'
   }
@@ -1123,9 +1371,7 @@ function renderStrat(){
         </div>
         <span style="font-size:9px;font-weight:700;background:${s.tagColor}22;color:${s.tagColor};border:1px solid ${s.tagColor}44;padding:3px 7px;border-radius:10px;white-space:nowrap;flex-shrink:0">${s.tag}</span>
       </div>
-      <div style="font-size:10px;color:var(--mu);margin-bottom:4px;font-style:italic">${s.role}</div>
-      <div style="font-size:11px;color:var(--fg);line-height:1.4;margin-bottom:3px"><span style="color:var(--mu);font-size:9px;text-transform:uppercase;letter-spacing:.05em">DCA · </span>${s.dca}</div>
-      <div style="font-size:11px;color:var(--fg);line-height:1.4"><span style="color:var(--mu);font-size:9px;text-transform:uppercase;letter-spacing:.05em">Plan · </span>${s.plan}</div>
+      <div style="font-size:11px;color:var(--fg);line-height:1.45"><span style="color:var(--mu);font-size:9px;text-transform:uppercase;letter-spacing:.05em">Plan · </span>${s.plan}</div>
       ${warnBlock}
       <div style="margin-top:6px;padding-top:6px;border-top:1px dashed var(--bd);font-size:9px;color:var(--mu);text-align:right">actualizado ${s.updated}</div>
     </div>`;

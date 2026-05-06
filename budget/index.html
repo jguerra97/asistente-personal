@@ -657,8 +657,80 @@ function onBamDeuda(v){ST.bamDeuda=parseFloat(v)||0;saveState();recalc();}
 
 // ── DISTRIBUCIÓN ──────────────────────────────────────────────────
 // Bantrab: Q1,100 fijo (mínimo operativo banco)
-// Resto del excedente: 60% inversión, 40% disfrute
+// Resto del excedente: 60% inversión, 40% personal
 const BANTRAB_FIJO = 550;
+const COBROS_BANCARIOS = 25;
+const GASTO_LULUBIT_MENSUAL = 1650; // Salidas+Flores+Regalos+Otros (sin subs)
+
+// distribuirQ1 — calcula la distribución de la primera quincena
+// exc: excedente Q1 después de fijos proporcionales y bantrab fijo
+// subsQ: monto en Q de las suscripciones (basado en TC actual y SUBS_ENT)
+// Retorna: {inv, ban, lulu, usdBi, subsPendientes}
+function distribuirQ1(exc, subsQ){
+  const ban = Math.min(BANTRAB_FIJO, exc);
+  const resto = Math.max(exc - ban, 0);
+  const inv = resto * 0.60;
+  const personal = resto * 0.40;
+
+  let usdBi, lulu, banExtra, subsPendientes;
+  if (personal < subsQ){
+    // Caso A: ni para subs alcanza
+    usdBi = personal;
+    lulu = 0;
+    banExtra = 0;
+    subsPendientes = subsQ - personal;
+  } else if (personal < (subsQ + GASTO_LULUBIT_MENSUAL)){
+    // Caso B: cubre subs, parte de Lulubit
+    usdBi = subsQ;
+    lulu = personal - subsQ;
+    banExtra = 0;
+    subsPendientes = 0;
+  } else {
+    // Caso C: cubre subs, Lulubit completo, sobrante a Bantrab
+    usdBi = subsQ;
+    lulu = GASTO_LULUBIT_MENSUAL;
+    banExtra = personal - subsQ - GASTO_LULUBIT_MENSUAL;
+    subsPendientes = 0;
+  }
+  return {inv, ban: ban + banExtra, lulu, usdBi, subsPendientes};
+}
+
+// distribuirQ2 — calcula distribución Q2 considerando lulu_q1 acumulado
+// exc: excedente Q2 después de fijos resto y bantrab fijo
+// luluQ1: monto que Lulubit ya recibió en Q1
+// subsPendientes: monto de subs que no se pudo mover en Q1 (caso A)
+function distribuirQ2(exc, luluQ1, subsPendientes){
+  const ban = Math.min(BANTRAB_FIJO, exc);
+  const resto = Math.max(exc - ban, 0);
+  const inv = resto * 0.60;
+  const personal = resto * 0.40;
+
+  let usdBi = 0;
+  let restoPersonal = personal;
+
+  // Si quedaron subs pendientes de Q1, sacarlas primero
+  if (subsPendientes > 0){
+    usdBi = Math.min(subsPendientes, restoPersonal);
+    restoPersonal = restoPersonal - usdBi;
+  }
+
+  // Completar Lulubit hasta meta mensual
+  const faltaLulu = Math.max(GASTO_LULUBIT_MENSUAL - luluQ1, 0);
+  let lulu;
+  let banExtra;
+  if (restoPersonal <= faltaLulu){
+    // Todo lo que queda va a completar Lulubit
+    lulu = restoPersonal;
+    banExtra = 0;
+  } else {
+    // Completa Lulubit, resto a Bantrab
+    lulu = faltaLulu;
+    banExtra = restoPersonal - faltaLulu;
+  }
+  return {inv, ban: ban + banExtra, lulu, usdBi};
+}
+
+// Compatibilidad con código viejo: distribuir() simple para llamadas que no necesitan diferenciar Q1/Q2
 function distribuir(exc){
   const ban = Math.min(BANTRAB_FIJO, exc);
   const resto = Math.max(exc - ban, 0);
@@ -672,16 +744,33 @@ const INV_ACTIVOS=[
   {ico:'O', nom:'ONDO',  pct:0.15, col:'#818cf8', hint:'RWA institucional · reactivar post-overhang'},
 ];
 
-function renderQ(d, fijProp, pago){
+function renderQ(d, fijProp, pago, esQ1){
   if(!d||pago<=0) return '<div class="row"><span class="row-lbl" style="color:var(--mu2)">Ingresa el pago</span></div>';
   const ahorroBI = fijProp;
   const tc = ST.tc||7.75;
-  const rows=[
-    {lbl:'🏦 Ahorro BI · fijos',    q:-ahorroBI, c:'var(--rd)'},
-    {lbl:'₿  Exchange · inversión', q:-d.inv,    c:'var(--go)'},
-    {lbl:'🎉 Lulubit · disfrute',   q:d.dis,     c:'#3db8f5'},
-    {lbl:'✈️ Bantrab · viajes',     q:d.ban,     c:'#9d7ff0'},
-  ];
+  // Tomamos lulu (nuevo) o dis (legacy fallback)
+  const luluVal = d.lulu !== undefined ? d.lulu : (d.dis || 0);
+  const usdBiVal = d.usdBi || 0;
+  const subsPend = d.subsPendientes || 0;
+
+  const rows=[];
+  // Solo Q1 muestra cobros bancarios
+  if (esQ1) {
+    rows.push({lbl:'🏦 Monetaria · cobros',  q:-COBROS_BANCARIOS, c:'var(--mu2)'});
+  }
+  rows.push({lbl:'🏦 Ahorro BI · fijos',     q:-ahorroBI, c:'var(--rd)'});
+  // USD BI solo se muestra si hay monto (Q1 normalmente, Q2 si hubo subs pendientes)
+  if (usdBiVal > 0) {
+    rows.push({lbl:'🌎 Ahorro USD · suscripciones', q:-usdBiVal, c:'#10b981'});
+  }
+  rows.push({lbl:'₿  Exchange · inversión',  q:-d.inv,    c:'var(--go)'});
+  rows.push({lbl:'🎉 Lulubit · disfrute',    q:luluVal,   c:'#3db8f5'});
+  // Bantrab: si en Q2 trae sobrante personal, mostrar tooltip
+  const banLabel = (!esQ1 && d.ban > BANTRAB_FIJO)
+    ? `✈️ Bantrab · viajes <span style="font-size:10px;color:var(--mu2)">(Q${BANTRAB_FIJO} fijo + Q${(d.ban-BANTRAB_FIJO).toFixed(0)} sobrante)</span>`
+    : '✈️ Bantrab · viajes';
+  rows.push({lbl:banLabel, q:d.ban, c:'#9d7ff0'});
+
   const rowsHtml = rows.map(r=>`<div class="row">
     <span class="row-lbl">${r.lbl}</span>
     <div class="row-val">
@@ -1119,44 +1208,12 @@ function renderLulubit(lulMesInput){
 
     // ── Cálculo de posición ──
     +'<div style="margin-top:12px;padding:10px;background:var(--s2);border-radius:6px">'
-      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:10px">'
-        // Col 1: Disponible
-        +'<div>'
-          +'<div style="color:var(--mu);margin-bottom:5px;font-weight:600">DISPONIBLE</div>'
-          +'<div style="display:flex;justify-content:space-between;padding:2px 0">'
-            +'<span>Reserva</span><span style="font-family:\'DM Mono\',monospace">'+fq(reserva,0)+'</span>'
-          +'</div>'
-          +'<div style="display:flex;justify-content:space-between;padding:2px 0">'
-            +'<span>Aporte mes</span><span style="font-family:\'DM Mono\',monospace;color:var(--gr)">+'+fq(lulMes,0)+'</span>'
-          +'</div>'
-          +'<div style="display:flex;justify-content:space-between;padding:4px 0 0;border-top:1px solid var(--bd);margin-top:3px">'
-            +'<span style="font-weight:700">Total</span><span style="font-family:\'DM Mono\',monospace;color:var(--gr);font-weight:700">'+fq(dispTotal,0)+'</span>'
-          +'</div>'
-        +'</div>'
-        // Col 2: Compromiso
-        +'<div>'
-          +'<div style="color:var(--mu);margin-bottom:5px;font-weight:600">COMPROMISO</div>'
-          +'<div style="display:flex;justify-content:space-between;padding:2px 0">'
-            +'<span>Estimado</span><span style="font-family:\'DM Mono\',monospace">'+fq(LULU_EST_TOTAL,0)+'</span>'
-          +'</div>'
-          +'<div style="display:flex;justify-content:space-between;padding:2px 0">'
-            +'<span>BAC + BAM</span><span style="font-family:\'DM Mono\',monospace;color:var(--rd)">+'+fq(bac+bam,0)+'</span>'
-          +'</div>'
-          +'<div style="display:flex;justify-content:space-between;padding:4px 0 0;border-top:1px solid var(--bd);margin-top:3px">'
-            +'<span style="font-weight:700">Total</span><span style="font-family:\'DM Mono\',monospace;color:var(--rd);font-weight:700">'+fq(compromiso,0)+'</span>'
-          +'</div>'
-        +'</div>'
-      +'</div>'
-
-      // Posición neta + semáforo
-      +'<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--bd)">'
-        +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">'
-          +'<span style="font-size:11px;color:var(--tx);font-weight:600">Posición neta</span>'
-          +'<span style="font-family:\'DM Mono\',monospace;font-size:16px;font-weight:800;color:'+semColor+'">'
-            +(posNeta>=0?'+':'')+fq(posNeta,0)
-          +'</span>'
-        +'</div>'
-        +'<div style="font-size:10px;color:'+semColor+';line-height:1.4">'+semIco+' '+semMsg+'</div>'
+      // Solo total a pagar TC (BAC + BAM consolidado)
+      +'<div style="display:flex;justify-content:space-between;align-items:center">'
+        +'<span style="font-size:11px;color:var(--tx);font-weight:600">💳 Total TC a pagar</span>'
+        +'<span style="font-family:\'DM Mono\',monospace;font-size:16px;font-weight:800;color:var(--rd)">'
+          +fq(bac+bam,0)
+        +'</span>'
       +'</div>'
     +'</div>'
   +'</div>';
@@ -1221,8 +1278,12 @@ function recalc(){
   const excQ2=Math.max(ST.q2-fijQ2, 0);
   const excMes=excQ1+excQ2;
 
-  const dQ1=tQ1?distribuir(excQ1):null;
-  const dQ2=tQ2?distribuir(excQ2):null;
+  // Suscripciones en Q según TC actual
+  const totalSubsUsdMes = SUBS_ENT.reduce((s,x)=>s+x.usd, 0);
+  const subsQ = totalSubsUsdMes * tc;
+
+  const dQ1=tQ1?distribuirQ1(excQ1, subsQ):null;
+  const dQ2=tQ2?distribuirQ2(excQ2, dQ1?.lulu||0, dQ1?.subsPendientes||0):null;
 
   const invMesQ=tQ1&&tQ2?((dQ1?.inv||0)+(dQ2?.inv||0)):0;
   const btcQ=Math.min(200*tc, invMesQ);
@@ -1250,13 +1311,18 @@ function recalc(){
   badge('q2-est',tQ2?'ok':'pend',tQ2?'recibida':'pendiente');
   document.getElementById('q1-usd').textContent=tQ1?fd(ST.q1)+' USD':'—';
   document.getElementById('q2-usd').textContent=tQ2?fd(ST.q2)+' USD':'—';
-  document.getElementById('q1-rows').innerHTML=renderQ(dQ1,fijQ1,ST.q1);
-  document.getElementById('q2-rows').innerHTML=renderQ(dQ2,fijQ2,ST.q2);
+  document.getElementById('q1-rows').innerHTML=renderQ(dQ1,fijQ1,ST.q1,true);
+  document.getElementById('q2-rows').innerHTML=renderQ(dQ2,fijQ2,ST.q2,false);
 
   // ── COLCHONES ──
   renderCols();
   // ── RESUMEN MES ──
-  const dMes={inv:invMesQ,dis:(dQ1?.dis||0)+(dQ2?.dis||0),ban:(dQ1?.ban||0)+(dQ2?.ban||0)};
+  const dMes={
+    inv:invMesQ,
+    dis:(dQ1?.lulu||0)+(dQ2?.lulu||0),
+    ban:(dQ1?.ban||0)+(dQ2?.ban||0),
+    usdBi:(dQ1?.usdBi||0)+(dQ2?.usdBi||0)
+  };
   renderResumenMes(ingTotal, tf, excMes, dMes, btcQ, invRestQ, tQ1, tQ2);
   // ── PANEL LULUBIT (siempre, no depende de Q1+Q2) ──
   renderLulubit(dMes.dis);
@@ -1428,10 +1494,8 @@ function descargarResumen(){
   const dcaBase=parseFloat(stor.dcaBase)||0;
   const MESES_BASE_R=['Ene 2026','Feb 2026','Mar 2026'];
   const dcaMeses=hist.filter(h=>!MESES_BASE_R.includes(h.mes)&&h.tracked);
-  const dcaAcum=dcaMeses.reduce((s,h)=>s+(h.invUSD||0),0);
+  const dcaAcum=dcaMeses.reduce((s,h)=>s+(typeof h.invUSDReal==='number'?h.invUSDReal:(h.invUSD||0)),0);
   const dcaTotal=dcaBase+dcaAcum;
-
-  // ── Comparativa mes anterior ──
   const mesActualKey = mOrdR[ST.mes-1] + ' ' + (ST.anio||2026);
   const mesActualIdx = hist.findIndex(h => h.mes === mesActualKey);
   const mesAntHist = mesActualIdx > 0 ? hist[mesActualIdx-1] : null;
@@ -1937,7 +2001,7 @@ function renderDCA(){
   // Un mes es "base" si es Ene, Feb o Mar 2026
   const MESES_BASE=['Ene 2026','Feb 2026','Mar 2026'];
   const dcaMeses=hist.filter(h=>!MESES_BASE.includes(h.mes)&&h.tracked);
-  const dcaAcum=dcaMeses.reduce((s,h)=>s+(h.invUSD||0),0);
+  const dcaAcum=dcaMeses.reduce((s,h)=>s+(typeof h.invUSDReal==='number'?h.invUSDReal:(h.invUSD||0)),0);
   const total=base+dcaAcum;
 
   // Actualizar display
@@ -1965,17 +2029,51 @@ function renderDCA(){
   const mOrd=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
   dcaMeses.sort((a,b)=>mOrd.indexOf(a.mes.slice(0,3))-mOrd.indexOf(b.mes.slice(0,3)));
   let acum=base;
-  listEl.innerHTML=dcaMeses.map(h=>{
-    acum+=h.invUSD||0;
-    return `<div style="display:flex;justify-content:space-between;align-items:center;
-      padding:4px 0;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:10px">
-      <span style="color:var(--mu)">${h.mes}</span>
-      <span>
-        <span style="color:var(--go)">+$${(h.invUSD||0).toFixed(0)}</span>
-        <span style="color:var(--mu2);margin-left:8px">→ $${acum.toLocaleString('en-US',{maximumFractionDigits:0})}</span>
-      </span>
+  listEl.innerHTML=dcaMeses.map((h,idx)=>{
+    // El valor real registrado: si existe override usarlo, sino el calculado
+    const valOverride = (typeof h.invUSDReal === 'number') ? h.invUSDReal : null;
+    const valCalc = h.invUSD || 0;
+    const valActual = valOverride !== null ? valOverride : valCalc;
+    acum += valActual;
+    // Status: comparar real vs objetivo (calculado)
+    let status = '';
+    if (valOverride !== null && valCalc > 0){
+      const diff = valOverride - valCalc;
+      const pct = Math.abs(diff)/valCalc;
+      if (pct < 0.1) status = '<span style="color:var(--gr);margin-left:4px">✅</span>';
+      else if (diff > 0) status = '<span style="color:var(--gr);margin-left:4px" title="+$'+diff.toFixed(0)+' sobre objetivo">🔥</span>';
+      else status = '<span style="color:var(--go);margin-left:4px" title="$'+(-diff).toFixed(0)+' bajo objetivo">⚠️</span>';
+    }
+    const showCalc = valOverride !== null && Math.abs(valOverride - valCalc) > 0.5;
+    return `<div style="padding:6px 0;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+        <span style="color:var(--mu);min-width:60px">${h.mes}</span>
+        <input type="number" value="${valActual.toFixed(0)}" step="1" min="0" 
+          onchange="saveDCAMes('${h.mes}',this.value,${valCalc})"
+          style="flex:1;max-width:100px;background:var(--s3);border:1px solid rgba(245,158,11,.3);color:var(--go);font-family:'DM Mono',monospace;font-size:10px;padding:3px 6px;border-radius:4px;text-align:right;outline:none">
+        <span style="color:var(--mu2);min-width:80px;text-align:right">→ $${acum.toLocaleString('en-US',{maximumFractionDigits:0})}</span>
+        ${status}
+      </div>
+      ${showCalc ? `<div style="font-size:8px;color:var(--mu2);text-align:right;margin-top:2px">objetivo: $${valCalc.toFixed(0)}</div>` : ''}
     </div>`;
   }).join('');
+}
+
+// Guardar override del DCA real de un mes específico
+function saveDCAMes(mesNombre, valor, valCalc){
+  const v = parseFloat(valor)||0;
+  const d = ldS();
+  if (!d.historial) return;
+  const idx = d.historial.findIndex(h => h.mes === mesNombre);
+  if (idx < 0) return;
+  // Si el valor ingresado coincide con el calculado, eliminar override (volver a usar calculado)
+  if (Math.abs(v - valCalc) < 0.5) {
+    delete d.historial[idx].invUSDReal;
+  } else {
+    d.historial[idx].invUSDReal = v;
+  }
+  svS(d);
+  renderDCA();
 }
 
 

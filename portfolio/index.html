@@ -394,7 +394,7 @@ td:first-child{text-align:left;}
 </div>
 
 <div class="foot">
-  HYPE, ONDO, PHA, AKT, MORPHO vía CoinGecko · STRC/MSTR/BTC manual<br>
+  HYPE, ONDO, AKT, MORPHO vía CoinGecko · STRC/MSTR/BTC manual<br>
   ✏ Cantidad y precio de entrada editables · Guardado automático en este navegador
 </div>
 </div>
@@ -418,8 +418,6 @@ const L1=[
   {id:'ondo-finance',tick:'ONDO',name:'Ondo Finance',  col:'#818cf8',ico:'O',qty:5945.44,    entry:0.2572, strat:'hold',sl:'PAUSADO · overhang CEX'},
 ];
 const L2=[
-  {id:'phala-network',tick:'PHA',  name:'Phala Network', col:'#a78bfa',ico:'P',qty:24656,   entry:0.0345, target:0.40, price:0.03026,
-   contractFallback:{platform:'ethereum',address:'0x6c5bA91642F10282b576d91922Ae6448C9d52f4E'}},
   {id:'akash-network',tick:'AKT',  name:'Akash Network', col:'#10b981',ico:'A',qty:1842.39, entry:0.4718, target:3.50, price:0.4632},
   {id:'morpho',       tick:'MORPHO',name:'Morpho Protocol',col:'#9d7ff0',ico:'M',qty:257.66,   entry:1.79,   target:5.00, price:1.922,
    contractFallback:{platform:'ethereum',address:'0x58d97b57bb95320f9a05dc918aef65434969c2b2'}},
@@ -630,29 +628,6 @@ async function fetchGPrice(){
   }
 }
 
-// ── FETCH PHA ─────────────────────────────────────────────────────
-// PHA migró de Polkadot a Ethereum L2 en nov 2025 — usar contract address como fallback
-async function fetchPHAPrice(){
-  try{
-    const r=await fetch('https://api.coingecko.com/api/v3/simple/price?ids=phala-network&vs_currencies=usd&include_24hr_change=true');
-    if(!r.ok)throw new Error();
-    const d=await r.json();
-    // Verificar rango razonable: PHA entre $0.001 y $2
-    if(d['phala-network']?.usd&&d['phala-network'].usd>0.001&&d['phala-network'].usd<2)
-      return{usd:d['phala-network'].usd,chg:d['phala-network'].usd_24h_change};
-    throw new Error('range');
-  }catch(e){
-    try{
-      const r2=await fetch('https://api.coingecko.com/api/v3/simple/token_price/ethereum?contract_addresses=0x6c5bA91642F10282b576d91922Ae6448C9d52f4E&vs_currencies=usd&include_24hr_change=true');
-      if(!r2.ok)throw new Error();
-      const d2=await r2.json();
-      const key=Object.keys(d2)[0];
-      if(key&&d2[key]?.usd)return{usd:d2[key].usd,chg:d2[key].usd_24h_change};
-    }catch(e2){}
-    return null;
-  }
-}
-
 // ── MAIN LOAD ─────────────────────────────────────────────────────
 async function fetchCG(ids, attempt=1){
   const url=`https://api.coingecko.com/api/v3/simple/price?ids=${ids.join(',')}&vs_currencies=usd&include_24hr_change=true`;
@@ -688,7 +663,6 @@ async function load(){
     document.getElementById('ts').textContent='⚠ Sin conexión a CoinGecko — usando precios guardados';
   }
   const gData=await fetchGPrice();
-  const phaData=await fetchPHAPrice();
   let h1='',h2='',m1='',m2='',tot=0,cst=0,c24=0;
   L1.forEach(a=>{
     const p=px[a.id],price=p?.usd??null,chg=p?.usd_24h_change??null;
@@ -699,13 +673,10 @@ async function load(){
     m1+=mkCard(a,price,chg,false);
   });
   L2.forEach(a=>{
-    let price=null,chg=null;
-    if(a.tick==='PHA'){
-      if(phaData){price=phaData.usd;chg=phaData.chg;a.price=price;}
-      else price=a.price;
-    } else{
-      const p=px[a.id];price=p?.usd??a.price??null;chg=p?.usd_24h_change??null;if(p?.usd)a.price=p.usd;
-    }
+    const p=px[a.id];
+    let price=p?.usd??a.price??null;
+    let chg=p?.usd_24h_change??null;
+    if(p?.usd)a.price=p.usd;
     if(price!=null){tot+=price*a.qty;cst+=a.entry*a.qty;}
     if(price!=null&&chg!=null){const pv=price/(1+chg/100);c24+=(price-pv)*a.qty;}
     h2+=mkRow(a,price,chg,true);
@@ -774,7 +745,6 @@ function descargarResumen(){
   // ── Acumulacion tokens meta (data live) ──
   const ACC_SUMMARY = {
     'HYPE':   {target:150,     label:'tokens', color:'#3db8f5'},
-    'PHA':    {target:120000,  label:'tokens', color:'#a78bfa'},
     'ONDO':   {target:12000,   label:'tokens', color:'#818cf8'},
     'AKT':    {target:3000,    label:'tokens', color:'#10b981'},
     'MORPHO': {target:4154,    label:'tokens', color:'#6366f1'},
@@ -782,13 +752,13 @@ function descargarResumen(){
   };
 
   // ── Targets de conviccion (% del portafolio sin BTC colchon) ──
+  // Reasignado 6 may 2026 tras decommission PHA · 7% redistribuido proporcional
   const TARGETS_CONV = {
-    'MSTR':   20,
-    'HYPE':   20,
-    'MORPHO': 18,
-    'ONDO':   12,
-    'AKT':    8,
-    'PHA':    7,
+    'MSTR':   22,
+    'HYPE':   22,
+    'MORPHO': 19,
+    'ONDO':   13,
+    'AKT':    9,
   };
   // BTC excluido del balance vs convicción (es colchón LF separado)
   const accRows = Object.keys(ACC_SUMMARY).map(tick=>{
@@ -1050,11 +1020,10 @@ function setDistView(v){
 }
 
 // ── ACUMULACIÓN DE TOKENS (META) ───────────────────────────────
-// Tokens objetivo para alcanzar meta $150K con zonas de salida del plan
+// Tokens objetivo para alcanzar meta direccional $80-100K (target $88K) sin BTC colchón
 const ACC_TARGETS = {
   'HYPE':   {target:150,     label:'tokens', color:'#3db8f5'},
   'ONDO':   {target:12000,   label:'tokens', color:'#818cf8'},
-  'PHA':    {target:120000,  label:'tokens', color:'#a78bfa'},
   'AKT':    {target:3000,    label:'tokens · ventana abr-jul', color:'#10b981'},
 };
 
@@ -1065,59 +1034,49 @@ const STRAT = {
     color:'#f7931a', ico:'₿', name:'Bitcoin',
     tag:'NO VENDER', tagColor:'#f7931a',
     role:'Colchón de libertad financiera',
-    dca:'DCA 25% · Q1,363/mes · ~$176',
-    plan:'Sale solo si: tesis multi-ciclo rota, meta $150K alcanzada con margen, o necesidad personal que no alcanza con reservas.',
-    updated:'19 abr 2026'
+    dca:'DCA semanal $50 (de reembolsos USD)',
+    plan:'Sale solo si: tesis multi-ciclo rota, meta direccional alcanzada con margen, o necesidad personal que no alcanza con reservas.',
+    updated:'6 may 2026'
   },
   'HYPE': {
     color:'#3db8f5', ico:'H', name:'Hyperliquid',
     tag:'ACUMULACIÓN', tagColor:'#3db8f5',
     role:'Motor principal · tesis derivatives',
-    dca:'DCA 28% · Q1,527/mes · ~$197 · meta 150 tokens',
-    plan:'Salidas: 20% $55-60 · 25% $90-110 · 30% $150-180 · 25% $220-260. Capital liberado → PHA.',
-    updated:'18 abr 2026'
-  },
-  'PHA': {
-    color:'#a78bfa', ico:'P', name:'Phala Network',
-    tag:'ACUMULACIÓN', tagColor:'#a78bfa',
-    role:'Caballo matemático · AI + TEE',
-    dca:'DCA 27% · Q1,472/mes · ~$190 · meta 120,000 tokens',
-    plan:'Salidas 5 zonas: 20% $0.09 · 25% $0.27 · 25% $0.70 · 20% $1.35 · 10% $2.00+',
-    warn:'⚠ Paciencia · sin catalyst fechado · escenario bear materializándose',
-    updated:'19 abr 2026'
+    dca:'DCA por scoring tesis · meta 150 tokens',
+    plan:'Salidas: 20% $55-60 · 25% $90-110 · 30% $150-180 · 25% $220-260. Capital liberado → reasignar por scoring DCA.',
+    updated:'6 may 2026'
   },
   'ONDO': {
     color:'#818cf8', ico:'O', name:'Ondo Finance',
-    tag:'PAUSADO', tagColor:'#a78bfa',
-    role:'RWA institucional · con overhang multisig',
-    dca:'DCA 15% redirigido: 50% PHA + 50% HYPE mientras multisig venda',
-    plan:'Salidas: 20% $0.50 · 30% $1.10 · 30% $2.25 · 20% $4.50. Reactivar DCA cuando multisig pare on-chain.',
-    updated:'17 abr 2026'
+    tag:'ACUMULACIÓN', tagColor:'#818cf8',
+    role:'RWA institucional · catalysts vivos (Morpho integration, STRC tokenizado)',
+    dca:'DCA por scoring tesis',
+    plan:'Salidas: 20% $0.50 · 30% $1.10 · 30% $2.25 · 20% $4.50.',
+    updated:'6 may 2026'
   },
   'AKT': {
     color:'#10b981', ico:'A', name:'Akash Network',
     tag:'ACUMULACIÓN abr-jul 2026', tagColor:'#10b981',
     role:'Ventana táctica · DePIN compute',
-    dca:'DCA 5% + reserva táctica · meta 3,000 tokens',
-    plan:'Triggers reserva: <$0.45 comprar $100 · <$0.40 comprar $150 · máx $300 ventana. Post-julio: HOLD con salidas 50% $1.50 / 50% $3.00+ → PHA.',
-    updated:'18 abr 2026'
+    dca:'DCA por scoring tesis + reserva táctica · meta 3,000 tokens',
+    plan:'Triggers reserva: <$0.45 comprar $100 · <$0.40 comprar $150 · máx $300 ventana. Post-julio: HOLD con salidas 50% $1.50 / 50% $3.00+ → reasignar por scoring DCA.',
+    updated:'6 may 2026'
   },
   'MORPHO': {
     color:'#9d7ff0', ico:'M', name:'Morpho Protocol',
-    tag:'HOLD · OBSERVACIÓN', tagColor:'#e8a020',
-    role:'DeFi lending · candidato reclasificar',
-    dca:'Sin DCA programático',
-    plan:'Salidas actuales: 50% $3.50 / 50% $5.50+ → PHA.',
-    warn:'⚠ Candidato reclasificar: Apollo Global (90M tokens/48m), EF deposits, V2 2026, TVL $6.9B',
-    updated:'19 abr 2026'
+    tag:'ACUMULACIÓN', tagColor:'#9d7ff0',
+    role:'DeFi lending institucional · catalysts vivos (Apollo 90M/48m, Coinbase UK, V2)',
+    dca:'DCA por scoring tesis · destino capital ex-PHA',
+    plan:'Tranches: T1 ejecutado 6 may ($403 @ ~$2.28). T2 ($363) si pullback $2.00-$2.05. T3 ($259) si breakout $2.35 + vol >$30M sostenido. Salidas largo plazo: 50% $3.50 / 50% $5.50+.',
+    updated:'6 may 2026'
   },
   'MSTR': {
     color:'#e8a020', ico:'M', name:'MicroStrategy',
-    tag:'HOLD TÁCTICO', tagColor:'#e8a020',
+    tag:'HOLD · TRIGGERS', tagColor:'#e8a020',
     role:'Proxy BTC apalancado · broker Schwab',
-    dca:'Sin DCA · limits activas: $155 ($100) + $145 ($150)',
-    plan:'Stop $145 · T1 $210-220 (50%) · T2 $260+ (25%). Si BTC >$100K y MSTR >$350, evaluar salida total → PHA.',
-    updated:'17 abr 2026'
+    dca:'Sin DCA programático. Tranche $441 ejecutado 6 may post-earnings (~3 acc adicionales).',
+    plan:'Reactivar compra solo si: mNAV >1.2x sostenido 2 sem · Saylor reanuda BTC con fondeo claro · breakout $205 con vol · BTC cierra mes >$90K · CLARITY Act recobra momentum. Cerrar lista compra si: mNAV <0.7x sostenido · dilución agresiva common · Stretch problema dividendo · pierde $174.81 · BTC <$70K sostenido.',
+    updated:'6 may 2026'
   },
   'STRC': {
     color:'#f5b731', ico:'S', name:'Strategy Stretch',
@@ -1148,7 +1107,7 @@ function toggleStrat(){
 function renderStrat(){
   const list = document.getElementById('strat-list');
   if(!list) return;
-  const orden = ['BTC','HYPE','PHA','ONDO','AKT','MORPHO','MSTR','STRC'];
+  const orden = ['BTC','HYPE','ONDO','AKT','MORPHO','MSTR','STRC'];
   const rows = orden.map(tick => {
     const s = STRAT[tick];
     if(!s) return '';
@@ -1271,7 +1230,7 @@ function renderDist(){
     const vB = BROKER.reduce((s,a)=>s+(a.price||0)*a.qty,0);
     items = [
       {label:'Capa 1 · Sólidos',      col:'#3db8f5', val:v1, sub:'HYPE · ONDO'},
-      {label:'Capa 2 · Explosivos',   col:'#9d7ff0', val:v2, sub:'PHA · AKT · MORPHO'},
+      {label:'Capa 2 · Explosivos',   col:'#9d7ff0', val:v2, sub:'AKT · MORPHO'},
       {label:'Broker / Institucional', col:'#f5b731', val:vB, sub:'STRC · MSTR · BTC'},
     ].filter(x=>x.val>0);
   }

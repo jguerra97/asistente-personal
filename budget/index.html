@@ -379,7 +379,7 @@ body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--tx);min-heig
 <div class="fijos-toggle" onclick="toggleFijos()" id="fijos-toggle-btn">
   <div class="fijos-toggle-left">
     <span class="fijos-toggle-lbl">Total reservado al Ahorro BI</span>
-    <span class="fijos-toggle-amt" id="fijos-toggle-total">Q19,065.73</span>
+    <span class="fijos-toggle-amt" id="fijos-toggle-total">Q19,863.69</span>
   </div>
   <span class="fijos-toggle-ico" id="fijos-toggle-ico">▾</span>
 </div>
@@ -488,63 +488,86 @@ body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--tx);min-heig
 
 
 
-<!-- DCA TRACKER -->
+<!-- DCA TRACKER v2 — CAPITAL INVERTIDO MES A MES -->
 <div class="sec"><div class="ld" style="background:var(--ac);box-shadow:0 0 5px var(--ac)"></div>
-  <div class="lt">Inversión acumulada <span>DCA mes a mes</span></div>
+  <div class="lt">Capital invertido <span>costo base mes a mes</span></div>
 </div>
 <div class="card">
   <div class="card-body">
-    <!-- Resumen total siempre visible -->
-    <div onclick="toggleDcaDet()" id="dca-det-toggle" style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--s2);border-radius:7px;cursor:pointer;-webkit-tap-highlight-color:rgba(61,184,245,.2)">
-      <div>
-        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);letter-spacing:.05em;text-transform:uppercase">💰 Total invertido</div>
-        <div id="dca-total-top" style="font-family:'DM Mono',monospace;font-size:16px;font-weight:800;color:var(--go);margin-top:2px">—</div>
-      </div>
-      <div style="text-align:right;display:flex;align-items:center;gap:8px">
-        <div>
-          <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);letter-spacing:.05em;text-transform:uppercase">DCA activo</div>
-          <div id="dca-aportado-top" style="font-family:'DM Mono',monospace;font-size:13px;font-weight:700;color:var(--gr);margin-top:2px">—</div>
+
+    <!-- Resumen superior -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
+      <div style="background:var(--s2);border-radius:7px;padding:10px;text-align:center">
+        <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu);text-transform:uppercase;margin-bottom:4px">Capital inicial (ene–abr)</div>
+        <div id="dca-base-val" style="font-size:15px;font-weight:800;color:var(--ac)">—</div>
+        <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu);margin-top:3px">solo se ingresa una vez</div>
+        <div style="display:flex;align-items:center;gap:6px;margin-top:7px">
+          <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--mu)">$</span>
+          <input type="number" id="dca-base-inp" step="10" min="0" placeholder="9500"
+            style="background:var(--s3);border:1px solid rgba(61,184,245,.3);color:var(--ac);
+            font-family:'DM Mono',monospace;font-size:12px;font-weight:700;
+            padding:4px 8px;border-radius:6px;flex:1;text-align:right"
+            onchange="saveDCABase(this.value)">
         </div>
-        <span id="dca-det-ico" style="font-size:12px;color:var(--mu);transition:transform .2s">▾</span>
+      </div>
+      <div style="background:var(--s2);border-radius:7px;padding:10px;text-align:center">
+        <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu);text-transform:uppercase;margin-bottom:4px">Último mes registrado</div>
+        <div id="dca-ultimo-val" style="font-size:15px;font-weight:800;color:var(--go)">—</div>
+        <div id="dca-ultimo-lbl" style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu);margin-top:3px">total posiciones × entrada</div>
+        <div id="dca-delta" style="font-family:'DM Mono',monospace;font-size:10px;font-weight:700;color:var(--gr);margin-top:4px">—</div>
       </div>
     </div>
 
-    <div id="dca-det-body" style="display:none;margin-top:10px">
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px">
-        <div style="background:var(--s2);border-radius:7px;padding:10px;text-align:center">
-          <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu);text-transform:uppercase;margin-bottom:4px">Base inicial</div>
-          <div id="dca-base-val" style="font-size:14px;font-weight:800;color:var(--ac)">—</div>
-          <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);margin-top:2px">ene–mar 2026</div>
-        </div>
-        <div style="background:var(--s2);border-radius:7px;padding:10px;text-align:center">
-          <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu);text-transform:uppercase;margin-bottom:4px">DCA desde abril</div>
-          <div id="dca-aportado" style="font-size:14px;font-weight:800;color:var(--gr)">—</div>
-          <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);margin-top:2px">acumulado tracker</div>
-        </div>
-        <div style="background:var(--s2);border-radius:7px;padding:10px;text-align:center">
-          <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu);text-transform:uppercase;margin-bottom:4px">Total invertido</div>
-          <div id="dca-total" style="font-size:14px;font-weight:800;color:var(--go)">—</div>
-          <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);margin-top:2px">base + DCA</div>
-        </div>
+    <!-- Input mes actual -->
+    <div style="background:var(--s2);border-radius:7px;padding:10px;margin-bottom:12px">
+      <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">
+        📥 Registrar cierre de mes — capital total invertido
       </div>
-      <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);margin-bottom:5px">
-        Capital invertido antes del tracker (ene–mar 2026, solo se ingresa una vez):
+      <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu2);margin-bottom:8px">
+        Ingresa el total de posiciones × precio promedio de entrada (del portfolio tracker). No es valor de mercado, es cuánto costaron tus tokens.
       </div>
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
-        <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--mu)">$</span>
-        <input type="number" id="dca-base-inp" step="10" min="0" placeholder="8950"
-          style="background:var(--s3);border:1px solid rgba(61,184,245,.3);color:var(--ac);
+      <div style="display:flex;gap:8px;align-items:center">
+        <select id="dca-mes-sel" style="background:var(--s3);border:1px solid var(--bd2);color:var(--tx);
+          font-family:'DM Mono',monospace;font-size:11px;padding:6px 8px;border-radius:6px;flex:0 0 auto">
+          <option value="May 2026">May 2026</option>
+          <option value="Jun 2026">Jun 2026</option>
+          <option value="Jul 2026">Jul 2026</option>
+          <option value="Ago 2026">Ago 2026</option>
+          <option value="Sep 2026">Sep 2026</option>
+          <option value="Oct 2026">Oct 2026</option>
+          <option value="Nov 2026">Nov 2026</option>
+          <option value="Dic 2026">Dic 2026</option>
+          <option value="Ene 2027">Ene 2027</option>
+          <option value="Feb 2027">Feb 2027</option>
+          <option value="Mar 2027">Mar 2027</option>
+          <option value="Abr 2027">Abr 2027</option>
+          <option value="May 2027">May 2027</option>
+          <option value="Jun 2027">Jun 2027</option>
+          <option value="Jul 2027">Jul 2027</option>
+          <option value="Ago 2027">Ago 2027</option>
+          <option value="Sep 2027">Sep 2027</option>
+          <option value="Oct 2027">Oct 2027</option>
+          <option value="Nov 2027">Nov 2027</option>
+          <option value="Dic 2027">Dic 2027</option>
+        </select>
+        <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--mu)">$</span>
+        <input type="number" id="dca-mes-inp" step="10" min="0" placeholder="10200"
+          style="background:var(--s3);border:1px solid rgba(52,208,122,.3);color:var(--gr);
           font-family:'DM Mono',monospace;font-size:13px;font-weight:700;
-          padding:5px 9px;border-radius:6px;flex:1;text-align:right"
-          onchange="saveDCABase(this.value)">
-      </div>
-      <div style="border-top:1px solid var(--bd);padding-top:10px;">
-        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);margin-bottom:7px">
-          Aportado desde abril en adelante (del historial):
-        </div>
-        <div id="dca-hist-list"></div>
+          padding:6px 9px;border-radius:6px;flex:1;text-align:right">
+        <button onclick="saveDCAMes()"
+          style="background:rgba(52,208,122,.15);border:1px solid rgba(52,208,122,.4);color:var(--gr);
+          font-family:'DM Mono',monospace;font-size:11px;padding:6px 12px;border-radius:6px;
+          cursor:pointer;white-space:nowrap">+ Guardar</button>
       </div>
     </div>
+
+    <!-- Lista mes a mes -->
+    <div style="border-top:1px solid var(--bd);padding-top:10px">
+      <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">Historial de crecimiento</div>
+      <div id="dca-hist-list"></div>
+    </div>
+
   </div>
 </div>
 
@@ -562,36 +585,36 @@ var COLS={emer:54275,bant:14204,imp:0,buf:119,reimb:0,btcQty:0,btcPx:0};
 const CUOTA=13959.61;
 const MESES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const MNOMBRES=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-const FIJOS_TOTAL=13959.61+900+1355+510+430.12+400+25+17+969+500; // Q19,065.73 (incluye buffer fijos Q500)
+const FIJOS_TOTAL=13959.61+900+1355+510+250+400+115+25.39+115+1267+969; // Q19,865.00
 const FIJOS_RUBROS=[
   {ico:'🏠',nom:'Hipoteca BI',amt:13959.61},
-  {ico:'🔧',nom:'Mantenimiento',amt:1355},
-  {ico:'🤖',nom:'Claude AI Max',amt:969},
   {ico:'🏛️',nom:'IUSI',amt:900},
+  {ico:'🔧',nom:'Mantenimiento',amt:1355},
+  {ico:'💡',nom:'Luz',amt:115},
   {ico:'📡',nom:'Internet',amt:510},
-  {ico:'🛡️',nom:'Buffer Fijos (Ahorro BI)',amt:500},
-  {ico:'📱',nom:'Conectividad (Fi+Airalo)',amt:430.12},
+  {ico:'📱',nom:'Conectividad',amt:250},
   {ico:'⛽',nom:'Gasolina',amt:400},
-  {ico:'🏦',nom:'Cobros bancarios',amt:25},
-  {ico:'💡',nom:'Luz (mínimo)',amt:17},
+  {ico:'🏦',nom:'Cobros bancarios',amt:25.39},
+  {ico:'🛒',nom:'Supermercado',amt:115},
+  {ico:'🤖',nom:'Claude AI Max',amt:969},
+  {ico:'🔒',nom:'Imprevistos fijos',amt:1267},
 ];
 const SUBS_ENT=[
   {nom:'Spotify',usd:6.49,freq:'mensual'},
-  {nom:'Disney+',usd:11.49,freq:'mensual'},
+  {nom:'Disney+',usd:10.99,freq:'mensual'},
   {nom:'Netflix',usd:4.99,freq:'mensual'},
   {nom:'Amazon Prime',usd:11.58,freq:'~$139/año'},
 ];
 
 // Distribución estimada del disfrute personal (referencia visual — no afecta cálculos)
-// Suma Q1,918 = disfrute regular base. El resto del 40% va al Buffer Lulubit (tope Q10K)
 const LULU_CATS=[
-  {ico:'🍔',nom:'Salidas',amt:750, col:'#3db8f5'},
-  {ico:'💐',nom:'Flores',amt:400, col:'#e879a0'},
-  {ico:'🎁',nom:'Regalos',amt:350, col:'#a78bfa'},
-  {ico:'🎬',nom:'Suscripciones streaming',amt:268, col:'#f59e0b'},
-  {ico:'📦',nom:'Otros',amt:150, col:'#10b981'},
+  {ico:'🎬',nom:'Suscripciones',amt:256,  col:'#e879a0'},
+  {ico:'🍔',nom:'Delivery personal',amt:225,  col:'#f59e0b'},
+  {ico:'🎉',nom:'Salidas',amt:1050, col:'#3db8f5'},
+  {ico:'🛍️',nom:'Compras',amt:1500, col:'#a78bfa'},
+  {ico:'💰',nom:'Buffer',amt:800,  col:'#10b981'},
 ];
-const LULU_EST_TOTAL=LULU_CATS.reduce((s,c)=>s+c.amt,0); // Q1,918 disfrute regular
+const LULU_EST_TOTAL=LULU_CATS.reduce((s,c)=>s+c.amt,0); // Q3,831
 
 // ── FORMATO ───────────────────────────────────────────────────────
 const fq=(n,d=0)=>'Q'+n.toLocaleString('es-GT',{minimumFractionDigits:d,maximumFractionDigits:d});
@@ -657,80 +680,8 @@ function onBamDeuda(v){ST.bamDeuda=parseFloat(v)||0;saveState();recalc();}
 
 // ── DISTRIBUCIÓN ──────────────────────────────────────────────────
 // Bantrab: Q1,100 fijo (mínimo operativo banco)
-// Resto del excedente: 60% inversión, 40% personal
+// Resto del excedente: 60% inversión, 40% disfrute
 const BANTRAB_FIJO = 550;
-const COBROS_BANCARIOS = 25;
-const GASTO_LULUBIT_MENSUAL = 1650; // Salidas+Flores+Regalos+Otros (sin subs)
-
-// distribuirQ1 — calcula la distribución de la primera quincena
-// exc: excedente Q1 después de fijos proporcionales y bantrab fijo
-// subsQ: monto en Q de las suscripciones (basado en TC actual y SUBS_ENT)
-// Retorna: {inv, ban, lulu, usdBi, subsPendientes}
-function distribuirQ1(exc, subsQ){
-  const ban = Math.min(BANTRAB_FIJO, exc);
-  const resto = Math.max(exc - ban, 0);
-  const inv = resto * 0.60;
-  const personal = resto * 0.40;
-
-  let usdBi, lulu, banExtra, subsPendientes;
-  if (personal < subsQ){
-    // Caso A: ni para subs alcanza
-    usdBi = personal;
-    lulu = 0;
-    banExtra = 0;
-    subsPendientes = subsQ - personal;
-  } else if (personal < (subsQ + GASTO_LULUBIT_MENSUAL)){
-    // Caso B: cubre subs, parte de Lulubit
-    usdBi = subsQ;
-    lulu = personal - subsQ;
-    banExtra = 0;
-    subsPendientes = 0;
-  } else {
-    // Caso C: cubre subs, Lulubit completo, sobrante a Bantrab
-    usdBi = subsQ;
-    lulu = GASTO_LULUBIT_MENSUAL;
-    banExtra = personal - subsQ - GASTO_LULUBIT_MENSUAL;
-    subsPendientes = 0;
-  }
-  return {inv, ban: ban + banExtra, lulu, usdBi, subsPendientes};
-}
-
-// distribuirQ2 — calcula distribución Q2 considerando lulu_q1 acumulado
-// exc: excedente Q2 después de fijos resto y bantrab fijo
-// luluQ1: monto que Lulubit ya recibió en Q1
-// subsPendientes: monto de subs que no se pudo mover en Q1 (caso A)
-function distribuirQ2(exc, luluQ1, subsPendientes){
-  const ban = Math.min(BANTRAB_FIJO, exc);
-  const resto = Math.max(exc - ban, 0);
-  const inv = resto * 0.60;
-  const personal = resto * 0.40;
-
-  let usdBi = 0;
-  let restoPersonal = personal;
-
-  // Si quedaron subs pendientes de Q1, sacarlas primero
-  if (subsPendientes > 0){
-    usdBi = Math.min(subsPendientes, restoPersonal);
-    restoPersonal = restoPersonal - usdBi;
-  }
-
-  // Completar Lulubit hasta meta mensual
-  const faltaLulu = Math.max(GASTO_LULUBIT_MENSUAL - luluQ1, 0);
-  let lulu;
-  let banExtra;
-  if (restoPersonal <= faltaLulu){
-    // Todo lo que queda va a completar Lulubit
-    lulu = restoPersonal;
-    banExtra = 0;
-  } else {
-    // Completa Lulubit, resto a Bantrab
-    lulu = faltaLulu;
-    banExtra = restoPersonal - faltaLulu;
-  }
-  return {inv, ban: ban + banExtra, lulu, usdBi};
-}
-
-// Compatibilidad con código viejo: distribuir() simple para llamadas que no necesitan diferenciar Q1/Q2
 function distribuir(exc){
   const ban = Math.min(BANTRAB_FIJO, exc);
   const resto = Math.max(exc - ban, 0);
@@ -744,33 +695,16 @@ const INV_ACTIVOS=[
   {ico:'O', nom:'ONDO',  pct:0.15, col:'#818cf8', hint:'RWA institucional · reactivar post-overhang'},
 ];
 
-function renderQ(d, fijProp, pago, esQ1){
+function renderQ(d, fijProp, pago){
   if(!d||pago<=0) return '<div class="row"><span class="row-lbl" style="color:var(--mu2)">Ingresa el pago</span></div>';
   const ahorroBI = fijProp;
   const tc = ST.tc||7.75;
-  // Tomamos lulu (nuevo) o dis (legacy fallback)
-  const luluVal = d.lulu !== undefined ? d.lulu : (d.dis || 0);
-  const usdBiVal = d.usdBi || 0;
-  const subsPend = d.subsPendientes || 0;
-
-  const rows=[];
-  // Solo Q1 muestra cobros bancarios
-  if (esQ1) {
-    rows.push({lbl:'🏦 Monetaria · cobros',  q:-COBROS_BANCARIOS, c:'var(--mu2)'});
-  }
-  rows.push({lbl:'🏦 Ahorro BI · fijos',     q:-ahorroBI, c:'var(--rd)'});
-  // USD BI solo se muestra si hay monto (Q1 normalmente, Q2 si hubo subs pendientes)
-  if (usdBiVal > 0) {
-    rows.push({lbl:'🌎 Ahorro USD · suscripciones', q:-usdBiVal, c:'#10b981'});
-  }
-  rows.push({lbl:'₿  Exchange · inversión',  q:-d.inv,    c:'var(--go)'});
-  rows.push({lbl:'🎉 Lulubit · disfrute',    q:luluVal,   c:'#3db8f5'});
-  // Bantrab: si en Q2 trae sobrante personal, mostrar tooltip
-  const banLabel = (!esQ1 && d.ban > BANTRAB_FIJO)
-    ? `✈️ Bantrab · viajes <span style="font-size:10px;color:var(--mu2)">(Q${BANTRAB_FIJO} fijo + Q${(d.ban-BANTRAB_FIJO).toFixed(0)} sobrante)</span>`
-    : '✈️ Bantrab · viajes';
-  rows.push({lbl:banLabel, q:d.ban, c:'#9d7ff0'});
-
+  const rows=[
+    {lbl:'🏦 Ahorro BI · fijos',    q:-ahorroBI, c:'var(--rd)'},
+    {lbl:'₿  Exchange · inversión', q:-d.inv,    c:'var(--go)'},
+    {lbl:'🎉 Lulubit · disfrute',   q:d.dis,     c:'#3db8f5'},
+    {lbl:'✈️ Bantrab · viajes',     q:d.ban,     c:'#9d7ff0'},
+  ];
   const rowsHtml = rows.map(r=>`<div class="row">
     <span class="row-lbl">${r.lbl}</span>
     <div class="row-val">
@@ -1208,12 +1142,44 @@ function renderLulubit(lulMesInput){
 
     // ── Cálculo de posición ──
     +'<div style="margin-top:12px;padding:10px;background:var(--s2);border-radius:6px">'
-      // Solo total a pagar TC (BAC + BAM consolidado)
-      +'<div style="display:flex;justify-content:space-between;align-items:center">'
-        +'<span style="font-size:11px;color:var(--tx);font-weight:600">💳 Total TC a pagar</span>'
-        +'<span style="font-family:\'DM Mono\',monospace;font-size:16px;font-weight:800;color:var(--rd)">'
-          +fq(bac+bam,0)
-        +'</span>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:10px">'
+        // Col 1: Disponible
+        +'<div>'
+          +'<div style="color:var(--mu);margin-bottom:5px;font-weight:600">DISPONIBLE</div>'
+          +'<div style="display:flex;justify-content:space-between;padding:2px 0">'
+            +'<span>Reserva</span><span style="font-family:\'DM Mono\',monospace">'+fq(reserva,0)+'</span>'
+          +'</div>'
+          +'<div style="display:flex;justify-content:space-between;padding:2px 0">'
+            +'<span>Aporte mes</span><span style="font-family:\'DM Mono\',monospace;color:var(--gr)">+'+fq(lulMes,0)+'</span>'
+          +'</div>'
+          +'<div style="display:flex;justify-content:space-between;padding:4px 0 0;border-top:1px solid var(--bd);margin-top:3px">'
+            +'<span style="font-weight:700">Total</span><span style="font-family:\'DM Mono\',monospace;color:var(--gr);font-weight:700">'+fq(dispTotal,0)+'</span>'
+          +'</div>'
+        +'</div>'
+        // Col 2: Compromiso
+        +'<div>'
+          +'<div style="color:var(--mu);margin-bottom:5px;font-weight:600">COMPROMISO</div>'
+          +'<div style="display:flex;justify-content:space-between;padding:2px 0">'
+            +'<span>Estimado</span><span style="font-family:\'DM Mono\',monospace">'+fq(LULU_EST_TOTAL,0)+'</span>'
+          +'</div>'
+          +'<div style="display:flex;justify-content:space-between;padding:2px 0">'
+            +'<span>BAC + BAM</span><span style="font-family:\'DM Mono\',monospace;color:var(--rd)">+'+fq(bac+bam,0)+'</span>'
+          +'</div>'
+          +'<div style="display:flex;justify-content:space-between;padding:4px 0 0;border-top:1px solid var(--bd);margin-top:3px">'
+            +'<span style="font-weight:700">Total</span><span style="font-family:\'DM Mono\',monospace;color:var(--rd);font-weight:700">'+fq(compromiso,0)+'</span>'
+          +'</div>'
+        +'</div>'
+      +'</div>'
+
+      // Posición neta + semáforo
+      +'<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--bd)">'
+        +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">'
+          +'<span style="font-size:11px;color:var(--tx);font-weight:600">Posición neta</span>'
+          +'<span style="font-family:\'DM Mono\',monospace;font-size:16px;font-weight:800;color:'+semColor+'">'
+            +(posNeta>=0?'+':'')+fq(posNeta,0)
+          +'</span>'
+        +'</div>'
+        +'<div style="font-size:10px;color:'+semColor+';line-height:1.4">'+semIco+' '+semMsg+'</div>'
       +'</div>'
     +'</div>'
   +'</div>';
@@ -1278,12 +1244,8 @@ function recalc(){
   const excQ2=Math.max(ST.q2-fijQ2, 0);
   const excMes=excQ1+excQ2;
 
-  // Suscripciones en Q según TC actual
-  const totalSubsUsdMes = SUBS_ENT.reduce((s,x)=>s+x.usd, 0);
-  const subsQ = totalSubsUsdMes * tc;
-
-  const dQ1=tQ1?distribuirQ1(excQ1, subsQ):null;
-  const dQ2=tQ2?distribuirQ2(excQ2, dQ1?.lulu||0, dQ1?.subsPendientes||0):null;
+  const dQ1=tQ1?distribuir(excQ1):null;
+  const dQ2=tQ2?distribuir(excQ2):null;
 
   const invMesQ=tQ1&&tQ2?((dQ1?.inv||0)+(dQ2?.inv||0)):0;
   const btcQ=Math.min(200*tc, invMesQ);
@@ -1311,18 +1273,13 @@ function recalc(){
   badge('q2-est',tQ2?'ok':'pend',tQ2?'recibida':'pendiente');
   document.getElementById('q1-usd').textContent=tQ1?fd(ST.q1)+' USD':'—';
   document.getElementById('q2-usd').textContent=tQ2?fd(ST.q2)+' USD':'—';
-  document.getElementById('q1-rows').innerHTML=renderQ(dQ1,fijQ1,ST.q1,true);
-  document.getElementById('q2-rows').innerHTML=renderQ(dQ2,fijQ2,ST.q2,false);
+  document.getElementById('q1-rows').innerHTML=renderQ(dQ1,fijQ1,ST.q1);
+  document.getElementById('q2-rows').innerHTML=renderQ(dQ2,fijQ2,ST.q2);
 
   // ── COLCHONES ──
   renderCols();
   // ── RESUMEN MES ──
-  const dMes={
-    inv:invMesQ,
-    dis:(dQ1?.lulu||0)+(dQ2?.lulu||0),
-    ban:(dQ1?.ban||0)+(dQ2?.ban||0),
-    usdBi:(dQ1?.usdBi||0)+(dQ2?.usdBi||0)
-  };
+  const dMes={inv:invMesQ,dis:(dQ1?.dis||0)+(dQ2?.dis||0),ban:(dQ1?.ban||0)+(dQ2?.ban||0)};
   renderResumenMes(ingTotal, tf, excMes, dMes, btcQ, invRestQ, tQ1, tQ2);
   // ── PANEL LULUBIT (siempre, no depende de Q1+Q2) ──
   renderLulubit(dMes.dis);
@@ -1493,9 +1450,18 @@ function descargarResumen(){
 
   const dcaBase=parseFloat(stor.dcaBase)||0;
   const MESES_BASE_R=['Ene 2026','Feb 2026','Mar 2026'];
-  const dcaMeses=hist.filter(h=>!MESES_BASE_R.includes(h.mes)&&h.tracked);
-  const dcaAcum=dcaMeses.reduce((s,h)=>s+(typeof h.invUSDReal==='number'?h.invUSDReal:(h.invUSD||0)),0);
+  // Incluir meses cerrados (tracked) + mes actual si tiene datos aunque no esté cerrado
+  const mesActualR = MNOMBRES[(ST.mes||4)] + ' ' + (ST.anio||2026);
+  const dcaMeses = hist.filter(h => {
+    if(MESES_BASE_R.includes(h.mes)) return false;
+    if(h.tracked) return true;
+    if(h.mes === mesActualR && (h.q1 > 0 || h.q2 > 0)) return true;
+    return false;
+  });
+  const dcaAcum=dcaMeses.reduce((s,h)=>s+(h.invUSD||0),0);
   const dcaTotal=dcaBase+dcaAcum;
+
+  // ── Comparativa mes anterior ──
   const mesActualKey = mOrdR[ST.mes-1] + ' ' + (ST.anio||2026);
   const mesActualIdx = hist.findIndex(h => h.mes === mesActualKey);
   const mesAntHist = mesActualIdx > 0 ? hist[mesActualIdx-1] : null;
@@ -1694,27 +1660,40 @@ function descargarResumen(){
     +'</div>'
 
     // ── INVERSIÓN ──
-    +'<div style="'+S.sec+'">'
-      +'<span style="'+S.sectl+'">Inversion acumulada en activos</span>'
-      +'<div style="'+S.cards+'">'
-        +'<div style="'+S.card+'"><span style="'+S.clbl+'">Base inicial (ene-mar)</span>'
-          +'<span style="'+S.cval+'color:#2563eb">$'+dcaBase.toLocaleString('en-US',{maximumFractionDigits:0})+'</span>'
-          +'<span style="'+S.csub+'">capital antes del tracker</span></div>'
-        +'<div style="'+S.card+'"><span style="'+S.clbl+'">DCA desde abril</span>'
-          +'<span style="'+S.cval+'color:#059669">$'+dcaAcum.toFixed(0)+'</span>'
-          +'<span style="'+S.csub+'">acumulado tracker</span></div>'
-      +'</div>'
-      +'<div style="background:#f5f3ff;border:1px solid #ddd6fe;border-radius:8px;padding:14px;text-align:center;margin-bottom:'+(dcaRows?'12px':'0')+'">'
-        +'<div style="font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Total invertido en portafolio</div>'
-        +'<div style="font-size:26px;font-weight:800;color:#4c1d95;letter-spacing:-1px">$'+dcaTotal.toLocaleString('en-US',{maximumFractionDigits:0})+'</div>'
-        +'<div style="font-size:11px;color:#888;margin-top:3px">base + DCA acumulado</div>'
-      +'</div>'
-      +(dcaRows
-        ?'<table style="'+S.tbl+'"><thead><tr>'
-          +'<th style="'+S.th+'">Mes</th><th style="'+S.th+'">Aportado</th><th style="'+S.th+'">Acumulado</th>'
-          +'</tr></thead><tbody>'+dcaRows+'</tbody></table>'
-        :'')
-    +'</div>'
+    ;(()=>{
+      const mOP=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+      const ksPDF=Object.keys(dcaMesesObj).sort((a,b)=>{
+        const ya=parseInt(a.slice(-4))||2026,ma=mOP.indexOf(a.slice(0,3));
+        const yb=parseInt(b.slice(-4))||2026,mb=mOP.indexOf(b.slice(0,3));
+        return ya!==yb?ya-yb:ma-mb;
+      });
+      let prevP=dcaBase;
+      const invRows=ksPDF.map(m=>{
+        const v=parseFloat(dcaMesesObj[m])||0;
+        const d2=v-prevP;
+        const ds=(d2>=0?'+$':'-$')+Math.abs(d2).toLocaleString('en-US',{maximumFractionDigits:0});
+        const dc=d2>=0?'#059669':'#dc2626';
+        prevP=v;
+        return '<tr><td style="'+S.td+'">'+m+'</td><td style="'+S.td+'color:'+dc+';font-weight:600">'+ds+'</td><td style="'+S.td+'font-weight:700">$'+v.toLocaleString('en-US',{maximumFractionDigits:0})+'</td></tr>';
+      }).join('');
+      html+='<div style="'+S.sec+'">'
+        +'<span style="'+S.sectl+'">Inversión en portafolio · costo base</span>'
+        +'<div style="'+S.cards+'">'
+          +'<div style="'+S.card+'"><span style="'+S.clbl+'">Capital inicial</span>'
+            +'<span style="'+S.cval+'color:#2563eb">$'+dcaBase.toLocaleString('en-US',{maximumFractionDigits:0})+'</span>'
+            +'<span style="'+S.csub+'">ene–abr 2026</span></div>'
+          +'<div style="'+S.card+'"><span style="'+S.clbl+'">Capital actual ('+dcaUltimoMes+')</span>'
+            +'<span style="'+S.cval+'color:#059669">$'+dcaUltimoVal.toLocaleString('en-US',{maximumFractionDigits:0})+'</span>'
+            +'<span style="'+S.csub+'">último mes registrado</span></div>'
+          +'<div style="'+S.card+'"><span style="'+S.clbl+'">Has aportado</span>'
+            +'<span style="'+S.cval+'color:#7c3aed">$'+dcaAcum.toLocaleString('en-US',{maximumFractionDigits:0})+'</span>'
+            +'<span style="'+S.csub+'">actual − inicial</span></div>'
+        +'</div>'
+        +(invRows?'<table style="'+S.tbl+'"><thead><tr>'
+          +'<th style="'+S.th+'">Mes</th><th style="'+S.th+'">Aportado</th><th style="'+S.th+'">Total</th>'
+          +'</tr></thead><tbody>'+invRows+'</tbody></table>':'')
+      +'</div>';
+    })()
 
     // ── RESERVAS ──
     +'<div style="'+S.sec+'">'
@@ -1988,90 +1967,93 @@ function descargarResumen(){
 function getDCABase(){const d=ldS();return parseFloat(d.dcaBase)||0;}
 function saveDCABase(v){
   const val=parseFloat(v)||0;
-  const d=ldS();d.dcaBase=val;svS(d);
+  const d=ldS(); d.dcaBase=val; svS(d);
+  renderDCA();
+}
+
+function saveDCAMes(){
+  const mesEl = document.getElementById('dca-mes-sel');
+  const inpEl = document.getElementById('dca-mes-inp');
+  if(!mesEl||!inpEl) return;
+  const mes = mesEl.value;
+  const val = parseFloat(inpEl.value)||0;
+  if(!val||val<=0){ inpEl.style.borderColor='rgba(242,92,92,.6)'; return; }
+  inpEl.style.borderColor='rgba(52,208,122,.3)';
+  const d=ldS();
+  if(!d.dcaMeses) d.dcaMeses={};
+  d.dcaMeses[mes]=val;
+  svS(d);
+  inpEl.value='';
   renderDCA();
 }
 
 function renderDCA(){
   const d=ldS();
   const base=parseFloat(d.dcaBase)||0;
-  const hist=(d.historial||[]);
+  const meses=d.dcaMeses||{};
 
-  // Meses que NO son la base inicial (abril 2026 en adelante)
-  // Un mes es "base" si es Ene, Feb o Mar 2026
-  const MESES_BASE=['Ene 2026','Feb 2026','Mar 2026'];
-  const dcaMeses=hist.filter(h=>!MESES_BASE.includes(h.mes)&&h.tracked);
-  const dcaAcum=dcaMeses.reduce((s,h)=>s+(typeof h.invUSDReal==='number'?h.invUSDReal:(h.invUSD||0)),0);
-  const total=base+dcaAcum;
+  // Ordenar meses cronológicamente
+  const mOrd=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  const mesKeys=Object.keys(meses).sort((a,b)=>{
+    const ya=parseInt(a.slice(-4))||2026, ma=mOrd.indexOf(a.slice(0,3));
+    const yb=parseInt(b.slice(-4))||2026, mb=mOrd.indexOf(b.slice(0,3));
+    return ya!==yb ? ya-yb : ma-mb;
+  });
 
-  // Actualizar display
+  // Último valor registrado
+  const ultimoMes = mesKeys[mesKeys.length-1];
+  const ultimoVal = ultimoMes ? (parseFloat(meses[ultimoMes])||0) : 0;
+
+  // DCA = diferencia entre último y base inicial
+  const dcaAcum = Math.max(ultimoVal - base, 0);
+
+  // Update resumen superior
   const bv=document.getElementById('dca-base-val');
-  const av=document.getElementById('dca-aportado');
-  const tv=document.getElementById('dca-total');
-  const avTop=document.getElementById('dca-aportado-top');
-  const tvTop=document.getElementById('dca-total-top');
   const bi=document.getElementById('dca-base-inp');
-  if(bv)bv.textContent=base>0?'$'+base.toLocaleString('en-US',{maximumFractionDigits:0}):'—';
-  if(av)av.textContent=dcaAcum>0?'$'+dcaAcum.toFixed(0):'$0';
-  if(tv)tv.textContent='$'+total.toLocaleString('en-US',{maximumFractionDigits:0});
-  if(avTop)avTop.textContent=dcaAcum>0?'+$'+dcaAcum.toFixed(0):'$0';
-  if(tvTop)tvTop.textContent='$'+total.toLocaleString('en-US',{maximumFractionDigits:0});
+  const ulv=document.getElementById('dca-ultimo-val');
+  const ull=document.getElementById('dca-ultimo-lbl');
+  const dlt=document.getElementById('dca-delta');
+  if(bv) bv.textContent=base>0?'$'+base.toLocaleString('en-US',{maximumFractionDigits:0}):'—';
   if(bi&&!bi.matches(':focus')&&base>0) bi.value=base;
+  if(ulv) ulv.textContent=ultimoVal>0?'$'+ultimoVal.toLocaleString('en-US',{maximumFractionDigits:0}):'—';
+  if(ull) ull.textContent=ultimoMes||'sin registros aún';
+  if(dlt){
+    if(dcaAcum>0){
+      dlt.textContent='+$'+dcaAcum.toLocaleString('en-US',{maximumFractionDigits:0})+' aportado desde inicio';
+      dlt.style.color='var(--gr)';
+    } else {
+      dlt.textContent='—';
+    }
+  }
 
-  // Lista mes a mes
+  // Lista mes a mes con delta entre meses
   const listEl=document.getElementById('dca-hist-list');
   if(!listEl)return;
-  if(dcaMeses.length===0){
-    listEl.innerHTML='<div style="font-family:monospace;font-size:9px;color:var(--mu2)">Los meses desde abril aparecen aqui al cerrarlos</div>';
+  if(mesKeys.length===0){
+    listEl.innerHTML='<div style="font-family:monospace;font-size:9px;color:var(--mu2);padding:8px 0">Registra el primer mes para ver el historial</div>';
     return;
   }
-  // Ordenar cronológicamente
-  const mOrd=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-  dcaMeses.sort((a,b)=>mOrd.indexOf(a.mes.slice(0,3))-mOrd.indexOf(b.mes.slice(0,3)));
-  let acum=base;
-  listEl.innerHTML=dcaMeses.map((h,idx)=>{
-    // El valor real registrado: si existe override usarlo, sino el calculado
-    const valOverride = (typeof h.invUSDReal === 'number') ? h.invUSDReal : null;
-    const valCalc = h.invUSD || 0;
-    const valActual = valOverride !== null ? valOverride : valCalc;
-    acum += valActual;
-    // Status: comparar real vs objetivo (calculado)
-    let status = '';
-    if (valOverride !== null && valCalc > 0){
-      const diff = valOverride - valCalc;
-      const pct = Math.abs(diff)/valCalc;
-      if (pct < 0.1) status = '<span style="color:var(--gr);margin-left:4px">✅</span>';
-      else if (diff > 0) status = '<span style="color:var(--gr);margin-left:4px" title="+$'+diff.toFixed(0)+' sobre objetivo">🔥</span>';
-      else status = '<span style="color:var(--go);margin-left:4px" title="$'+(-diff).toFixed(0)+' bajo objetivo">⚠️</span>';
-    }
-    const showCalc = valOverride !== null && Math.abs(valOverride - valCalc) > 0.5;
-    return `<div style="padding:6px 0;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:10px">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
-        <span style="color:var(--mu);min-width:60px">${h.mes}</span>
-        <input type="number" value="${valActual.toFixed(0)}" step="1" min="0" 
-          onchange="saveDCAMes('${h.mes}',this.value,${valCalc})"
-          style="flex:1;max-width:100px;background:var(--s3);border:1px solid rgba(245,158,11,.3);color:var(--go);font-family:'DM Mono',monospace;font-size:10px;padding:3px 6px;border-radius:4px;text-align:right;outline:none">
-        <span style="color:var(--mu2);min-width:80px;text-align:right">→ $${acum.toLocaleString('en-US',{maximumFractionDigits:0})}</span>
-        ${status}
-      </div>
-      ${showCalc ? `<div style="font-size:8px;color:var(--mu2);text-align:right;margin-top:2px">objetivo: $${valCalc.toFixed(0)}</div>` : ''}
+
+  let prev=base;
+  listEl.innerHTML=mesKeys.map((mes,i)=>{
+    const val=parseFloat(meses[mes])||0;
+    const delta=val-prev;
+    const deltaStr=delta>=0?'+$'+delta.toLocaleString('en-US',{maximumFractionDigits:0}):'−$'+Math.abs(delta).toLocaleString('en-US',{maximumFractionDigits:0});
+    const deltaCol=delta>=0?'var(--gr)':'var(--rd)';
+    prev=val;
+    return `<div style="display:flex;justify-content:space-between;align-items:center;
+      padding:6px 0;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:10px">
+      <span style="color:var(--mu);min-width:70px">${mes}</span>
+      <span style="color:${deltaCol};min-width:70px;text-align:center">${deltaStr}</span>
+      <span style="color:var(--tx);font-weight:700;text-align:right">$${val.toLocaleString('en-US',{maximumFractionDigits:0})}</span>
+      <span onclick="deleteDCAMes('${mes}')" style="color:var(--mu2);cursor:pointer;margin-left:10px;font-size:11px;padding:2px 5px;border-radius:3px;background:var(--s3)">✕</span>
     </div>`;
   }).join('');
 }
 
-// Guardar override del DCA real de un mes específico
-function saveDCAMes(mesNombre, valor, valCalc){
-  const v = parseFloat(valor)||0;
-  const d = ldS();
-  if (!d.historial) return;
-  const idx = d.historial.findIndex(h => h.mes === mesNombre);
-  if (idx < 0) return;
-  // Si el valor ingresado coincide con el calculado, eliminar override (volver a usar calculado)
-  if (Math.abs(v - valCalc) < 0.5) {
-    delete d.historial[idx].invUSDReal;
-  } else {
-    d.historial[idx].invUSDReal = v;
-  }
+function deleteDCAMes(mes){
+  const d=ldS();
+  if(d.dcaMeses) delete d.dcaMeses[mes];
   svS(d);
   renderDCA();
 }

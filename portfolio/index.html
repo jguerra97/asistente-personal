@@ -611,17 +611,42 @@ function mkCard(a,price,chg,isL2){
 
 
 // ── PORTFOLIO TREND CHART ──────────────────────────────────────
+
+// ── STORAGE ABSTRACTION (claude.ai artifacts + navegador externo) ──
+const AppStorage = {
+  async get(key){
+    try {
+      if(typeof window.storage !== 'undefined' && window.storage){
+        const r = await window.storage.get(key);
+        return r ? r.value : null;
+      } else {
+        return localStorage.getItem(key);
+      }
+    } catch(e){ return localStorage.getItem(key); }
+  },
+  async set(key, value){
+    try {
+      if(typeof window.storage !== 'undefined' && window.storage){
+        await window.storage.set(key, value);
+      } else {
+        localStorage.setItem(key, value);
+      }
+    } catch(e){ 
+      try { localStorage.setItem(key, value); } catch(e2){}
+    }
+  }
+};
+
 const SNAP_KEY = 'portfolio-snapshots';
 const SNAP_MAX = 365;
 const SNAP_MIN_INTERVAL_MS = 60 * 60 * 1000; // 1 hora mínimo entre snapshots
 
 async function saveSnapshot(totalValue){
   if(!totalValue || isNaN(totalValue) || totalValue <= 0) return;
-  if(typeof window.storage === 'undefined' || !window.storage) return; // Solo funciona en claude.ai artifacts
   try {
     let snapshots = [];
     try {
-      const r = await window.storage.get(SNAP_KEY);
+      const r = await AppStorage.get(SNAP_KEY);
       if(r && r.value) snapshots = JSON.parse(r.value);
     } catch(e){ snapshots = []; }
 
@@ -638,7 +663,7 @@ async function saveSnapshot(totalValue){
     // Sliding window — máximo SNAP_MAX puntos
     if(snapshots.length > SNAP_MAX) snapshots = snapshots.slice(-SNAP_MAX);
 
-    await window.storage.set(SNAP_KEY, JSON.stringify(snapshots));
+    await AppStorage.set(SNAP_KEY, JSON.stringify(snapshots));
   } catch(e){ console.log('Snapshot error:', e); }
 }
 
@@ -651,14 +676,10 @@ async function renderTrendChart(){
   const labelsEl = document.getElementById('trend-labels');
   if(!wrap) return;
 
-  if(typeof window.storage === 'undefined' || !window.storage){
-    if(empty) { empty.textContent = 'Gráfica disponible en claude.ai'; empty.style.display='block'; }
-    return;
-  }
   let snapshots = [];
   try {
-    const r = await window.storage.get(SNAP_KEY);
-    if(r && r.value) snapshots = JSON.parse(r.value);
+    const raw = await AppStorage.get(SNAP_KEY);
+    if(raw) snapshots = JSON.parse(raw);
   } catch(e){ snapshots = []; }
 
   if(snapshots.length < 2){

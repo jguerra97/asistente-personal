@@ -586,7 +586,7 @@ function mkCard(a,price,chg,isL2){
 // ── PORTFOLIO TREND CHART ──────────────────────────────────────
 
 const SNAP_MAX = 365;
-const SNAP_MIN_INTERVAL_MS = 1 * 60 * 1000; // 1 minuto para pruebas — cambiar a 60*60*1000 cuando funcione
+const SNAP_MIN_INTERVAL_MS = 60 * 60 * 1000; // 1 hora entre snapshots
 
 async function saveSnapshot(totalValue){
   if(!totalValue || isNaN(totalValue) || totalValue <= 0) return;

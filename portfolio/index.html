@@ -533,7 +533,7 @@ const L2=[
   {id:'akash-network',  tick:'AKT',   name:'Akash Network',    col:'#10b981',ico:'A',qty:2046.43, entry:0.4718, target:3.50,  price:0.4632},
   {id:'morpho',         tick:'MORPHO',name:'Morpho Protocol',  col:'#9d7ff0',ico:'M',qty:533.85,  entry:2.26,   target:5.00,  price:1.922,
    contractFallback:{platform:'ethereum',address:'0x58d97b57bb95320f9a05dc918aef65434969c2b2'}},
-  {id:'cat-in-a-dogs-world',tick:'POPCAT',name:'Popcat (POPCAT)',col:'#ff6eb4',ico:'🐱',qty:8929.30, entry:0.0688, target:2.05, price:0.0688,
+  {id:'popcat',tick:'POPCAT',name:'Popcat (POPCAT)',col:'#ff6eb4',ico:'🐱',qty:8929.30, entry:0.0688, target:2.05, price:0.0688,
    note:'Slot moonshot · Meme Solana · ATH $2.05 · supply 98% circ · KuCoin'},
 ];
 const BROKER=[
@@ -639,7 +639,7 @@ const AppStorage = {
 
 const SNAP_KEY = 'portfolio-snapshots';
 const SNAP_MAX = 365;
-const SNAP_MIN_INTERVAL_MS = 60 * 60 * 1000; // 1 hora mínimo entre snapshots
+const SNAP_MIN_INTERVAL_MS = 1 * 60 * 1000; // 1 minuto para pruebas — cambiar a 60*60*1000 cuando funcione
 
 async function saveSnapshot(totalValue){
   if(!totalValue || isNaN(totalValue) || totalValue <= 0) return;
@@ -1001,7 +1001,7 @@ async function load(){
   rb.classList.add('busy');sp.classList.add('go');
   document.getElementById('ts').textContent='Actualizando precios...';
   applyS();
-  const cgIds=['hyperliquid','ondo-finance','akash-network','morpho'];
+  const cgIds=['hyperliquid','ondo-finance','akash-network','morpho','popcat'];
   const px=await fetchCG(cgIds);
   if(Object.keys(px).length===0){
     document.getElementById('ts').textContent='⚠ Sin conexión a CoinGecko — usando precios guardados';
@@ -1052,7 +1052,7 @@ async function load(){
   updateProySummary();
   renderGrowth(tot);
   renderMetaVisual(tot);
-  saveSnapshot(tot);
+  await saveSnapshot(tot);
   renderTrendChart();
   if(_proyOpen) renderProy();
 }

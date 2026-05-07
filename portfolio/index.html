@@ -290,11 +290,8 @@ td:first-child{text-align:left;}
 <div class="io-wrap">
   <div class="io-row">
     <a href="../" class="io-btn home">← Inicio</a>
-    <button class="io-btn exp" onclick="exportData()">⬇ Exportar</button>
-    <button class="io-btn imp" onclick="document.getElementById('imp-file').click()">⬆ Importar</button>
     <button class="rbtn" id="rb" onclick="load()"><span class="sp" id="sp">↻</span> Actualizar</button>
     <button class="rbtn" onclick="descargarResumen()" style="border-color:rgba(157,127,240,.4);color:var(--pu)">📄 Resumen</button>
-    <input type="file" id="imp-file" accept=".json" onchange="importData(this)">
   </div>
   <div class="io-row">
     <button class="io-btn drive-save" onclick="driveSavePF()">☁ Guardar en Drive</button>
@@ -387,11 +384,7 @@ td:first-child{text-align:left;}
   <div class="pbar-marks"><span class="pm">$0</span><span class="pm">$22K</span><span class="pm">$44K</span><span class="pm">$66K</span><span class="pm">$88K</span></div>
   <div class="ms-grid" id="ms-grid"></div>
   <div class="scen-grid" id="scen-grid"></div>
-  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:10px">
-    <div style="background:var(--s2);border-radius:6px;padding:7px 9px;text-align:center"><div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu);text-transform:uppercase;margin-bottom:2px">Sin BTC</div><div style="font-family:'Syne',sans-serif;font-size:12px;font-weight:800;color:var(--ac)" id="mv-nobtc">—</div></div>
-    <div style="background:var(--s2);border-radius:6px;padding:7px 9px;text-align:center"><div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu);text-transform:uppercase;margin-bottom:2px">Proyectado</div><div style="font-family:'Syne',sans-serif;font-size:12px;font-weight:800;color:var(--gr)" id="mv-proj">—</div></div>
-    <div style="background:var(--s2);border-radius:6px;padding:7px 9px;text-align:center"><div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu);text-transform:uppercase;margin-bottom:2px">Faltan</div><div style="font-family:'Syne',sans-serif;font-size:12px;font-weight:800;color:var(--go)" id="mv-need">—</div></div>
-  </div>
+
 </div>
 
 <!-- TOKENS OBJETIVO PARA META $88K (COLAPSABLE) -->
@@ -580,7 +573,10 @@ function mkCard(a,price,chg,isL2){
           onchange="onEC('${a.tick}',this.value)" style="border-color:rgba(157,127,240,.2)">
       </div>
     </div>
-    <div class="ac-footer">${badge}</div>
+    <div class="ac-footer" style="display:flex;justify-content:space-between;align-items:center">
+      <div>${badge}</div>
+      <div id="ts-${a.tick}" style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu2)">—</div>
+    </div>
   </div>`;
 }
 
@@ -836,6 +832,7 @@ function renderGoal(total){
       <div class="scen-detail">${ok?'META COMPLETA':(m/12).toFixed(1)+' años'}</div>
       <span class="scen-pct ${s.c}">${s.p}</span></div>`;
   }).join('');
+
 }
 
 // ── FETCH G ──────────────────────────────────────────────────────
@@ -897,7 +894,7 @@ async function load(){
   let h1='',h2='',m1='',m2='',tot=0,cst=0,c24=0;
   L1.forEach(a=>{
     const p=px[a.id],price=p?.usd??null,chg=p?.usd_24h_change??null;
-    if(price!=null){a.price=price;svS(a.tick,'price',price);tot+=price*a.qty;cst+=a.entry*a.qty;}
+    if(price!=null){a.price=price;svS(a.tick,'price',price);svS(a.tick,'priceTs',Date.now());tot+=price*a.qty;cst+=a.entry*a.qty;}
     else if(a.price){tot+=a.price*a.qty;cst+=a.entry*a.qty;}
     if(price!=null&&chg!=null){const pv=price/(1+chg/100);c24+=(price-pv)*a.qty;}
     h1+=mkRow(a,price,chg,false);
@@ -907,7 +904,7 @@ async function load(){
     const p=px[a.id];
     let price=p?.usd??a.price??null;
     let chg=p?.usd_24h_change??null;
-    if(p?.usd)a.price=p.usd;
+    if(p?.usd){a.price=p.usd;svS(a.tick,'priceTs',Date.now());}
     if(price!=null){tot+=price*a.qty;cst+=a.entry*a.qty;}
     if(price!=null&&chg!=null){const pv=price/(1+chg/100);c24+=(price-pv)*a.qty;}
     h2+=mkRow(a,price,chg,true);
@@ -933,6 +930,19 @@ async function load(){
   s24.className='sv '+(c24>=0?'g':'r');
   const n=new Date();
   document.getElementById('ts').textContent=`${n.toLocaleDateString('es-GT')} ${n.toLocaleTimeString('es-GT',{hour:'2-digit',minute:'2-digit'})}`;
+  // Actualizar timestamps por activo
+  const d2=ldS();
+  [...L1,...L2].forEach(a=>{
+    const el=document.getElementById('ts-'+a.tick);
+    if(!el) return;
+    const ts=d2[a.tick]?.priceTs;
+    if(ts){
+      const diff=Math.round((Date.now()-ts)/60000);
+      el.textContent=diff<2?'hace un momento':diff<60?`hace ${diff}m`:`hace ${Math.round(diff/60)}h`;
+    } else {
+      el.textContent='sin datos live';
+    }
+  });
   rb.classList.remove('busy');sp.classList.remove('go');
   renderDist();
   renderAcc();

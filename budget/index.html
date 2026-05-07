@@ -488,62 +488,78 @@ body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--tx);min-heig
 
 
 
-<!-- DCA TRACKER -->
+<!-- DCA TRACKER v2 — CAPITAL INVERTIDO MES A MES -->
 <div class="sec"><div class="ld" style="background:var(--ac);box-shadow:0 0 5px var(--ac)"></div>
-  <div class="lt">Inversión acumulada <span>DCA mes a mes</span></div>
+  <div class="lt">Capital invertido <span>costo base mes a mes</span></div>
 </div>
 <div class="card">
   <div class="card-body">
-    <!-- Resumen total siempre visible -->
-    <div onclick="toggleDcaDet()" id="dca-det-toggle" style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--s2);border-radius:7px;cursor:pointer;-webkit-tap-highlight-color:rgba(61,184,245,.2)">
-      <div>
-        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);letter-spacing:.05em;text-transform:uppercase">💰 Total invertido</div>
-        <div id="dca-total-top" style="font-family:'DM Mono',monospace;font-size:16px;font-weight:800;color:var(--go);margin-top:2px">—</div>
-      </div>
-      <div style="text-align:right;display:flex;align-items:center;gap:8px">
-        <div>
-          <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);letter-spacing:.05em;text-transform:uppercase">DCA activo</div>
-          <div id="dca-aportado-top" style="font-family:'DM Mono',monospace;font-size:13px;font-weight:700;color:var(--gr);margin-top:2px">—</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
+      <div style="background:var(--s2);border-radius:7px;padding:10px;text-align:center">
+        <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu);text-transform:uppercase;margin-bottom:4px">Capital inicial (ene–abr)</div>
+        <div id="dca-base-val" style="font-size:15px;font-weight:800;color:var(--ac)">—</div>
+        <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu);margin-top:3px">solo se ingresa una vez</div>
+        <div style="display:flex;align-items:center;gap:6px;margin-top:7px">
+          <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--mu)">$</span>
+          <input type="number" id="dca-base-inp" step="10" min="0" placeholder="9500"
+            style="background:var(--s3);border:1px solid rgba(61,184,245,.3);color:var(--ac);
+            font-family:'DM Mono',monospace;font-size:12px;font-weight:700;
+            padding:4px 8px;border-radius:6px;flex:1;text-align:right"
+            onchange="saveDCABase(this.value)">
         </div>
-        <span id="dca-det-ico" style="font-size:12px;color:var(--mu);transition:transform .2s">▾</span>
+      </div>
+      <div style="background:var(--s2);border-radius:7px;padding:10px;text-align:center">
+        <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu);text-transform:uppercase;margin-bottom:4px">Último mes registrado</div>
+        <div id="dca-ultimo-val" style="font-size:15px;font-weight:800;color:var(--go)">—</div>
+        <div id="dca-ultimo-lbl" style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu);margin-top:3px">total posiciones × entrada</div>
+        <div id="dca-delta" style="font-family:'DM Mono',monospace;font-size:10px;font-weight:700;color:var(--gr);margin-top:4px">—</div>
       </div>
     </div>
-
-    <div id="dca-det-body" style="display:none;margin-top:10px">
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px">
-        <div style="background:var(--s2);border-radius:7px;padding:10px;text-align:center">
-          <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu);text-transform:uppercase;margin-bottom:4px">Base inicial</div>
-          <div id="dca-base-val" style="font-size:14px;font-weight:800;color:var(--ac)">—</div>
-          <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);margin-top:2px">ene–mar 2026</div>
-        </div>
-        <div style="background:var(--s2);border-radius:7px;padding:10px;text-align:center">
-          <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu);text-transform:uppercase;margin-bottom:4px">DCA desde abril</div>
-          <div id="dca-aportado" style="font-size:14px;font-weight:800;color:var(--gr)">—</div>
-          <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);margin-top:2px">acumulado tracker</div>
-        </div>
-        <div style="background:var(--s2);border-radius:7px;padding:10px;text-align:center">
-          <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu);text-transform:uppercase;margin-bottom:4px">Total invertido</div>
-          <div id="dca-total" style="font-size:14px;font-weight:800;color:var(--go)">—</div>
-          <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);margin-top:2px">base + DCA</div>
-        </div>
+    <div style="background:var(--s2);border-radius:7px;padding:10px;margin-bottom:12px">
+      <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">
+        📥 Registrar cierre de mes — capital total invertido
       </div>
-      <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);margin-bottom:5px">
-        Capital invertido antes del tracker (ene–mar 2026, solo se ingresa una vez):
+      <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu2);margin-bottom:8px">
+        Ingresa el total de posiciones × precio promedio de entrada (del portfolio tracker).
       </div>
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
-        <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--mu)">$</span>
-        <input type="number" id="dca-base-inp" step="10" min="0" placeholder="8950"
-          style="background:var(--s3);border:1px solid rgba(61,184,245,.3);color:var(--ac);
+      <div style="display:flex;gap:8px;align-items:center">
+        <select id="dca-mes-sel" style="background:var(--s3);border:1px solid var(--bd2);color:var(--tx);
+          font-family:'DM Mono',monospace;font-size:11px;padding:6px 8px;border-radius:6px;flex:0 0 auto">
+          <option value="May 2026">May 2026</option>
+          <option value="Jun 2026">Jun 2026</option>
+          <option value="Jul 2026">Jul 2026</option>
+          <option value="Ago 2026">Ago 2026</option>
+          <option value="Sep 2026">Sep 2026</option>
+          <option value="Oct 2026">Oct 2026</option>
+          <option value="Nov 2026">Nov 2026</option>
+          <option value="Dic 2026">Dic 2026</option>
+          <option value="Ene 2027">Ene 2027</option>
+          <option value="Feb 2027">Feb 2027</option>
+          <option value="Mar 2027">Mar 2027</option>
+          <option value="Abr 2027">Abr 2027</option>
+          <option value="May 2027">May 2027</option>
+          <option value="Jun 2027">Jun 2027</option>
+          <option value="Jul 2027">Jul 2027</option>
+          <option value="Ago 2027">Ago 2027</option>
+          <option value="Sep 2027">Sep 2027</option>
+          <option value="Oct 2027">Oct 2027</option>
+          <option value="Nov 2027">Nov 2027</option>
+          <option value="Dic 2027">Dic 2027</option>
+        </select>
+        <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--mu)">$</span>
+        <input type="number" id="dca-mes-inp" step="10" min="0" placeholder="10200"
+          style="background:var(--s3);border:1px solid rgba(52,208,122,.3);color:var(--gr);
           font-family:'DM Mono',monospace;font-size:13px;font-weight:700;
-          padding:5px 9px;border-radius:6px;flex:1;text-align:right"
-          onchange="saveDCABase(this.value)">
+          padding:6px 9px;border-radius:6px;flex:1;text-align:right">
+        <button onclick="saveDCAMes()"
+          style="background:rgba(52,208,122,.15);border:1px solid rgba(52,208,122,.4);color:var(--gr);
+          font-family:'DM Mono',monospace;font-size:11px;padding:6px 12px;border-radius:6px;
+          cursor:pointer;white-space:nowrap">+ Guardar</button>
       </div>
-      <div style="border-top:1px solid var(--bd);padding-top:10px;">
-        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);margin-bottom:7px">
-          Aportado desde abril en adelante (del historial):
-        </div>
-        <div id="dca-hist-list"></div>
-      </div>
+    </div>
+    <div style="border-top:1px solid var(--bd);padding-top:10px">
+      <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">Historial de crecimiento</div>
+      <div id="dca-hist-list"></div>
     </div>
   </div>
 </div>
@@ -1902,204 +1918,81 @@ function descargarResumen(){
 function getDCABase(){const d=ldS();return parseFloat(d.dcaBase)||0;}
 function saveDCABase(v){
   const val=parseFloat(v)||0;
-  const d=ldS();d.dcaBase=val;svS(d);
+  const d=ldS(); d.dcaBase=val; svS(d);
+  renderDCA();
+}
+
+function saveDCAMes(){
+  const mesEl=document.getElementById('dca-mes-sel');
+  const inpEl=document.getElementById('dca-mes-inp');
+  if(!mesEl||!inpEl) return;
+  const mes=mesEl.value;
+  const val=parseFloat(inpEl.value)||0;
+  if(!val||val<=0){ inpEl.style.borderColor='rgba(242,92,92,.6)'; return; }
+  inpEl.style.borderColor='rgba(52,208,122,.3)';
+  const d=ldS();
+  if(!d.dcaMeses) d.dcaMeses={};
+  d.dcaMeses[mes]=val;
+  svS(d);
+  inpEl.value='';
+  renderDCA();
+}
+
+function deleteDCAMes(mes){
+  const d=ldS();
+  if(d.dcaMeses) delete d.dcaMeses[mes];
+  svS(d);
   renderDCA();
 }
 
 function renderDCA(){
   const d=ldS();
   const base=parseFloat(d.dcaBase)||0;
-  const hist=(d.historial||[]);
-
-  // Meses que NO son la base inicial (abril 2026 en adelante)
-  // Un mes es "base" si es Ene, Feb o Mar 2026
-  const MESES_BASE=['Ene 2026','Feb 2026','Mar 2026'];
-  const dcaMeses=hist.filter(h=>!MESES_BASE.includes(h.mes)&&h.tracked);
-  const dcaAcum=dcaMeses.reduce((s,h)=>s+(h.invUSD||0),0);
-  const total=base+dcaAcum;
-
-  // Actualizar display
+  const meses=d.dcaMeses||{};
+  const mOrd=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  const mesKeys=Object.keys(meses).sort((a,b)=>{
+    const ya=parseInt(a.slice(-4))||2026, ma=mOrd.indexOf(a.slice(0,3));
+    const yb=parseInt(b.slice(-4))||2026, mb=mOrd.indexOf(b.slice(0,3));
+    return ya!==yb ? ya-yb : ma-mb;
+  });
+  const ultimoMes=mesKeys[mesKeys.length-1];
+  const ultimoVal=ultimoMes?(parseFloat(meses[ultimoMes])||0):0;
+  const dcaAcum=Math.max(ultimoVal-base,0);
   const bv=document.getElementById('dca-base-val');
-  const av=document.getElementById('dca-aportado');
-  const tv=document.getElementById('dca-total');
-  const avTop=document.getElementById('dca-aportado-top');
-  const tvTop=document.getElementById('dca-total-top');
   const bi=document.getElementById('dca-base-inp');
-  if(bv)bv.textContent=base>0?'$'+base.toLocaleString('en-US',{maximumFractionDigits:0}):'—';
-  if(av)av.textContent=dcaAcum>0?'$'+dcaAcum.toFixed(0):'$0';
-  if(tv)tv.textContent='$'+total.toLocaleString('en-US',{maximumFractionDigits:0});
-  if(avTop)avTop.textContent=dcaAcum>0?'+$'+dcaAcum.toFixed(0):'$0';
-  if(tvTop)tvTop.textContent='$'+total.toLocaleString('en-US',{maximumFractionDigits:0});
+  const ulv=document.getElementById('dca-ultimo-val');
+  const ull=document.getElementById('dca-ultimo-lbl');
+  const dlt=document.getElementById('dca-delta');
+  if(bv) bv.textContent=base>0?'$'+base.toLocaleString('en-US',{maximumFractionDigits:0}):'—';
   if(bi&&!bi.matches(':focus')&&base>0) bi.value=base;
-
-  // Lista mes a mes
+  if(ulv) ulv.textContent=ultimoVal>0?'$'+ultimoVal.toLocaleString('en-US',{maximumFractionDigits:0}):'—';
+  if(ull) ull.textContent=ultimoMes||'sin registros aún';
+  if(dlt){
+    if(dcaAcum>0){ dlt.textContent='+$'+dcaAcum.toLocaleString('en-US',{maximumFractionDigits:0})+' aportado'; dlt.style.color='var(--gr)'; }
+    else { dlt.textContent='—'; }
+  }
   const listEl=document.getElementById('dca-hist-list');
-  if(!listEl)return;
-  if(dcaMeses.length===0){
-    listEl.innerHTML='<div style="font-family:monospace;font-size:9px;color:var(--mu2)">Los meses desde abril aparecen aqui al cerrarlos</div>';
+  if(!listEl) return;
+  if(!mesKeys.length){
+    listEl.innerHTML='<div style="font-family:monospace;font-size:9px;color:var(--mu2);padding:8px 0">Registra el primer mes para ver el historial</div>';
     return;
   }
-  // Ordenar cronológicamente
-  const mOrd=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-  dcaMeses.sort((a,b)=>mOrd.indexOf(a.mes.slice(0,3))-mOrd.indexOf(b.mes.slice(0,3)));
-  let acum=base;
-  listEl.innerHTML=dcaMeses.map(h=>{
-    acum+=h.invUSD||0;
+  let prev=base;
+  listEl.innerHTML=mesKeys.map(mes=>{
+    const val=parseFloat(meses[mes])||0;
+    const delta=val-prev;
+    const deltaStr=delta>=0?'+$'+delta.toLocaleString('en-US',{maximumFractionDigits:0}):'−$'+Math.abs(delta).toLocaleString('en-US',{maximumFractionDigits:0});
+    const deltaCol=delta>=0?'var(--gr)':'var(--rd)';
+    prev=val;
     return `<div style="display:flex;justify-content:space-between;align-items:center;
-      padding:4px 0;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:10px">
-      <span style="color:var(--mu)">${h.mes}</span>
-      <span>
-        <span style="color:var(--go)">+$${(h.invUSD||0).toFixed(0)}</span>
-        <span style="color:var(--mu2);margin-left:8px">→ $${acum.toLocaleString('en-US',{maximumFractionDigits:0})}</span>
-      </span>
+      padding:6px 0;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:10px">
+      <span style="color:var(--mu);min-width:70px">${mes}</span>
+      <span style="color:${deltaCol};min-width:70px;text-align:center">${deltaStr}</span>
+      <span style="color:var(--tx);font-weight:700;text-align:right">$${val.toLocaleString('en-US',{maximumFractionDigits:0})}</span>
+      <span onclick="deleteDCAMes('${mes}')" style="color:var(--mu2);cursor:pointer;margin-left:10px;font-size:11px;padding:2px 5px;border-radius:3px;background:var(--s3)">✕</span>
     </div>`;
   }).join('');
 }
-
-
-// ── GOOGLE DRIVE SYNC ────────────────────────────────────────────
-const DRIVE_CLIENT_ID = '625753563994-ckkovl3isvbmajduferhvhcf4qr3lqsc.apps.googleusercontent.com';
-const DRIVE_SCOPE     = 'https://www.googleapis.com/auth/drive.appdata';
-const DRIVE_FILENAME  = 'budget_gt_data.json';
-let   driveToken      = null;
-
-function driveMsg(txt, type='ok'){
-  const el=document.getElementById('drive-msg');
-  if(!el)return;
-  el.textContent=txt; el.className=type; el.style.display='inline-block';
-  setTimeout(()=>el.style.display='none', 3500);
-}
-
-function driveAuth(callback){
-  if(driveToken){ callback(driveToken); return; }
-  google.accounts.oauth2.initTokenClient({
-    client_id: DRIVE_CLIENT_ID,
-    scope:      DRIVE_SCOPE,
-    callback:   (resp)=>{
-      if(resp.error){ driveMsg('Error de autenticación: '+resp.error,'err'); return; }
-      driveToken=resp.access_token;
-      callback(driveToken);
-    }
-  }).requestAccessToken();
-}
-
-async function driveSave(){
-  driveMsg('Guardando...','ok');
-  driveAuth(async(token)=>{
-    try{
-      const data = JSON.stringify(JSON.parse(localStorage.getItem(LS)||'{}'), null, 2);
-      // Buscar archivo existente
-      const search = await fetch(
-        `https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name='${DRIVE_FILENAME}'&fields=files(id)`,
-        {headers:{Authorization:'Bearer '+token}}
-      );
-      const found = await search.json();
-      const fileId = found.files?.[0]?.id;
-
-      const meta = JSON.stringify({name:DRIVE_FILENAME, parents:fileId?undefined:['appDataFolder']});
-      const form = new FormData();
-      form.append('metadata', new Blob([meta],{type:'application/json'}));
-      form.append('file',     new Blob([data],{type:'application/json'}));
-
-      const url = fileId
-        ? `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart`
-        : `https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart`;
-      const method = fileId ? 'PATCH' : 'POST';
-
-      const res = await fetch(url, {method, headers:{Authorization:'Bearer '+token}, body:form});
-      if(!res.ok) throw new Error(await res.text());
-      driveMsg('✅ Guardado en Drive','ok');
-    } catch(e){
-      driveToken=null;
-      driveMsg('Error al guardar: '+e.message,'err');
-    }
-  });
-}
-
-async function driveLoad(){
-  driveMsg('Cargando desde Drive...','ok');
-  driveAuth(async(token)=>{
-    try{
-      const search = await fetch(
-        `https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name='${DRIVE_FILENAME}'&fields=files(id)`,
-        {headers:{Authorization:'Bearer '+token}}
-      );
-      const found = await search.json();
-      const fileId = found.files?.[0]?.id;
-      if(!fileId){ driveMsg('No se encontró backup en Drive','err'); return; }
-
-      const res  = await fetch(
-        `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
-        {headers:{Authorization:'Bearer '+token}}
-      );
-      if(!res.ok) throw new Error(await res.text());
-      const data = await res.json();
-
-      // Resetear arrays globales para evitar que data anterior persista
-      // si el JSON descargado no contiene esas keys
-      REIMB_ITEMS = [];
-      GASTO_ITEMS = [];
-      SNAPSHOTS = [];
-      localStorage.setItem(LS, JSON.stringify(data));
-      driveMsg('✅ Datos cargados desde Drive','ok');
-
-      // Refrescar todo el estado (mismo flujo que init)
-      setTimeout(()=>{
-        loadSaved();
-        loadReimbGasto();
-        recalc();
-        renderStats();
-        renderDCA();
-        renderFijosList();
-        renderSubsEnt();
-        renderReimb();
-        autoSnapshotIfNewMonth();
-        renderSnap();
-      }, 400);
-    } catch(e){
-      driveToken=null;
-      driveMsg('Error al cargar: '+e.message,'err');
-    }
-  });
-}
-
-// ── GASTOS FIJOS COLAPSABLE ───────────────────────────────────────
-var _fijosOpen = false;
-
-// Toggle para distribución estimada Lulubit (colapsable)
-var _luluEstOpen = false;
-function toggleLuluEst(){
-  _luluEstOpen = !_luluEstOpen;
-  var body = document.getElementById('lulu-est-body');
-  var ico  = document.getElementById('lulu-est-ico');
-  if(!body||!ico) return;
-  if(_luluEstOpen){
-    body.style.display='block';
-    ico.style.transform='rotate(180deg)';
-  } else {
-    body.style.display='none';
-    ico.style.transform='rotate(0deg)';
-  }
-}
-
-// Toggle para stats + abonos extra de hipoteca (colapsable)
-var _hipDetOpen = false;
-function toggleHipDet(){
-  _hipDetOpen = !_hipDetOpen;
-  var body = document.getElementById('hip-det-body');
-  var ico  = document.getElementById('hip-det-ico');
-  if(!body||!ico) return;
-  if(_hipDetOpen){
-    body.style.display='block';
-    ico.style.transform='rotate(180deg)';
-  } else {
-    body.style.display='none';
-    ico.style.transform='rotate(0deg)';
-  }
-}
-
-// Toggle para detalle DCA tracker (colapsable)
-var _dcaDetOpen = false;
 function toggleDcaDet(){
   _dcaDetOpen = !_dcaDetOpen;
   var body = document.getElementById('dca-det-body');

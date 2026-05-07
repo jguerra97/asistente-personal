@@ -239,6 +239,46 @@ td:first-child{text-align:left;}
 .io-btn.home{background:var(--s2);border-color:var(--bd2);color:var(--mu);
   text-decoration:none;width:auto;flex:0 0 auto;}
 .io-btn.home:hover{color:var(--tx);border-color:var(--mu);}
+
+/* ── GROWTH BARS ── */
+.growth-panel{background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:14px 16px;margin-bottom:4px;}
+.growth-title{font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px;}
+.growth-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.growth-row:last-child{margin-bottom:0;}
+.growth-tick{font-family:'Syne',sans-serif;font-size:11px;font-weight:700;width:54px;flex-shrink:0;}
+.growth-bar-wrap{flex:1;background:var(--s3);border-radius:3px;height:7px;overflow:hidden;position:relative;}
+.growth-bar-fill{height:100%;border-radius:3px;transition:width 1s cubic-bezier(.4,0,.2,1);}
+.growth-pct{font-family:'DM Mono',monospace;font-size:10px;width:52px;text-align:right;flex-shrink:0;}
+.growth-val{font-family:'DM Mono',monospace;font-size:10px;color:var(--mu);width:58px;text-align:right;flex-shrink:0;}
+
+/* ── META PROGRESS VISUAL ── */
+.meta-visual{background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:14px 16px;margin-bottom:16px;}
+.meta-visual-hdr{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:10px;}
+.meta-visual-title{font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);letter-spacing:.1em;text-transform:uppercase;}
+.meta-visual-pct{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--gr);letter-spacing:-1px;}
+.meta-visual-sub{font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);margin-top:1px;}
+.meta-big-bar{background:var(--s3);border-radius:6px;height:12px;overflow:hidden;margin-bottom:8px;position:relative;}
+.meta-big-fill{height:100%;border-radius:6px;background:linear-gradient(90deg,#34d07a,#3db8f5);transition:width 1.2s cubic-bezier(.4,0,.2,1);position:relative;}
+.meta-big-fill::after{content:'';position:absolute;top:0;right:0;bottom:0;width:40px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.15));}
+.meta-milestones{display:flex;justify-content:space-between;margin-bottom:12px;}
+.meta-ms{font-family:'DM Mono',monospace;font-size:8px;color:var(--mu2);}
+.meta-ms.active{color:var(--gr);}
+.meta-stats-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+.meta-stat{background:var(--s2);border:1px solid var(--bd);border-radius:6px;padding:8px 10px;}
+.meta-stat label{font-family:'DM Mono',monospace;font-size:8px;color:var(--mu);letter-spacing:.08em;text-transform:uppercase;display:block;margin-bottom:3px;}
+.meta-stat .val{font-family:'Syne',sans-serif;font-size:13px;font-weight:800;}
+
+/* ── PORTFOLIO TREND CHART ── */
+.trend-panel{background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:14px 16px;margin-bottom:4px;}
+.trend-hdr{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:12px;}
+.trend-title{font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);letter-spacing:.1em;text-transform:uppercase;}
+.trend-current{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;letter-spacing:-0.5px;}
+.trend-change{font-family:'DM Mono',monospace;font-size:10px;margin-top:2px;}
+.trend-svg-wrap{width:100%;height:90px;position:relative;}
+.trend-svg-wrap svg{width:100%;height:100%;}
+.trend-labels{display:flex;justify-content:space-between;margin-top:4px;}
+.trend-lbl{font-family:'DM Mono',monospace;font-size:8px;color:var(--mu2);}
+.trend-empty{font-family:'DM Mono',monospace;font-size:10px;color:var(--mu);text-align:center;padding:28px 0;}
 </style>
 </head>
 <body>
@@ -268,6 +308,60 @@ td:first-child{text-align:left;}
   <div class="sc"><label>Total Invertido</label><div class="sv" id="sc2">—</div><div class="ss">costo de entrada</div></div>
   <div class="sc"><label>P&L Total</label><div class="sv" id="spnl">—</div><div class="ss" id="spp">—</div></div>
   <div class="sc"><label>Cambio 24h</label><div class="sv" id="s24">—</div><div class="ss">activos live</div></div>
+</div>
+
+<!-- CRECIMIENTO POR ACTIVO + META VISUAL -->
+<div class="meta-visual" id="meta-visual-panel">
+  <div class="meta-visual-hdr">
+    <div>
+      <div class="meta-visual-title">Progreso hacia meta $88K</div>
+      <div class="meta-visual-sub" id="mv-sub">calculando...</div>
+    </div>
+    <div style="text-align:right">
+      <div class="meta-visual-pct" id="mv-pct">—%</div>
+      <div class="meta-visual-sub" id="mv-rem">faltan $—</div>
+    </div>
+  </div>
+  <div class="meta-big-bar">
+    <div class="meta-big-fill" id="mv-bar" style="width:0%"></div>
+  </div>
+  <div class="meta-milestones">
+    <span class="meta-ms" id="ms0">$0</span>
+    <span class="meta-ms" id="ms25">$22K</span>
+    <span class="meta-ms" id="ms50">$44K</span>
+    <span class="meta-ms" id="ms75">$66K</span>
+    <span class="meta-ms">$88K 🎯</span>
+  </div>
+  <div class="meta-stats-row">
+    <div class="meta-stat"><label>Sin BTC</label><div class="val" id="mv-nobtc" style="color:var(--ac)">—</div></div>
+    <div class="meta-stat"><label>Proyectado</label><div class="val" id="mv-proj" style="color:var(--gr)">—</div></div>
+    <div class="meta-stat"><label>Faltan</label><div class="val" id="mv-need" style="color:var(--go)">—</div></div>
+  </div>
+</div>
+
+<div class="growth-panel" id="growth-panel">
+  <div class="growth-title">Crecimiento por activo · desde entrada</div>
+  <div id="growth-rows"><!-- JS --></div>
+</div>
+
+
+
+<!-- TREND CHART -->
+<div class="trend-panel" id="trend-panel">
+  <div class="trend-hdr">
+    <div>
+      <div class="trend-title">Tendencia del portafolio</div>
+      <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu2);margin-top:2px" id="trend-range">— puntos</div>
+    </div>
+    <div style="text-align:right">
+      <div class="trend-current" id="trend-cur">—</div>
+      <div class="trend-change" id="trend-chg">vs inicio —</div>
+    </div>
+  </div>
+  <div class="trend-svg-wrap" id="trend-svg-wrap">
+    <div class="trend-empty" id="trend-empty">Acumulando datos... primer snapshot al refrescar precios</div>
+  </div>
+  <div class="trend-labels" id="trend-labels"></div>
 </div>
 
 <!-- CAPA 1 -->
@@ -514,6 +608,216 @@ function mkCard(a,price,chg,isL2){
 }
 
 // ── BROKER ───────────────────────────────────────────────────────
+
+
+// ── PORTFOLIO TREND CHART ──────────────────────────────────────
+const SNAP_KEY = 'portfolio-snapshots';
+const SNAP_MAX = 365;
+const SNAP_MIN_INTERVAL_MS = 60 * 60 * 1000; // 1 hora mínimo entre snapshots
+
+async function saveSnapshot(totalValue){
+  if(!totalValue || isNaN(totalValue) || totalValue <= 0) return;
+  if(typeof window.storage === 'undefined' || !window.storage) return; // Solo funciona en claude.ai artifacts
+  try {
+    let snapshots = [];
+    try {
+      const r = await window.storage.get(SNAP_KEY);
+      if(r && r.value) snapshots = JSON.parse(r.value);
+    } catch(e){ snapshots = []; }
+
+    const now = Date.now();
+    // Evitar duplicados — mínimo 1 hora entre snapshots
+    if(snapshots.length > 0){
+      const last = snapshots[snapshots.length - 1];
+      if(now - last.t < SNAP_MIN_INTERVAL_MS) return;
+    }
+
+    // Agregar nuevo snapshot
+    snapshots.push({ t: now, v: Math.round(totalValue) });
+
+    // Sliding window — máximo SNAP_MAX puntos
+    if(snapshots.length > SNAP_MAX) snapshots = snapshots.slice(-SNAP_MAX);
+
+    await window.storage.set(SNAP_KEY, JSON.stringify(snapshots));
+  } catch(e){ console.log('Snapshot error:', e); }
+}
+
+async function renderTrendChart(){
+  const wrap = document.getElementById('trend-svg-wrap');
+  const empty = document.getElementById('trend-empty');
+  const rangeEl = document.getElementById('trend-range');
+  const curEl = document.getElementById('trend-cur');
+  const chgEl = document.getElementById('trend-chg');
+  const labelsEl = document.getElementById('trend-labels');
+  if(!wrap) return;
+
+  if(typeof window.storage === 'undefined' || !window.storage){
+    if(empty) { empty.textContent = 'Gráfica disponible en claude.ai'; empty.style.display='block'; }
+    return;
+  }
+  let snapshots = [];
+  try {
+    const r = await window.storage.get(SNAP_KEY);
+    if(r && r.value) snapshots = JSON.parse(r.value);
+  } catch(e){ snapshots = []; }
+
+  if(snapshots.length < 2){
+    if(empty) empty.style.display = 'block';
+    return;
+  }
+
+  if(empty) empty.style.display = 'none';
+
+  const vals = snapshots.map(s => s.v);
+  const times = snapshots.map(s => s.t);
+  const minV = Math.min(...vals);
+  const maxV = Math.max(...vals);
+  const rangeV = maxV - minV || 1;
+  const W = 400; const H = 80; const PAD = 4;
+
+  // Calcular puntos SVG
+  const points = vals.map((v, i) => {
+    const x = PAD + (i / (vals.length - 1)) * (W - PAD * 2);
+    const y = H - PAD - ((v - minV) / rangeV) * (H - PAD * 2);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  });
+
+  // Color según tendencia
+  const first = vals[0];
+  const last = vals[vals.length - 1];
+  const trending = last >= first;
+  const lineCol = trending ? '#34d07a' : '#f25c5c';
+  const gradCol = trending ? '52,208,122' : '242,92,92';
+
+  // Área bajo la curva (fill)
+  const areaPoints = points.join(' ') + 
+    ` ${(W-PAD).toFixed(1)},${H} ${PAD},${H}`;
+
+  const svg = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+    <defs>
+      <linearGradient id="tg" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="rgb(${gradCol})" stop-opacity="0.25"/>
+        <stop offset="100%" stop-color="rgb(${gradCol})" stop-opacity="0.02"/>
+      </linearGradient>
+    </defs>
+    <polygon points="${areaPoints}" fill="url(#tg)"/>
+    <polyline points="${points.join(' ')}" fill="none" stroke="${lineCol}" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>
+    <circle cx="${points[points.length-1].split(',')[0]}" cy="${points[points.length-1].split(',')[1]}" r="3" fill="${lineCol}"/>
+  </svg>`;
+
+  wrap.innerHTML = svg;
+
+  // Stats
+  const pctChg = ((last - first) / first * 100);
+  if(curEl) curEl.textContent = '$' + last.toLocaleString('en-US');
+  if(curEl) curEl.style.color = trending ? 'var(--gr)' : 'var(--rd)';
+  if(chgEl){
+    chgEl.textContent = (pctChg >= 0 ? '+' : '') + pctChg.toFixed(1) + '% vs inicio';
+    chgEl.style.color = trending ? 'var(--gr)' : 'var(--rd)';
+  }
+  if(rangeEl) rangeEl.textContent = snapshots.length + ' puntos · ' + 
+    new Date(times[0]).toLocaleDateString('es-GT') + ' → hoy';
+
+  // Labels de fecha (inicio, medio, fin)
+  if(labelsEl && snapshots.length >= 2){
+    const mid = snapshots[Math.floor(snapshots.length/2)];
+    labelsEl.innerHTML = `
+      <span class="trend-lbl">${new Date(times[0]).toLocaleDateString('es-GT',{month:'short',day:'numeric'})}</span>
+      <span class="trend-lbl">${new Date(mid.t).toLocaleDateString('es-GT',{month:'short',day:'numeric'})}</span>
+      <span class="trend-lbl">hoy</span>`;
+  }
+}
+
+// ── CRECIMIENTO POR ACTIVO ──────────────────────────────────────
+function renderGrowth(_tot){
+  const allA = [...L1,...L2,...BROKER];
+  const rows = allA
+    .filter(a => a.price > 0 && a.entry > 0 && a.qty > 0)
+    .map(a => {
+      const pnlPct = ((a.price - a.entry) / a.entry) * 100;
+      const val = a.price * a.qty;
+      return { tick:a.tick, pnlPct, val, col:a.col||'#3db8f5' };
+    })
+    .sort((a,b) => b.pnlPct - a.pnlPct);
+
+  const maxAbs = Math.max(...rows.map(r => Math.abs(r.pnlPct)), 1);
+
+  const html = rows.map(r => {
+    const pos = r.pnlPct >= 0;
+    const barW = Math.min(Math.abs(r.pnlPct) / maxAbs * 100, 100);
+    const col = pos ? r.col : 'var(--rd)';
+    const sign = pos ? '+' : '';
+    return `<div class="growth-row">
+      <div class="growth-tick" style="color:${r.col}">${r.tick}</div>
+      <div class="growth-bar-wrap">
+        <div class="growth-bar-fill" style="width:${barW}%;background:${col};opacity:0.85"></div>
+      </div>
+      <div class="growth-pct" style="color:${pos?'var(--gr)':'var(--rd)'}">${sign}${r.pnlPct.toFixed(1)}%</div>
+      <div class="growth-val">$${r.val.toLocaleString('en-US',{maximumFractionDigits:0})}</div>
+    </div>`;
+  }).join('');
+
+  const el = document.getElementById('growth-rows');
+  if(el) el.innerHTML = html;
+}
+
+// ── META VISUAL PANEL ───────────────────────────────────────────
+function renderMetaVisual(totalPortfolio){
+  const META = 88000;
+  const btcAsset = BROKER.find(a => a.tick === 'BTC');
+  const btcVal = btcAsset ? btcAsset.price * btcAsset.qty : 0;
+
+  // Total sin BTC — usar total ya calculado menos BTC
+  const nobtc = (totalPortfolio || 0) - btcVal;
+  if(!nobtc || isNaN(nobtc)) return; // Guard: no renderizar si datos no están listos
+
+  // Proyección (de PROY_AVG si está disponible)
+  let proj = 0;
+  try {
+    const allA = [...L1,...L2,...BROKER.filter(a=>a.tick!=='BTC')];
+    Object.keys(PROY_TRANCHES).forEach(tick => {
+      const a = allA.find(x=>x.tick===tick);
+      if(!a) return;
+      const t = PROY_TRANCHES[tick];
+      const base = t.t1.pct*t.t1.px + t.t2.pct*t.t2.px + t.t3.pct*t.t3.px;
+      const moonVal = t.moon ? t.moon.pct*t.moon.px : 0;
+      const trailVal = t.trailing ? t.trailing.pct*t.trailing.px : 0;
+      const avgPx = (base + moonVal + trailVal) / 100;
+      proj += a.qty * avgPx;
+    });
+    // BTC 10% en peak
+    if(btcAsset) proj += btcAsset.qty * 0.10 * 250000;
+  } catch(e){ proj = 0; }
+
+  const pct = Math.min((nobtc / META) * 100, 100);
+  const need = Math.max(META - nobtc, 0);
+
+  // Update DOM
+  const mvPct = document.getElementById('mv-pct');
+  const mvBar = document.getElementById('mv-bar');
+  const mvRem = document.getElementById('mv-rem');
+  const mvSub = document.getElementById('mv-sub');
+  const mvNobtc = document.getElementById('mv-nobtc');
+  const mvProj = document.getElementById('mv-proj');
+  const mvNeed = document.getElementById('mv-need');
+
+  if(mvPct) mvPct.textContent = pct.toFixed(1) + '%';
+  if(mvBar) mvBar.style.width = pct + '%';
+  if(mvRem) mvRem.textContent = 'faltan $' + need.toLocaleString('en-US',{maximumFractionDigits:0});
+  if(mvSub) mvSub.textContent = 'portafolio operativo sin BTC colchón';
+  if(mvNobtc) mvNobtc.textContent = '$' + nobtc.toLocaleString('en-US',{maximumFractionDigits:0});
+  if(mvProj) mvProj.textContent = proj > 0 ? '$' + proj.toLocaleString('en-US',{maximumFractionDigits:0}) : '—';
+  if(mvNeed) mvNeed.textContent = '$' + need.toLocaleString('en-US',{maximumFractionDigits:0});
+
+  // Milestones
+  const ms25 = document.getElementById('ms25');
+  const ms50 = document.getElementById('ms50');
+  const ms75 = document.getElementById('ms75');
+  if(ms25) ms25.className = 'meta-ms' + (nobtc >= 22000 ? ' active' : '');
+  if(ms50) ms50.className = 'meta-ms' + (nobtc >= 44000 ? ' active' : '');
+  if(ms75) ms75.className = 'meta-ms' + (nobtc >= 66000 ? ' active' : '');
+}
+
 function renderBroker(){
   document.getElementById('broker-grid').innerHTML=BROKER.map(a=>{
     const val=a.price*a.qty,cst=a.entry*a.qty,pnl=val-cst,pp=(pnl/cst)*100;
@@ -725,6 +1029,10 @@ async function load(){
   renderDist();
   renderAcc();
   updateProySummary();
+  renderGrowth(tot);
+  renderMetaVisual(tot);
+  saveSnapshot(tot);
+  renderTrendChart();
   if(_proyOpen) renderProy();
 }
 function onQC(tick,val){const v=parseFloat(val);if(isNaN(v)||v<0)return;const a=[...L1,...L2].find(x=>x.tick===tick);if(a){a.qty=v;svS(tick,'qty',v);load();}}

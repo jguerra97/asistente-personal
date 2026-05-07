@@ -1252,14 +1252,18 @@ function descargarResumen(){
       <div style="font-size:10px;color:#718096;margin-top:2px">${top3Names}</div>
     </div>
     <div style="background:#f7f9ff;border:1px solid #e2e8f7;border-radius:8px;padding:12px 14px">
-      <div style="font-size:9px;color:#a0aec0;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Indice Herfindahl</div>
-      <div style="font-size:20px;font-weight:800;color:${concentrationColor};letter-spacing:-.5px">${herfindahl.toFixed(0)}</div>
-      <div style="font-size:10px;color:${concentrationColor};margin-top:2px">${concentrationLabel}</div>
+      <div style="font-size:9px;color:#a0aec0;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Ritmo actual</div>
+      <div style="font-size:20px;font-weight:800;color:#7c3aed;letter-spacing:-.5px">${(()=>{
+        const monthly=550,bonus=1703*2,target=88000;
+        function mTo(r){let v=tot,m=0;const mr=r/12;while(v<target&&m<120){v=v*(1+mr)+monthly;if(m%12===3||m%12===8)v+=bonus/2;m++;}return m;}
+        const mMod=mTo(0.60);
+        const d=new Date(2026,3,7);d.setMonth(d.getMonth()+mMod);
+        return d.toLocaleDateString('es-GT',{month:'short',year:'numeric'});
+      })()}</div>
+      <div style="font-size:10px;color:#6b7280;margin-top:2px">escenario moderado 60%/año</div>
     </div>
   </div>
-  <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:8px 12px;font-size:9px;color:#6b7280;line-height:1.5">
-    HHI &lt;1500 diversificado · 1500-2500 moderado · &gt;2500 concentrado.
-  </div>
+
 </div>
 
 <div class="sec">
@@ -1279,7 +1283,7 @@ function descargarResumen(){
       <div style="height:100%;width:${proyBarWidth}%;background:${proyBarColor};border-radius:5px"></div>
     </div>
     <div style="font-size:10px;color:#6b7280;margin-top:8px;line-height:1.5">
-      ${proyPctMeta < 100 ? `Falta capturar <strong style="color:${proyBarColor}">${fm2(proyFalta)}</strong> · cubierto por DCA mensual + ejecución del cycle.` : 'Meta cubierta solo con tokens actuales en zonas TA.'}
+      ${proyPctMeta < 100 ? `Faltan <strong style="color:${proyBarColor}">${fm2(proyFalta)}</strong> para la meta — la diferencia la cubre el DCA y la apreciación del ciclo.` : 'Meta cubierta con los tokens actuales en sus precios objetivo.'}
     </div>
   </div>
   <table>

@@ -1449,17 +1449,17 @@ function descargarResumen(){
   const slope=nn>1?(nn*sumXY-sumX*sumY)/(nn*sumX2-sumX*sumX):0;
 
   const dcaBase=parseFloat(stor.dcaBase)||0;
-  const MESES_BASE_R=['Ene 2026','Feb 2026','Mar 2026'];
-  // Incluir meses cerrados (tracked) + mes actual si tiene datos aunque no esté cerrado
-  const mesActualR = MNOMBRES[(ST.mes||4)] + ' ' + (ST.anio||2026);
-  const dcaMeses = hist.filter(h => {
-    if(MESES_BASE_R.includes(h.mes)) return false;
-    if(h.tracked) return true;
-    if(h.mes === mesActualR && (h.q1 > 0 || h.q2 > 0)) return true;
-    return false;
+  const dcaMesesObj=stor.dcaMeses||{};
+  const mOrdDCA2=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  const dcaMesesKeys2=Object.keys(dcaMesesObj).sort((a,b)=>{
+    const ya=parseInt(a.slice(-4))||2026,ma=mOrdDCA2.indexOf(a.slice(0,3));
+    const yb=parseInt(b.slice(-4))||2026,mb=mOrdDCA2.indexOf(b.slice(0,3));
+    return ya!==yb?ya-yb:ma-mb;
   });
-  const dcaAcum=dcaMeses.reduce((s,h)=>s+(h.invUSD||0),0);
-  const dcaTotal=dcaBase+dcaAcum;
+  const dcaUltimoMes=dcaMesesKeys2[dcaMesesKeys2.length-1]||'—';
+  const dcaUltimoVal=dcaUltimoMes!=='—'?(parseFloat(dcaMesesObj[dcaUltimoMes])||0):0;
+  const dcaAcum=Math.max(dcaUltimoVal-dcaBase,0);
+  const dcaTotal=dcaUltimoVal>0?dcaUltimoVal:dcaBase;
 
   // ── Comparativa mes anterior ──
   const mesActualKey = mOrdR[ST.mes-1] + ' ' + (ST.anio||2026);
@@ -1532,17 +1532,10 @@ function descargarResumen(){
       <td style="${S.td}">${h.total>0?((h.exc/h.total)*100).toFixed(0)+'%':'—'}</td>
     </tr>`).join('');
 
-  let dcaAcumRun=dcaBase;
-  const dcaRows=dcaMeses.map(h=>{
-    dcaAcumRun+=(h.invUSD||0);
-    return `<tr>
-      <td style="${S.td}">${h.mes}</td>
-      <td style="${S.td}color:#059669">+$${(h.invUSD||0).toFixed(0)}</td>
-      <td style="${S.td}font-weight:700">$${dcaAcumRun.toLocaleString('en-US',{maximumFractionDigits:0})}</td>
-    </tr>`;
-  }).join('');
+  // dcaRows ya no se usa — la tabla de inversión se genera en el IIFE de inversión
+  const dcaRows = null;
 
-  const out='<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">'
+  let out='<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">'
     +'<meta name="viewport" content="width=device-width,initial-scale=1">'
     +'<title>Perfil Financiero · '+mes+'</title></head>'
     +'<body style="margin:0;padding:0;background:#f5f6fa;">'
@@ -1676,7 +1669,7 @@ function descargarResumen(){
         prevP=v;
         return '<tr><td style="'+S.td+'">'+m+'</td><td style="'+S.td+'color:'+dc+';font-weight:600">'+ds+'</td><td style="'+S.td+'font-weight:700">$'+v.toLocaleString('en-US',{maximumFractionDigits:0})+'</td></tr>';
       }).join('');
-      html+='<div style="'+S.sec+'">'
+      out+='<div style="'+S.sec+'">'
         +'<span style="'+S.sectl+'">Inversión en portafolio · costo base</span>'
         +'<div style="'+S.cards+'">'
           +'<div style="'+S.card+'"><span style="'+S.clbl+'">Capital inicial</span>'

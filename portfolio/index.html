@@ -310,35 +310,7 @@ td:first-child{text-align:left;}
   <div class="sc"><label>Cambio 24h</label><div class="sv" id="s24">—</div><div class="ss">activos live</div></div>
 </div>
 
-<!-- CRECIMIENTO POR ACTIVO + META VISUAL -->
-<div class="meta-visual" id="meta-visual-panel">
-  <div class="meta-visual-hdr">
-    <div>
-      <div class="meta-visual-title">Progreso hacia meta $88K</div>
-      <div class="meta-visual-sub" id="mv-sub">calculando...</div>
-    </div>
-    <div style="text-align:right">
-      <div class="meta-visual-pct" id="mv-pct">—%</div>
-      <div class="meta-visual-sub" id="mv-rem">faltan $—</div>
-    </div>
-  </div>
-  <div class="meta-big-bar">
-    <div class="meta-big-fill" id="mv-bar" style="width:0%"></div>
-  </div>
-  <div class="meta-milestones">
-    <span class="meta-ms" id="ms0">$0</span>
-    <span class="meta-ms" id="ms25">$22K</span>
-    <span class="meta-ms" id="ms50">$44K</span>
-    <span class="meta-ms" id="ms75">$66K</span>
-    <span class="meta-ms">$88K 🎯</span>
-  </div>
-  <div class="meta-stats-row">
-    <div class="meta-stat"><label>Sin BTC</label><div class="val" id="mv-nobtc" style="color:var(--ac)">—</div></div>
-    <div class="meta-stat"><label>Proyectado</label><div class="val" id="mv-proj" style="color:var(--gr)">—</div></div>
-    <div class="meta-stat"><label>Faltan</label><div class="val" id="mv-need" style="color:var(--go)">—</div></div>
-  </div>
-</div>
-
+<!-- CRECIMIENTO POR ACTIVO -->
 <div class="growth-panel" id="growth-panel">
   <div class="growth-title">Crecimiento por activo · desde entrada</div>
   <div id="growth-rows"><!-- JS --></div>
@@ -415,6 +387,11 @@ td:first-child{text-align:left;}
   <div class="pbar-marks"><span class="pm">$0</span><span class="pm">$22K</span><span class="pm">$44K</span><span class="pm">$66K</span><span class="pm">$88K</span></div>
   <div class="ms-grid" id="ms-grid"></div>
   <div class="scen-grid" id="scen-grid"></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:10px">
+    <div style="background:var(--s2);border-radius:6px;padding:7px 9px;text-align:center"><div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu);text-transform:uppercase;margin-bottom:2px">Sin BTC</div><div style="font-family:'Syne',sans-serif;font-size:12px;font-weight:800;color:var(--ac)" id="mv-nobtc">—</div></div>
+    <div style="background:var(--s2);border-radius:6px;padding:7px 9px;text-align:center"><div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu);text-transform:uppercase;margin-bottom:2px">Proyectado</div><div style="font-family:'Syne',sans-serif;font-size:12px;font-weight:800;color:var(--gr)" id="mv-proj">—</div></div>
+    <div style="background:var(--s2);border-radius:6px;padding:7px 9px;text-align:center"><div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu);text-transform:uppercase;margin-bottom:2px">Faltan</div><div style="font-family:'Syne',sans-serif;font-size:12px;font-weight:800;color:var(--go)" id="mv-need">—</div></div>
+  </div>
 </div>
 
 <!-- TOKENS OBJETIVO PARA META $88K (COLAPSABLE) -->
@@ -612,61 +589,26 @@ function mkCard(a,price,chg,isL2){
 
 // ── PORTFOLIO TREND CHART ──────────────────────────────────────
 
-// ── STORAGE ABSTRACTION (claude.ai artifacts + navegador externo) ──
-const AppStorage = {
-  async get(key){
-    try {
-      if(typeof window.storage !== 'undefined' && window.storage){
-        const r = await window.storage.get(key);
-        return r ? r.value : null;
-      } else {
-        return localStorage.getItem(key);
-      }
-    } catch(e){ return localStorage.getItem(key); }
-  },
-  async set(key, value){
-    try {
-      if(typeof window.storage !== 'undefined' && window.storage){
-        await window.storage.set(key, value);
-      } else {
-        localStorage.setItem(key, value);
-      }
-    } catch(e){ 
-      try { localStorage.setItem(key, value); } catch(e2){}
-    }
-  }
-};
-
-const SNAP_KEY = 'portfolio-snapshots';
 const SNAP_MAX = 365;
 const SNAP_MIN_INTERVAL_MS = 1 * 60 * 1000; // 1 minuto para pruebas — cambiar a 60*60*1000 cuando funcione
 
 async function saveSnapshot(totalValue){
   if(!totalValue || isNaN(totalValue) || totalValue <= 0) return;
   try {
-    let snapshots = [];
-    try {
-      const r = await AppStorage.get(SNAP_KEY);
-      if(r && r.value) snapshots = JSON.parse(r.value);
-    } catch(e){ snapshots = []; }
-
+    const d = ldS();
+    let snapshots = Array.isArray(d.snapshots) ? d.snapshots : [];
     const now = Date.now();
-    // Evitar duplicados — mínimo 1 hora entre snapshots
     if(snapshots.length > 0){
-      const last = snapshots[snapshots.length - 1];
+      const last = snapshots[snapshots.length-1];
       if(now - last.t < SNAP_MIN_INTERVAL_MS) return;
     }
-
-    // Agregar nuevo snapshot
     snapshots.push({ t: now, v: Math.round(totalValue) });
-
-    // Sliding window — máximo SNAP_MAX puntos
     if(snapshots.length > SNAP_MAX) snapshots = snapshots.slice(-SNAP_MAX);
-
-    await AppStorage.set(SNAP_KEY, JSON.stringify(snapshots));
+    const full = ldS();
+    full.snapshots = snapshots;
+    localStorage.setItem(LS, JSON.stringify(full));
   } catch(e){ console.log('Snapshot error:', e); }
 }
-
 async function renderTrendChart(){
   const wrap = document.getElementById('trend-svg-wrap');
   const empty = document.getElementById('trend-empty');
@@ -678,8 +620,8 @@ async function renderTrendChart(){
 
   let snapshots = [];
   try {
-    const raw = await AppStorage.get(SNAP_KEY);
-    if(raw) snapshots = JSON.parse(raw);
+    const d = ldS();
+    snapshots = Array.isArray(d.snapshots) ? d.snapshots : [];
   } catch(e){ snapshots = []; }
 
   if(snapshots.length < 2){
@@ -783,61 +725,6 @@ function renderGrowth(_tot){
 }
 
 // ── META VISUAL PANEL ───────────────────────────────────────────
-function renderMetaVisual(totalPortfolio){
-  const META = 88000;
-  const btcAsset = BROKER.find(a => a.tick === 'BTC');
-  const btcVal = btcAsset ? btcAsset.price * btcAsset.qty : 0;
-
-  // Total sin BTC — usar total ya calculado menos BTC
-  const nobtc = (totalPortfolio || 0) - btcVal;
-  if(!nobtc || isNaN(nobtc)) return; // Guard: no renderizar si datos no están listos
-
-  // Proyección (de PROY_AVG si está disponible)
-  let proj = 0;
-  try {
-    const allA = [...L1,...L2,...BROKER.filter(a=>a.tick!=='BTC')];
-    Object.keys(PROY_TRANCHES).forEach(tick => {
-      const a = allA.find(x=>x.tick===tick);
-      if(!a) return;
-      const t = PROY_TRANCHES[tick];
-      const base = t.t1.pct*t.t1.px + t.t2.pct*t.t2.px + t.t3.pct*t.t3.px;
-      const moonVal = t.moon ? t.moon.pct*t.moon.px : 0;
-      const trailVal = t.trailing ? t.trailing.pct*t.trailing.px : 0;
-      const avgPx = (base + moonVal + trailVal) / 100;
-      proj += a.qty * avgPx;
-    });
-    // BTC 10% en peak
-    if(btcAsset) proj += btcAsset.qty * 0.10 * 250000;
-  } catch(e){ proj = 0; }
-
-  const pct = Math.min((nobtc / META) * 100, 100);
-  const need = Math.max(META - nobtc, 0);
-
-  // Update DOM
-  const mvPct = document.getElementById('mv-pct');
-  const mvBar = document.getElementById('mv-bar');
-  const mvRem = document.getElementById('mv-rem');
-  const mvSub = document.getElementById('mv-sub');
-  const mvNobtc = document.getElementById('mv-nobtc');
-  const mvProj = document.getElementById('mv-proj');
-  const mvNeed = document.getElementById('mv-need');
-
-  if(mvPct) mvPct.textContent = pct.toFixed(1) + '%';
-  if(mvBar) mvBar.style.width = pct + '%';
-  if(mvRem) mvRem.textContent = 'faltan $' + need.toLocaleString('en-US',{maximumFractionDigits:0});
-  if(mvSub) mvSub.textContent = 'portafolio operativo sin BTC colchón';
-  if(mvNobtc) mvNobtc.textContent = '$' + nobtc.toLocaleString('en-US',{maximumFractionDigits:0});
-  if(mvProj) mvProj.textContent = proj > 0 ? '$' + proj.toLocaleString('en-US',{maximumFractionDigits:0}) : '—';
-  if(mvNeed) mvNeed.textContent = '$' + need.toLocaleString('en-US',{maximumFractionDigits:0});
-
-  // Milestones
-  const ms25 = document.getElementById('ms25');
-  const ms50 = document.getElementById('ms50');
-  const ms75 = document.getElementById('ms75');
-  if(ms25) ms25.className = 'meta-ms' + (nobtc >= 22000 ? ' active' : '');
-  if(ms50) ms50.className = 'meta-ms' + (nobtc >= 44000 ? ' active' : '');
-  if(ms75) ms75.className = 'meta-ms' + (nobtc >= 66000 ? ' active' : '');
-}
 
 function renderBroker(){
   document.getElementById('broker-grid').innerHTML=BROKER.map(a=>{
@@ -1051,7 +938,6 @@ async function load(){
   renderAcc();
   updateProySummary();
   renderGrowth(tot);
-  renderMetaVisual(tot);
   await saveSnapshot(tot);
   renderTrendChart();
   if(_proyOpen) renderProy();

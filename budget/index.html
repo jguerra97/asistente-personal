@@ -1307,17 +1307,37 @@ function renderLulubit(lulMesInput){
       +'</div>'
     +'</div>'
 
-    // ── Total TC a pagar ──
-    +'<div style="margin-top:10px;padding:10px;background:var(--s2);border-radius:6px">'
-      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">'
-        +'<span style="font-size:11px;color:var(--tx);font-weight:600">💳 Total TC a pagar</span>'
-        +'<span style="font-family:var(--fmono);font-size:18px;font-weight:800;color:var(--rd)">'+fq(totalTC,0)+'</span>'
-      +'</div>'
-      +'<div style="font-size:9px;color:var(--mu2);font-family:\'DM Mono\',monospace">'
-        +'BAC '+fq(bac,0)+' + BAM '+fq(bam,0)+' + Subs Q'+totalSubsQ.toFixed(0)
-      +'</div>'
-      +(lulMes>0?'<div style="margin-top:8px;font-size:10px;color:'+semColor+'">'+semMsg+'</div>':'')
-    +'</div>'
+    // ── Total TC a pagar + semáforo vs reembolsos ──
+    +(function(){
+      var reimbUSD = COLS.reimb || 0;
+      var reimbQ   = reimbUSD * tc2;
+      var totalTCQ = bac + bam; // solo deuda TC real (BAC + BAM) — subs tienen su propio flujo
+      var delta    = reimbQ - totalTCQ;
+      var cubre    = delta >= 0;
+      var semCol   = cubre ? 'var(--gr)' : 'var(--rd)';
+      var semIcon  = cubre ? '✅' : '⚠️';
+      var semTxt   = cubre
+        ? 'Reembolsos cubren · sobran '+fq(delta,0)+' ($'+fd(delta)+')'
+        : 'Faltan '+fq(-delta,0)+' ($'+fd(-delta)+') — usar Bantrab o ahorrar antes del corte';
+      return '<div style="margin-top:10px;padding:12px;background:var(--s2);border-radius:6px">'
+        +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">'
+          +'<span style="font-size:11px;color:var(--tx);font-weight:600">💳 Total TC a pagar</span>'
+          +'<span style="font-family:var(--fmono);font-size:18px;font-weight:800;color:var(--rd)">'+fq(totalTCQ,0)+'</span>'
+        +'</div>'
+        +'<div style="font-size:9px;color:var(--mu2);font-family:var(--fmono);margin-bottom:8px">'
+          +'BAC '+fq(bac,0)+' + BAM '+fq(bam,0)
+        +'</div>'
+        +'<div style="border-top:1px solid var(--bd);padding-top:8px">'
+          +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">'
+            +'<span style="font-size:10px;color:var(--mu)">💵 Reserva reembolsos</span>'
+            +'<span style="font-family:var(--fmono);font-size:12px;font-weight:700;color:var(--ac)">$'+reimbUSD.toFixed(0)+' · '+fq(reimbQ,0)+'</span>'
+          +'</div>'
+          +'<div style="padding:8px 10px;border-radius:5px;background:'+(cubre?'rgba(52,208,122,.1)':'rgba(242,92,92,.1)')+';border:1px solid '+(cubre?'rgba(52,208,122,.3)':'rgba(242,92,92,.3)')+'">'
+            +'<span style="font-size:11px;color:'+semCol+';font-weight:600">'+semIcon+' '+semTxt+'</span>'
+          +'</div>'
+        +'</div>'
+      +'</div>';
+    })()
 
   +'</div>';
 }

@@ -326,7 +326,7 @@ body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--tx);min-heig
     <div class="card-body">
       <div class="q-inp-row">
         <span class="q-inp-lbl">Q</span>
-        <input class="q-inp" id="q1" type="number" value="0" step="1" placeholder="0" onchange="recalc()">
+        <input class="q-inp" id="q1" type="number" value="0" step="1" placeholder="0" oninput="recalc()" onchange="recalc()">
       </div>
       <div class="q-usd" id="q1-usd">—</div>
       <div id="q1-rows"></div>
@@ -341,7 +341,7 @@ body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--tx);min-heig
     <div class="card-body">
       <div class="q-inp-row">
         <span class="q-inp-lbl">Q</span>
-        <input class="q-inp" id="q2" type="number" value="0" step="1" placeholder="0" onchange="recalc()">
+        <input class="q-inp" id="q2" type="number" value="0" step="1" placeholder="0" oninput="recalc()" onchange="recalc()">
       </div>
       <div class="q-usd" id="q2-usd">—</div>
       <div id="q2-rows"></div>
@@ -674,103 +674,73 @@ const SUBS_Q_MENSUAL = ()=> {       // subs en Q según TC vigente
   return SUBS_ENT.reduce((s,x)=>s+x.usd,0) * (ST.tc||7.75);
 };
 
-// distribuirQ1: lógica condicional para quincena chica
-// Retorna {subs, lulu, ban, inv, caso}
+// distribuirQ1: lógica Q1
+// 1. Fijos proporcionales (fijos × Q1/sprev)
+// 2. Bantrab fijo Q550
+// 3. Resto: 60% inversión / 40% personal
+// 4. Del 40% personal: subs primero, luego Lulubit lo que alcance
 function distribuirQ1(pagoQ1){
   const tc = ST.tc||7.75;
   const tf = FIJOS_TOTAL;
   const sprev = ST.sprev||30052.58;
   const subsQ = SUBS_Q_MENSUAL();
-  // Fijos proporcionales Q1
+  // Cobros y fijos proporcionales
+  const cobros = COBROS_BANCARIOS;
   const prop = sprev>0 ? Math.min(pagoQ1/sprev, 1) : 0.5;
   const fijQ1 = tf * prop;
-  // Cobros bancarios salen primero desde Monetaria (antes de fijos)
-  const cobros = COBROS_BANCARIOS;
-  // Personal disponible tras fijos y cobros
-  const personal = Math.max(pagoQ1 - cobros - fijQ1, 0);
+  // Excedente tras cobros y fijos
+  const exc = Math.max(pagoQ1 - cobros - fijQ1, 0);
+  // Bantrab fijo primero
+  const ban = Math.min(BANTRAB_FIJO, exc);
+  const resto = Math.max(exc - ban, 0);
+  // 60/40 del resto
+  const inv = resto * 0.60;
+  const personal40 = resto * 0.40;
+  // Del 40%: subs primero, luego Lulubit
+  const subs = Math.min(subsQ, personal40);
+  const lulu = Math.min(GASTO_LULUBIT_MENSUAL, Math.max(personal40 - subs, 0));
+  const personal_restante = Math.max(personal40 - subs - lulu, 0);
+  // Caso para el badge
+  let caso = '';
+  if(personal40 < subsQ) caso = 'A';
+  else if(personal40 < subsQ + GASTO_LULUBIT_MENSUAL) caso = 'B';
+  else caso = 'C';
 
-  let subs=0, lulu=0, ban=0, inv=0, caso='';
-
-  if(personal < subsQ){
-    // Caso A: no alcanza ni para subs
-    caso = 'A';
-    subs = personal; // mover lo que alcance
-    lulu = 0;
-    ban = 0;
-    inv = 0;
-  } else if(personal < BANTRAB_FIJO + subsQ){
-    // Caso B: alcanza para subs pero no para Bantrab fijo completo ni Lulubit
-    caso = 'B';
-    subs = subsQ;
-    lulu = Math.min(personal - subsQ, GASTO_LULUBIT_MENSUAL);
-    ban = 0; // sin Bantrab extra en Q1
-    inv = 0; // inversión va en Q2
-  } else if(personal < subsQ + GASTO_LULUBIT_MENSUAL){
-    // Caso B extendido: alcanza subs + Bantrab pero no Lulubit completo
-    caso = 'B+';
-    subs = subsQ;
-    ban = BANTRAB_FIJO;
-    lulu = Math.min(personal - subsQ - ban, GASTO_LULUBIT_MENSUAL);
-    inv = 0;
-  } else {
-    // Caso C: alcanza subs + Lulubit completo, sobrante a Bantrab
-    caso = 'C';
-    subs = subsQ;
-    lulu = GASTO_LULUBIT_MENSUAL;
-    const sobrante = personal - subsQ - GASTO_LULUBIT_MENSUAL;
-    ban = Math.min(BANTRAB_FIJO, sobrante);
-    inv = 0; // inversión va toda en Q2
-  }
-
-  return {fijQ1, personal, subs, lulu, ban, inv, caso, subsQ};
+  return {fijQ1, exc, ban, inv, subs, lulu, personal40, personal_restante, caso, subsQ};
 }
 
-// distribuirQ2: lógica para quincena grande, recibe cuánto Lulubit ya se movió en Q1
-// Retorna {subs_pendiente, lulu, ban, inv, caso}
+// distribuirQ2: misma lógica que Q1 pero con fijos restantes y completando pendientes
+// 1. Fijos Q2 = fijos - fijQ1
+// 2. Bantrab Q550
+// 3. 60% inversión / 40% personal
+// 4. Del 40%: subs pendientes → Lulubit pendiente → sobrante a Bantrab extra
 function distribuirQ2(pagoQ2, luluQ1, subsMovidasQ1){
-  const tc = ST.tc||7.75;
   const tf = FIJOS_TOTAL;
   const sprev = ST.sprev||30052.58;
   const subsQ = SUBS_Q_MENSUAL();
-  // Fijos Q2 = lo que faltó de fijos en Q1
+  // Fijos Q2
   const prop = sprev>0 ? Math.min((ST.q1||0)/sprev, 1) : 0.5;
   const fijQ1 = tf * prop;
   const fijQ2 = tf - fijQ1;
-  // Personal disponible en Q2
-  const personal = Math.max(pagoQ2 - fijQ2, 0);
-  // Subs pendientes de Q1
+  // Excedente tras fijos Q2
+  const exc = Math.max(pagoQ2 - fijQ2, 0);
+  // Bantrab fijo
+  const ban_fijo = Math.min(BANTRAB_FIJO, exc);
+  const resto = Math.max(exc - ban_fijo, 0);
+  // 60/40
+  const inv = resto * 0.60;
+  const personal40 = resto * 0.40;
+  // Del 40%: pendientes de Q1 primero
   const subsPend = Math.max(subsQ - (subsMovidasQ1||0), 0);
-  // Lulubit pendiente
   const luluPend = Math.max(GASTO_LULUBIT_MENSUAL - (luluQ1||0), 0);
-  // Bantrab fijo Q2 siempre
-  const ban_fijo = BANTRAB_FIJO;
+  const subs = Math.min(subsPend, personal40);
+  const lulu = Math.min(luluPend, Math.max(personal40 - subs, 0));
+  const ban_extra = Math.max(personal40 - subs - lulu, 0);
+  const ban = ban_fijo + ban_extra;
+  // Caso badge
+  const caso = luluPend > 1 ? 'A' : 'B';
 
-  let subs=subsPend, lulu=0, ban=0, inv=0, ban_extra=0, caso='';
-
-  const disponible = Math.max(personal - subsPend, 0);
-
-  if(luluPend > 0){
-    // Caso A Q2: completar Lulubit primero
-    caso = 'A';
-    lulu = Math.min(luluPend, disponible);
-    const resto = Math.max(disponible - lulu - ban_fijo, 0);
-    ban = ban_fijo;
-    // Resto: 60% inv / 40% ban_extra
-    inv = resto * 0.60;
-    ban_extra = resto * 0.40;
-    ban += ban_extra;
-  } else {
-    // Caso B Q2: Lulubit ya completo en Q1, todo personal a Bantrab + inversión
-    caso = 'B';
-    lulu = 0;
-    const resto = Math.max(disponible - ban_fijo, 0);
-    ban = ban_fijo;
-    inv = resto * 0.60;
-    ban_extra = resto * 0.40;
-    ban += ban_extra;
-  }
-
-  return {fijQ2, personal, subs, lulu, ban, ban_fijo, ban_extra, inv, caso, subsPend, luluPend};
+  return {fijQ2, exc, ban_fijo, ban_extra, ban, inv, personal40, subs, lulu, caso, subsPend, luluPend};
 }
 
 // distribuir() legacy — para compatibilidad con renderQ simple
@@ -802,10 +772,10 @@ function renderQCasos(r, pago, quincena){
   // Badge de caso
   const casoColor = {A:'var(--rd)', 'B':'var(--go)', 'B+':'var(--go)', C:'#3db8f5'}[r.caso] || 'var(--mu)';
   const casoDesc = {
-    A: 'Q1 chica — solo subs (parcial)',
-    B: 'Q1 chica — subs + Lulubit parcial',
-    'B+': 'Q1 — subs + Bantrab + Lulubit parcial',
-    C: 'Q1 completa — subs + Lulubit + Bantrab'
+    A: 'Q1 — 60/40 · personal insuficiente para subs',
+    B: 'Q1 — 60/40 · subs + Lulubit parcial',
+    'B+': 'Q1 — 60/40 · subs + Lulubit + Bantrab parcial',
+    C: 'Q1 — 60/40 · subs + Lulubit completos'
   }[r.caso] || '';
 
   const casoBadge = r.caso ? `<div style="font-family:'DM Mono',monospace;font-size:9px;padding:3px 8px;border-radius:4px;background:${casoColor}22;color:${casoColor};margin-bottom:8px;display:inline-block">
@@ -814,25 +784,27 @@ function renderQCasos(r, pago, quincena){
   // Filas según qué se mueve
   const rows = [];
   if(quincena===1){
-    rows.push({lbl:'🏦 Monetaria · cobros', q:-COBROS_BANCARIOS, c:'var(--mu)'});
-    rows.push({lbl:'🏦 Ahorro BI · fijos', q:-r.fijQ1, c:'var(--rd)'});
-    if(r.subs>0) rows.push({lbl:'💳 Ahorro USD BI · subs', q:-r.subs, c:'#f59e0b'});
-    if(r.lulu>0) rows.push({lbl:'🎉 Lulubit · disfrute', q:r.lulu, c:'#3db8f5'});
-    if(r.ban>0)  rows.push({lbl:'✈️ Bantrab', q:r.ban, c:'#9d7ff0'});
-    if(r.inv>0)  rows.push({lbl:'₿ Exchange · inversión', q:-r.inv, c:'var(--go)'});
-    // Mostrar pendientes si hay
-    const subsQ = SUBS_Q_MENSUAL();
-    const luluPend = GASTO_LULUBIT_MENSUAL - r.lulu;
-    if(r.subsPend > 0 || (r.caso==='A'))
-      rows.push({lbl:`⏳ Subs pendientes Q2`, q:0, c:'var(--mu)', note:fq(Math.max(subsQ-r.subs,0))});
-    if(luluPend > 1)
-      rows.push({lbl:`⏳ Lulubit pendiente Q2`, q:0, c:'var(--mu)', note:fq(luluPend)});
+    rows.push({lbl:'🏦 Monetaria · cobros',   q:-COBROS_BANCARIOS, c:'var(--mu)'});
+    rows.push({lbl:'🏦 Ahorro BI · fijos',     q:-r.fijQ1,          c:'var(--rd)'});
+    if(r.ban>0)  rows.push({lbl:'✈️ Bantrab · fijo',     q:r.ban,   c:'#9d7ff0'});
+    if(r.inv>0)  rows.push({lbl:'₿ Exchange · inversión (60%)', q:-r.inv, c:'var(--go)'});
+    if(r.subs>0) rows.push({lbl:'💳 Ahorro USD BI · subs',  q:-r.subs, c:'#f59e0b'});
+    if(r.lulu>0) rows.push({lbl:'🎉 Lulubit · disfrute',    q:r.lulu,  c:'#3db8f5'});
+    if((r.personal_restante||0)>1) rows.push({lbl:'💰 Personal restante', q:r.personal_restante, c:'var(--mu)'});
+    // Pendientes para Q2
+    const subsQ2 = SUBS_Q_MENSUAL();
+    const luluPend2 = Math.max(GASTO_LULUBIT_MENSUAL - (r.lulu||0), 0);
+    if(r.subs < subsQ2 - 1)
+      rows.push({lbl:'⏳ Subs pendientes Q2', q:0, c:'var(--mu)', note:fq(subsQ2-r.subs)});
+    if(luluPend2 > 1)
+      rows.push({lbl:'⏳ Lulubit pendiente Q2', q:0, c:'var(--mu)', note:fq(luluPend2)});
   } else {
-    rows.push({lbl:'🏦 Ahorro BI · fijos', q:-r.fijQ2, c:'var(--rd)'});
-    if(r.subs>0)  rows.push({lbl:'💳 Ahorro USD BI · subs', q:-r.subs, c:'#f59e0b'});
-    if(r.lulu>0)  rows.push({lbl:'🎉 Lulubit · completar', q:r.lulu, c:'#3db8f5'});
-    if(r.ban>0)   rows.push({lbl:'✈️ Bantrab', q:r.ban, c:'#9d7ff0'});
-    if(r.inv>0)   rows.push({lbl:'₿ Exchange · inversión', q:-r.inv, c:'var(--go)'});
+    rows.push({lbl:'🏦 Ahorro BI · fijos',          q:-r.fijQ2,   c:'var(--rd)'});
+    rows.push({lbl:'✈️ Bantrab · fijo',              q:r.ban_fijo, c:'#9d7ff0'});
+    if(r.inv>0)      rows.push({lbl:'₿ Exchange · inversión (60%)', q:-r.inv, c:'var(--go)'});
+    if(r.subs>0)     rows.push({lbl:'💳 Ahorro USD BI · subs',  q:-r.subs,     c:'#f59e0b'});
+    if(r.lulu>0)     rows.push({lbl:'🎉 Lulubit · completar',   q:r.lulu,      c:'#3db8f5'});
+    if((r.ban_extra||0)>1) rows.push({lbl:'✈️ Bantrab · extra (ahorro)', q:r.ban_extra, c:'#6b7ff0'});
   }
 
   const rowsHtml = rows.map(row=>{

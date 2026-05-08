@@ -2702,7 +2702,7 @@ const DRIVE_FILENAME  = 'budget_gt_data.json';
 let   driveToken      = null;
 
 function driveMsgBG(txt, type='ok'){
-  const el=document.getElementById('drive-msg-bg');
+  const el=document.getElementById('drive-msg');
   if(!el)return;
   el.textContent=txt; el.style.color=type==='err'?'var(--rd)':'var(--gr)';
   el.style.display='inline-block';

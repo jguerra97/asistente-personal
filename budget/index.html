@@ -373,7 +373,7 @@ body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--tx);min-heig
     <!-- Toggle header -->
     <div onclick="toggleExtras()" id="extras-toggle" style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--s2);border-radius:7px;cursor:pointer;-webkit-tap-highlight-color:rgba(245,158,11,.2)">
       <div>
-        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);text-transform:uppercase">⏱ Estimado quincena</div>
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);text-transform:uppercase">⏱ Estimado del mes</div>
         <div id="extras-total-top" style="font-family:'DM Mono',monospace;font-size:16px;font-weight:800;color:#f59e0b;margin-top:2px">—</div>
       </div>
       <span id="extras-det-ico" style="font-size:12px;color:var(--mu);transition:transform .2s">▾</span>
@@ -381,94 +381,122 @@ body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--tx);min-heig
 
     <div id="extras-det-body" style="display:none;margin-top:12px">
 
-      <!-- SO y SE -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
-        <div style="background:var(--s2);border-radius:7px;padding:10px">
-          <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu);text-transform:uppercase;margin-bottom:6px">Salario Ordinario (SO)</div>
-          <div style="display:flex;align-items:center;gap:4px">
+      <!-- SO compartido -->
+      <div style="background:var(--s2);border-radius:7px;padding:10px;margin-bottom:14px">
+        <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu);text-transform:uppercase;margin-bottom:6px">Salario Ordinario (SO) · compartido ambas quincenas</div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--mu)">Q</span>
+          <input type="number" id="ext-so" step="1" min="0" placeholder="22354"
+            style="background:var(--s3);border:1px solid rgba(245,158,11,.4);color:#f59e0b;
+            font-family:'DM Mono',monospace;font-size:14px;font-weight:800;
+            padding:6px 10px;border-radius:6px;flex:1;text-align:right"
+            oninput="recalcExtrasAll()" onchange="saveExtrasConfig()">
+          <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu2)">editable solo en aumento anual</div>
+        </div>
+      </div>
+
+      <!-- Q1 y Q2 lado a lado en desktop, apilados en móvil -->
+      <div style="display:grid;grid-template-columns:1fr;gap:14px">
+
+        <!-- Q1 -->
+        <div style="background:var(--s2);border-radius:8px;padding:12px;border-left:3px solid #f59e0b">
+          <div style="font-family:'DM Mono',monospace;font-size:10px;font-weight:700;color:#f59e0b;margin-bottom:10px">Q1 · DÍA 15 · solo extras</div>
+          <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu);margin-bottom:6px;text-transform:uppercase">SE mes anterior (HEN+HEE+LO)</div>
+          <div style="display:flex;align-items:center;gap:4px;margin-bottom:10px">
             <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--mu)">Q</span>
-            <input type="number" id="ext-so" step="1" min="0" placeholder="22354"
-              style="background:var(--s3);border:1px solid rgba(245,158,11,.3);color:#f59e0b;
+            <input type="number" id="ext-q1-se" step="1" min="0" placeholder="18649"
+              style="background:var(--s3);border:1px solid var(--bd2);color:var(--tx);
               font-family:'DM Mono',monospace;font-size:12px;font-weight:700;
-              padding:4px 8px;border-radius:5px;width:100%;text-align:right"
-              oninput="recalcExtras()" onchange="saveExtrasConfig()">
+              padding:5px 8px;border-radius:5px;flex:1;text-align:right"
+              oninput="recalcExtrasQ(1)">
           </div>
-          <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu2);margin-top:4px">editable solo en aumento anual</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px">
+            <div>
+              <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu);margin-bottom:3px">HEN</div>
+              <input type="number" id="ext-q1-hen" step="0.5" min="0" placeholder="0"
+                style="background:var(--s3);border:1px solid var(--bd2);color:var(--tx);
+                font-family:'DM Mono',monospace;font-size:13px;font-weight:700;
+                padding:5px 6px;border-radius:5px;width:100%;text-align:right"
+                oninput="recalcExtrasQ(1)">
+            </div>
+            <div>
+              <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu);margin-bottom:3px">HEE</div>
+              <input type="number" id="ext-q1-hee" step="0.5" min="0" placeholder="0"
+                style="background:var(--s3);border:1px solid var(--bd2);color:var(--tx);
+                font-family:'DM Mono',monospace;font-size:13px;font-weight:700;
+                padding:5px 6px;border-radius:5px;width:100%;text-align:right"
+                oninput="recalcExtrasQ(1)">
+            </div>
+            <div>
+              <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu);margin-bottom:3px">LO</div>
+              <input type="number" id="ext-q1-lo" step="0.5" min="0" placeholder="0"
+                style="background:var(--s3);border:1px solid var(--bd2);color:var(--tx);
+                font-family:'DM Mono',monospace;font-size:13px;font-weight:700;
+                padding:5px 6px;border-radius:5px;width:100%;text-align:right"
+                oninput="recalcExtrasQ(1)">
+            </div>
+          </div>
+          <div id="ext-q1-rows" style="font-size:10px;color:var(--mu2);margin-bottom:8px">—</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding-top:6px;border-top:1px solid var(--bd)">
+            <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu)">Total Q1</span>
+            <span id="ext-q1-total" style="font-family:'DM Mono',monospace;font-size:16px;font-weight:800;color:#f59e0b">—</span>
+          </div>
         </div>
-        <div style="background:var(--s2);border-radius:7px;padding:10px">
-          <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu);text-transform:uppercase;margin-bottom:6px">SE mes anterior</div>
-          <div style="display:flex;align-items:center;gap:4px">
+
+        <!-- Q2 -->
+        <div style="background:var(--s2);border-radius:8px;padding:12px;border-left:3px solid var(--gr)">
+          <div style="font-family:'DM Mono',monospace;font-size:10px;font-weight:700;color:var(--gr);margin-bottom:10px">Q2 · FIN MES · extras + SO</div>
+          <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu);margin-bottom:6px;text-transform:uppercase">SE mes anterior (mismo que Q1 usualmente)</div>
+          <div style="display:flex;align-items:center;gap:4px;margin-bottom:10px">
             <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--mu)">Q</span>
-            <input type="number" id="ext-se" step="1" min="0" placeholder="18649"
-              style="background:var(--s3);border:1px solid rgba(245,158,11,.3);color:#f59e0b;
+            <input type="number" id="ext-q2-se" step="1" min="0" placeholder="18649"
+              style="background:var(--s3);border:1px solid var(--bd2);color:var(--tx);
               font-family:'DM Mono',monospace;font-size:12px;font-weight:700;
-              padding:4px 8px;border-radius:5px;width:100%;text-align:right"
-              oninput="recalcExtras()">
+              padding:5px 8px;border-radius:5px;flex:1;text-align:right"
+              oninput="recalcExtrasQ(2)">
           </div>
-          <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu2);margin-top:4px">HEN+HEE+LO mes pasado</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px">
+            <div>
+              <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu);margin-bottom:3px">HEN</div>
+              <input type="number" id="ext-q2-hen" step="0.5" min="0" placeholder="0"
+                style="background:var(--s3);border:1px solid var(--bd2);color:var(--tx);
+                font-family:'DM Mono',monospace;font-size:13px;font-weight:700;
+                padding:5px 6px;border-radius:5px;width:100%;text-align:right"
+                oninput="recalcExtrasQ(2)">
+            </div>
+            <div>
+              <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu);margin-bottom:3px">HEE</div>
+              <input type="number" id="ext-q2-hee" step="0.5" min="0" placeholder="0"
+                style="background:var(--s3);border:1px solid var(--bd2);color:var(--tx);
+                font-family:'DM Mono',monospace;font-size:13px;font-weight:700;
+                padding:5px 6px;border-radius:5px;width:100%;text-align:right"
+                oninput="recalcExtrasQ(2)">
+            </div>
+            <div>
+              <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu);margin-bottom:3px">LO</div>
+              <input type="number" id="ext-q2-lo" step="0.5" min="0" placeholder="0"
+                style="background:var(--s3);border:1px solid var(--bd2);color:var(--tx);
+                font-family:'DM Mono',monospace;font-size:13px;font-weight:700;
+                padding:5px 6px;border-radius:5px;width:100%;text-align:right"
+                oninput="recalcExtrasQ(2)">
+            </div>
+          </div>
+          <div id="ext-q2-rows" style="font-size:10px;color:var(--mu2);margin-bottom:8px">—</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding-top:6px;border-top:1px solid var(--bd)">
+            <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu)">Total Q2 (con SO)</span>
+            <span id="ext-q2-total" style="font-family:'DM Mono',monospace;font-size:16px;font-weight:800;color:var(--gr)">—</span>
+          </div>
         </div>
+
       </div>
 
-      <!-- Horas -->
-      <div style="background:var(--s2);border-radius:7px;padding:10px;margin-bottom:12px">
-        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);text-transform:uppercase;margin-bottom:8px">Horas esta quincena</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
-          <div>
-            <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu);margin-bottom:4px">HEN</div>
-            <input type="number" id="ext-hen" step="0.5" min="0" placeholder="0"
-              style="background:var(--s3);border:1px solid var(--bd2);color:var(--tx);
-              font-family:'DM Mono',monospace;font-size:13px;font-weight:700;
-              padding:6px 8px;border-radius:5px;width:100%;text-align:right"
-              oninput="recalcExtras()">
-          </div>
-          <div>
-            <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu);margin-bottom:4px">HEE</div>
-            <input type="number" id="ext-hee" step="0.5" min="0" placeholder="0"
-              style="background:var(--s3);border:1px solid var(--bd2);color:var(--tx);
-              font-family:'DM Mono',monospace;font-size:13px;font-weight:700;
-              padding:6px 8px;border-radius:5px;width:100%;text-align:right"
-              oninput="recalcExtras()">
-          </div>
-          <div>
-            <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu);margin-bottom:4px">LO</div>
-            <input type="number" id="ext-lo" step="0.5" min="0" placeholder="0"
-              style="background:var(--s3);border:1px solid var(--bd2);color:var(--tx);
-              font-family:'DM Mono',monospace;font-size:13px;font-weight:700;
-              padding:6px 8px;border-radius:5px;width:100%;text-align:right"
-              oninput="recalcExtras()">
-          </div>
+      <!-- Total mes -->
+      <div style="margin-top:12px;padding:12px;background:var(--s2);border-radius:8px;display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);text-transform:uppercase">Total estimado del mes</div>
+          <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu2);margin-top:2px">Q1 extras + Q2 (extras + SO)</div>
         </div>
-      </div>
-
-      <!-- Toggle Q1 / Q2 -->
-      <div style="display:flex;gap:8px;margin-bottom:8px">
-        <button onclick="setExtrasQ(1)" id="ext-q1-btn"
-          style="flex:1;padding:8px;border-radius:6px;font-family:'DM Mono',monospace;font-size:11px;font-weight:700;cursor:pointer;border:1px solid rgba(245,158,11,.4);background:rgba(245,158,11,.15);color:#f59e0b">
-          Q1 · solo extras
-        </button>
-        <button onclick="setExtrasQ(2)" id="ext-q2-btn"
-          style="flex:1;padding:8px;border-radius:6px;font-family:'DM Mono',monospace;font-size:11px;font-weight:700;cursor:pointer;border:1px solid var(--bd2);background:var(--s2);color:var(--mu)">
-          Q2 · extras + SO
-        </button>
-      </div>
-      <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
-        <button onclick="saveExtrasQ()" style="padding:5px 14px;border-radius:5px;font-family:'DM Mono',monospace;font-size:10px;cursor:pointer;border:1px solid rgba(52,208,122,.4);background:rgba(52,208,122,.1);color:var(--gr)">
-          💾 Guardar esta quincena
-        </button>
-      </div>
-      <!-- Resumen quincena guardada -->
-      <div id="ext-saved-wrap" style="display:none;background:var(--s2);border-radius:6px;padding:8px 10px;margin-bottom:10px;font-family:'DM Mono',monospace;font-size:9px;color:var(--mu)">
-        <span style="color:var(--mu2)">📌 Guardado · </span><span id="ext-saved-lbl"></span>
-      </div>
-
-      <!-- Desglose resultado -->
-      <div id="extras-desglose" style="background:var(--s2);border-radius:7px;padding:12px">
-        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);text-transform:uppercase;margin-bottom:8px">Desglose estimado</div>
-        <div id="extras-rows">—</div>
-        <div style="border-top:1px solid var(--bd);margin-top:8px;padding-top:8px;display:flex;justify-content:space-between;align-items:baseline">
-          <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--mu)">Total a recibir</span>
-          <span id="extras-total" style="font-family:'DM Mono',monospace;font-size:20px;font-weight:800;color:#f59e0b">—</span>
-        </div>
+        <span id="extras-mes-total" style="font-family:'DM Mono',monospace;font-size:22px;font-weight:800;color:#f59e0b">—</span>
       </div>
 
     </div>
@@ -2282,7 +2310,6 @@ function toggleHipDet(){
 
 // ── CALCULADORA HORAS EXTRAS ──────────────────────────────────────
 var _extrasOpen = false;
-var _extrasQ = 1; // 1 = Q1 (solo extras), 2 = Q2 (extras + SO)
 
 function toggleExtras(){
   _extrasOpen = !_extrasOpen;
@@ -2292,121 +2319,82 @@ function toggleExtras(){
   if(ico)  ico.textContent = _extrasOpen ? '▴' : '▾';
 }
 
-function setExtrasQ(q){
-  _extrasQ = q;
-  var b1 = document.getElementById('ext-q1-btn');
-  var b2 = document.getElementById('ext-q2-btn');
-  if(b1 && b2){
-    if(q===1){
-      b1.style.background='rgba(245,158,11,.15)'; b1.style.color='#f59e0b'; b1.style.borderColor='rgba(245,158,11,.4)';
-      b2.style.background='var(--s2)'; b2.style.color='var(--mu)'; b2.style.borderColor='var(--bd2)';
-    } else {
-      b2.style.background='rgba(245,158,11,.15)'; b2.style.color='#f59e0b'; b2.style.borderColor='rgba(245,158,11,.4)';
-      b1.style.background='var(--s2)'; b1.style.color='var(--mu)'; b1.style.borderColor='var(--bd2)';
-    }
-  }
-  recalcExtras();
-}
-
 function saveExtrasConfig(){
   var d = ldS();
   var so = parseFloat(document.getElementById('ext-so').value)||0;
   if(so > 0){ d.extrasSO = so; svS(d); }
 }
 
-function recalcExtras(){
+function calcExtrasQ(q){
   var so  = parseFloat(document.getElementById('ext-so').value)||0;
-  var se  = parseFloat(document.getElementById('ext-se').value)||0;
-  var hen = parseFloat(document.getElementById('ext-hen').value)||0;
-  var hee = parseFloat(document.getElementById('ext-hee').value)||0;
-  var lo  = parseFloat(document.getElementById('ext-lo').value)||0;
-
-  if(so <= 0){ 
-    document.getElementById('extras-rows').innerHTML='<div style="color:var(--mu2);font-size:10px">Ingresa el SO para calcular</div>';
-    return; 
-  }
-
-  // Tarifas según fórmulas oficiales
-  var tarifaHEN = ((so / 30) / 8) * 1.5;
-  var tarifaHEE = (((so + se) / 30) / 8) * 1.5;
-  var tarifaLO  = (so / 30) / 8;
-
-  var totalHEN = tarifaHEN * hen;
-  var totalHEE = tarifaHEE * hee;
-  var totalLO  = tarifaLO  * lo;
-  var totalExtras = totalHEN + totalHEE + totalLO;
-  var totalFinal  = _extrasQ === 2 ? totalExtras + so : totalExtras;
-
+  var se  = parseFloat(document.getElementById('ext-q'+q+'-se').value)||0;
+  var hen = parseFloat(document.getElementById('ext-q'+q+'-hen').value)||0;
+  var hee = parseFloat(document.getElementById('ext-q'+q+'-hee').value)||0;
+  var lo  = parseFloat(document.getElementById('ext-q'+q+'-lo').value)||0;
+  if(!so) return {total:0, rows:[]};
+  var tHEN = ((so/30)/8)*1.5;
+  var tHEE = (((so+se)/30)/8)*1.5;
+  var tLO  = (so/30)/8;
+  var extras = tHEN*hen + tHEE*hee + tLO*lo;
+  var total  = q===2 ? extras+so : extras;
   var rows = [];
-  if(hen > 0) rows.push({lbl:'HEN (' + hen + ' hrs × Q' + tarifaHEN.toFixed(2) + ')', val: totalHEN, col:'#3db8f5'});
-  if(hee > 0) rows.push({lbl:'HEE (' + hee + ' hrs × Q' + tarifaHEE.toFixed(2) + ')', val: totalHEE, col:'#f59e0b'});
-  if(lo  > 0) rows.push({lbl:'LO  (' + lo  + ' hrs × Q' + tarifaLO.toFixed(2)  + ')', val: totalLO,  col:'#9d7ff0'});
-  if(_extrasQ === 2 && so > 0) rows.push({lbl:'Salario ordinario (SO)', val: so, col:'var(--gr)'});
-
-  var rowsHtml = rows.map(function(r){
-    return '<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--bd)">'
-      + '<span style="font-family:var(--fmono);font-size:9px;color:var(--mu)">' + r.lbl + '</span>'
-      + '<span style="font-family:var(--fmono);font-size:11px;font-weight:700;color:' + r.col + '">Q' + r.val.toFixed(2) + '</span>'
-      + '</div>';
-  }).join('');
-
-  document.getElementById('extras-rows').innerHTML = rowsHtml || '<div style="color:var(--mu2);font-size:10px">Ingresa horas para ver desglose</div>';
-  document.getElementById('extras-total').textContent = 'Q' + totalFinal.toFixed(2);
-  document.getElementById('extras-total-top').textContent = totalFinal > 0 ? 'Q' + totalFinal.toLocaleString('es-GT', {maximumFractionDigits:2}) : '—';
+  if(hen>0) rows.push({lbl:'HEN ('+hen+' hrs × Q'+tHEN.toFixed(2)+')', val:tHEN*hen, col:'#3db8f5'});
+  if(hee>0) rows.push({lbl:'HEE ('+hee+' hrs × Q'+tHEE.toFixed(2)+')', val:tHEE*hee, col:'#f59e0b'});
+  if(lo >0) rows.push({lbl:'LO  ('+lo +' hrs × Q'+tLO.toFixed(2) +')', val:tLO*lo,   col:'#9d7ff0'});
+  if(q===2 && so>0) rows.push({lbl:'Salario ordinario (SO)', val:so, col:'var(--gr)'});
+  return {total, rows};
 }
 
-function saveExtrasQ(){
-  var so  = parseFloat(document.getElementById('ext-so').value)||0;
-  var se  = parseFloat(document.getElementById('ext-se').value)||0;
-  var hen = parseFloat(document.getElementById('ext-hen').value)||0;
-  var hee = parseFloat(document.getElementById('ext-hee').value)||0;
-  var lo  = parseFloat(document.getElementById('ext-lo').value)||0;
-  if(!so) return;
+function recalcExtrasQ(q){
+  var r = calcExtrasQ(q);
+  var rowsEl  = document.getElementById('ext-q'+q+'-rows');
+  var totalEl = document.getElementById('ext-q'+q+'-total');
+  if(rowsEl) rowsEl.innerHTML = r.rows.length
+    ? r.rows.map(function(x){
+        return '<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid var(--bd)">'
+          +'<span style="font-family:var(--fmono);font-size:9px;color:var(--mu)">'+x.lbl+'</span>'
+          +'<span style="font-family:var(--fmono);font-size:10px;font-weight:700;color:'+x.col+'">Q'+x.val.toFixed(2)+'</span>'
+          +'</div>';
+      }).join('')
+    : '<span style="font-size:9px;color:var(--mu2)">Ingresa horas</span>';
+  if(totalEl) totalEl.textContent = r.total > 0 ? 'Q'+r.total.toLocaleString('es-GT',{minimumFractionDigits:2,maximumFractionDigits:2}) : '—';
+  recalcExtrasAll();
+}
 
-  var tarifaHEN = ((so/30)/8)*1.5;
-  var tarifaHEE = (((so+se)/30)/8)*1.5;
-  var tarifaLO  = (so/30)/8;
-  var totalExtras = tarifaHEN*hen + tarifaHEE*hee + tarifaLO*lo;
-  var totalFinal  = _extrasQ===2 ? totalExtras+so : totalExtras;
-
+function recalcExtrasAll(){
+  var r1 = calcExtrasQ(1);
+  var r2 = calcExtrasQ(2);
+  var mes = r1.total + r2.total;
+  var topEl = document.getElementById('extras-total-top');
+  var mesEl = document.getElementById('extras-mes-total');
+  if(topEl) topEl.textContent = mes > 0 ? 'Q'+mes.toLocaleString('es-GT',{minimumFractionDigits:2,maximumFractionDigits:2}) : '—';
+  if(mesEl) mesEl.textContent = mes > 0 ? 'Q'+mes.toLocaleString('es-GT',{minimumFractionDigits:2,maximumFractionDigits:2}) : '—';
+  // Guardar en storage
   var d = ldS();
-  var mes = MNOMBRES[ST.mes]+' '+(ST.anio||2026);
-  if(!d.extrasGuardadas) d.extrasGuardadas = {};
-  d.extrasGuardadas['Q'+_extrasQ+'-'+mes] = {
-    q:_extrasQ, mes, so, se, hen, hee, lo,
-    totalExtras, totalFinal,
-    fecha: new Date().toLocaleDateString('es-GT')
-  };
-  d.extrasSO = so;
+  d.extrasQ1 = {se:parseFloat(document.getElementById('ext-q1-se').value)||0, hen:parseFloat(document.getElementById('ext-q1-hen').value)||0, hee:parseFloat(document.getElementById('ext-q1-hee').value)||0, lo:parseFloat(document.getElementById('ext-q1-lo').value)||0};
+  d.extrasQ2 = {se:parseFloat(document.getElementById('ext-q2-se').value)||0, hen:parseFloat(document.getElementById('ext-q2-hen').value)||0, hee:parseFloat(document.getElementById('ext-q2-hee').value)||0, lo:parseFloat(document.getElementById('ext-q2-lo').value)||0};
   svS(d);
-
-  // Mostrar confirmación
-  var wrap = document.getElementById('ext-saved-wrap');
-  var lbl  = document.getElementById('ext-saved-lbl');
-  if(wrap && lbl){
-    lbl.textContent = 'Q'+_extrasQ+' · '+mes+' · Q'+totalFinal.toFixed(2)+' · '+new Date().toLocaleDateString('es-GT');
-    wrap.style.display = 'block';
-  }
 }
 
 function loadExtrasConfig(){
   var d = ldS();
   if(d.extrasSO){
     var el = document.getElementById('ext-so');
-    if(el) el.value = d.extrasSO;
+    if(el){ el.value = d.extrasSO; }
   }
-  // Mostrar último guardado si existe
-  if(d.extrasGuardadas){
-    var keys = Object.keys(d.extrasGuardadas);
-    if(keys.length > 0){
-      var last = d.extrasGuardadas[keys[keys.length-1]];
-      var wrap = document.getElementById('ext-saved-wrap');
-      var lbl  = document.getElementById('ext-saved-lbl');
-      if(wrap && lbl && last){
-        lbl.textContent = 'Q'+last.q+' · '+last.mes+' · Q'+last.totalFinal.toFixed(2)+' · '+last.fecha;
-        wrap.style.display = 'block';
-      }
-    }
+  // Restaurar Q1
+  if(d.extrasQ1){
+    var q1 = d.extrasQ1;
+    var f = function(id,v){ var e=document.getElementById(id); if(e&&v) e.value=v; };
+    f('ext-q1-se',q1.se); f('ext-q1-hen',q1.hen); f('ext-q1-hee',q1.hee); f('ext-q1-lo',q1.lo);
+    if(q1.hen||q1.hee||q1.lo) recalcExtrasQ(1);
+  }
+  // Restaurar Q2
+  if(d.extrasQ2){
+    var q2 = d.extrasQ2;
+    var f2 = function(id,v){ var e=document.getElementById(id); if(e&&v) e.value=v; };
+    f2('ext-q2-se',q2.se); f2('ext-q2-hen',q2.hen); f2('ext-q2-hee',q2.hee); f2('ext-q2-lo',q2.lo);
+    if(q2.hen||q2.hee||q2.lo) recalcExtrasQ(2);
   }
 }
 

@@ -748,7 +748,7 @@ const LULU_EST_TOTAL=LULU_CATS.reduce((s,c)=>s+c.amt,0); // Q3,831
 
 // ── FORMATO ───────────────────────────────────────────────────────
 const fq=(n,d=0)=>'Q'+n.toLocaleString('es-GT',{minimumFractionDigits:d,maximumFractionDigits:d});
-const fd=(n)=>'$'+(n/ST.tc).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0});
+const fd=(n)=>'$'+(n/ST.tc).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
 
 // ── LOAD / SAVE ───────────────────────────────────────────────────
 function loadSaved(){
@@ -948,13 +948,19 @@ function renderQCasos(r, pago, quincena){
     if((r.ban_extra||0)>1) rows.push({lbl:'✈️ Bantrab · extra (ahorro)', q:r.ban_extra, c:'#6b7ff0'});
   }
 
-  const rowsHtml = rows.map(row=>{
+  const rowsHtml = rows.map((row,idx)=>{
     if(row.q===0 && row.note){
       return `<div class="row"><span class="row-lbl" style="color:${row.c}">${row.lbl}</span>
         <div class="row-val"><div class="row-q" style="color:${row.c}">${row.note}</div></div></div>`;
     }
-    return `<div class="row">
-      <span class="row-lbl">${row.lbl}</span>
+    // Checkbox de movimiento — ID único por quincena + índice de rubro
+    const chkId = 'mov-q'+quincena+'-'+idx;
+    const done = (ldS().movimientos||{})[chkId] || false;
+    return `<div class="row" style="${done?'opacity:.55':''}">
+      <span class="row-lbl" style="display:flex;align-items:center;gap:7px">
+        <span onclick="toggleMov('${chkId}')" style="cursor:pointer;width:16px;height:16px;border-radius:4px;border:1.5px solid ${done?'var(--gr)':'var(--bd2)'};background:${done?'var(--gr)':'transparent'};display:inline-flex;align-items:center;justify-content:center;font-size:10px;color:#0a0a0a;flex-shrink:0;-webkit-tap-highlight-color:transparent">${done?'✓':''}</span>
+        <span style="${done?'text-decoration:line-through':''}">${row.lbl}</span>
+      </span>
       <div class="row-val">
         <div class="row-q" style="color:${row.c}">${row.q>=0?fq(row.q):'-'+fq(-row.q)}</div>
         <div class="row-usd">${row.q>=0?fd(row.q):'-'+fd(-row.q)}</div>
@@ -2287,6 +2293,14 @@ function toggleDcaDet(){
     body.style.display='none';
     ico.style.transform='rotate(0deg)';
   }
+}
+
+function toggleMov(chkId){
+  var d = ldS();
+  if(!d.movimientos) d.movimientos = {};
+  d.movimientos[chkId] = !d.movimientos[chkId];
+  svS(d);
+  recalc(); // re-render para actualizar el check visual
 }
 
 function toggleLuluEst(){

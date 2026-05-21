@@ -341,8 +341,8 @@ td:first-child{text-align:left;}
 <!-- Desktop table -->
 <div class="tw"><table>
   <thead><tr>
-    <th>Activo</th><th>Precio</th><th>24h</th>
-    <th>Cantidad ✏</th><th>Valor</th><th>Entrada ✏</th><th>P&L</th><th>Rol</th>
+    <th>Activo</th><th>Precio</th>
+    <th>Cantidad ✏</th><th>Valor</th><th>Invertido</th><th>Entrada ✏</th><th>P&L</th>
   </tr></thead>
   <tbody id="tb1"><tr><td class="lc" colspan="8">Cargando...</td></tr></tbody>
 </table></div>
@@ -356,8 +356,8 @@ td:first-child{text-align:left;}
 </div>
 <div class="tw"><table>
   <thead><tr>
-    <th>Activo</th><th>Precio</th><th>24h</th>
-    <th>Cantidad ✏</th><th>Valor</th><th>Entrada ✏</th><th>P&L</th><th>Target 3x</th>
+    <th>Activo</th><th>Precio</th>
+    <th>Cantidad ✏</th><th>Valor</th><th>Invertido</th><th>Entrada ✏</th><th>P&L</th>
   </tr></thead>
   <tbody id="tb2"><tr><td class="lc" colspan="8">Cargando...</td></tr></tbody>
 </table></div>
@@ -404,6 +404,20 @@ td:first-child{text-align:left;}
   <span id="acc-toggle-ico" style="font-size:14px;color:var(--mu);transition:transform .2s">▾</span>
 </div>
 <div class="acc-list" id="acc-list" style="display:none;margin-bottom:10px"></div>
+
+<!-- CAPITAL HISTÓRICO -->
+<div onclick="toggleCapHist()" id="cap-toggle-btn"
+  style="background:var(--s1);border:1px solid var(--bd);border-radius:10px;
+  padding:11px 14px;display:flex;justify-content:space-between;align-items:center;
+  cursor:pointer;-webkit-tap-highlight-color:rgba(232,105,160,.2);margin-bottom:6px;
+  transition:background .15s;">
+  <div>
+    <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--mu);letter-spacing:.08em;text-transform:uppercase">Ventas · Capital recuperado</div>
+    <div id="cap-toggle-val" style="font-family:'DM Mono',monospace;font-size:13px;font-weight:700;color:var(--pk);margin-top:2px">—</div>
+  </div>
+  <span id="cap-toggle-ico" style="font-size:14px;color:var(--mu);transition:transform .2s">▾</span>
+</div>
+<div class="cap-body" id="cap-body" style="display:none;margin-bottom:10px;background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:12px"></div>
 
 <!-- ESTRATEGIA POR ACTIVO -->
 <div class="lbl" style="margin-top:16px;margin-bottom:8px">
@@ -528,7 +542,7 @@ function mkRow(a,price,chg,isL2){
   const lH=isL2
     ?`<span class="tgt">${fm(a.target,sd(a.target))}</span>${price&&a.target?`<span class="tn">+${((a.target/price-1)*100).toFixed(0)}% needed</span>`:''}`
     :`<span class="bdg b-${a.strat}">${a.sl}</span>`;
-  return`<tr><td><div class="an">${ico}<div><div class="atk" style="color:${a.col}">${a.tick}</div><div class="afl">${a.name}</div></div></div></td><td>${price!=null?fm(price,d):'—'}</td><td class="${chg!=null?(chg>=0?'cp':'cn'):''}">${chg!=null?fp(chg):'—'}</td><td>${qI}</td><td style="color:var(--ac)">${val!=null?fm(val):'—'}</td><td>${eI}</td><td>${pH}</td><td>${lH}</td></tr>`;
+  return`<tr><td><div class="an">${ico}<div><div class="atk" style="color:${a.col}">${a.tick}</div><div class="afl">${a.name}</div></div></div></td><td>${price!=null?fm(price,d):'—'}</td><td>${qI}</td><td style="color:var(--ac)">${val!=null?fm(val):'—'}</td><td style="color:var(--mu);font-family:'DM Mono',monospace;font-size:11px">${fm(cst)}</td><td>${eI}</td><td>${pH}</td></tr>`;
 }
 
 // ── MOBILE CARD ──────────────────────────────────────────────────
@@ -557,8 +571,9 @@ function mkCard(a,price,chg,isL2){
         <div class="ac-chg ${chg!=null?(chg>=0?'cp':'cn'):''}">${price!=null?fm(price,d):'—'} · ${chg!=null?fp(chg):'—'}</div>
       </div>
     </div>
-    <div class="ac-grid">
+    <div class="ac-grid" style="grid-template-columns:1fr 1fr 1fr">
       <div class="ac-cell"><label>Cantidad</label><div class="acv">${sq(a.qty)}</div></div>
+      <div class="ac-cell"><label>Invertido</label><div class="acv" style="color:var(--mu)">${fm(cst)}</div></div>
       <div class="ac-cell"><label>P&L</label><div>${pnlH}</div></div>
     </div>
     <div class="ac-inputs">
@@ -573,6 +588,7 @@ function mkCard(a,price,chg,isL2){
           onchange="onEC('${a.tick}',this.value)" style="border-color:rgba(157,127,240,.2)">
       </div>
     </div>
+
     <div class="ac-footer" style="display:flex;justify-content:space-between;align-items:center">
       <div>${badge}</div>
       <div id="ts-${a.tick}" style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu2)">—</div>
@@ -791,8 +807,9 @@ function renderBroker(){
         <div class="bg-field"><label>Cantidad</label><input class="bg-inp" type="number" value="${a.qty}" step="any" min="0" onchange="onBQ('${a.tick}',this.value)"></div>
         <div class="bg-field"><label>Precio entrada</label><input class="bg-inp" type="number" value="${a.entry}" step="any" min="0" onchange="onBE('${a.tick}',this.value)"></div>
         <div class="bg-field"><label>Precio actual ✏</label><input class="bg-inp curr" type="number" value="${a.price}" step="any" min="0" onchange="onBP('${a.tick}',this.value)"></div>
-        <div class="bg-field"><label>Posición</label><div style="font-family:'DM Mono',monospace;font-size:11px;padding:4px 0;color:var(--ac)">${fm(val)}</div></div>
+        <div class="bg-field"><label>Invertido</label><div style="font-family:'DM Mono',monospace;font-size:11px;padding:4px 0;color:var(--mu)">${fm(cst)}</div></div>
       </div>
+
       <div style="margin-top:7px"><span class="bdg b-${a.strat}">${a.sl}</span></div>
       <div class="bg-note">${a.note}</div>
       ${yieldHtml}
@@ -948,6 +965,11 @@ async function load(){
   renderAcc();
   updateProySummary();
   renderGrowth(tot);
+  // Actualizar label del capital histórico
+  const _cap = getCapitalHistorico();
+  const _lbl = document.getElementById('cap-toggle-val');
+  if(_lbl) _lbl.textContent = _cap.pctRecuperado.toFixed(1) + '% recuperado · $' + _cap.ventas.toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0});
+  if(_capOpen) renderCapHist();
   await saveSnapshot(tot);
   renderTrendChart();
   if(_proyOpen) renderProy();
@@ -957,10 +979,337 @@ function onEC(tick,val){const v=parseFloat(val);if(isNaN(v)||v<=0)return;const a
 function onBQ(tick,val){const v=parseFloat(val);if(isNaN(v)||v<0)return;const a=BROKER.find(x=>x.tick===tick);if(a){a.qty=v;svS(tick,'qty',v);load();}}
 function onBE(tick,val){const v=parseFloat(val);if(isNaN(v)||v<=0)return;const a=BROKER.find(x=>x.tick===tick);if(a){a.entry=v;svS(tick,'entry',v);load();}}
 function onBP(tick,val){const v=parseFloat(val);if(isNaN(v)||v<=0)return;const a=BROKER.find(x=>x.tick===tick);if(a){a.price=v;svS(tick,'price',v);load();}}
+
+// ── SISTEMA DE CAPITAL HISTÓRICO ──────────────────────────────────
+// snapshot inicial congelado + registro de compras/ventas
+const CAPSTORE = 'pf_cap_v1';
+
+function ldCap(){ try{return JSON.parse(localStorage.getItem(CAPSTORE)||'{}');}catch{return{};} }
+function svCap(d){ localStorage.setItem(CAPSTORE, JSON.stringify(d)); }
+
+function getCapitalHistorico(){
+  const d = ldCap();
+  // Capital invertido total ingresado manualmente (viene del budget tracker)
+  const capitalTotal = d.capitalInvertido || 0;
+  const trans = d.transacciones || [];
+  let ventas = 0;
+  trans.forEach(t => { if(t.tipo === 'venta') ventas += t.qty * t.precio; });
+  const pctRecuperado = capitalTotal > 0 ? (ventas / capitalTotal) * 100 : 0;
+  return {
+    capitalTotal,
+    ventas,
+    pctRecuperado,
+    fechaActualizacion: d.fechaActualizacion || null
+  };
+}
+
+function setCapitalInvertido(monto){
+  const v = parseFloat(monto);
+  if(isNaN(v) || v < 0) return false;
+  const d = ldCap();
+  d.capitalInvertido = v;
+  d.fechaActualizacion = new Date().toLocaleDateString('es-GT');
+  svCap(d);
+  return true;
+}
+
+function registrarTransaccion(tick, tipo, qty, precio){
+  // Solo ventas — las compras se reflejan automáticamente al actualizar qty del card
+  if(tipo !== 'venta') return false;
+  qty = parseFloat(qty); precio = parseFloat(precio);
+  if(isNaN(qty) || qty <= 0 || isNaN(precio) || precio <= 0) return false;
+  const d = ldCap();
+  if(!d.transacciones) d.transacciones = [];
+  d.transacciones.push({
+    tick, tipo: 'venta', qty, precio,
+    monto: qty * precio,
+    fecha: new Date().toISOString()
+  });
+  svCap(d);
+  // Bajar qty del activo automáticamente
+  const a = [...L1, ...L2, ...BROKER].find(x => x.tick === tick);
+  if(a){
+    a.qty = Math.max(a.qty - qty, 0);
+    svS(tick, 'qty', a.qty);
+  }
+  return true;
+}
+
+let _capOpen = false;
+function toggleCapHist(){
+  _capOpen = !_capOpen;
+  const body = document.getElementById('cap-body');
+  const ico  = document.getElementById('cap-toggle-ico');
+  if(body) body.style.display = _capOpen ? 'block' : 'none';
+  if(ico)  ico.textContent = _capOpen ? '▴' : '▾';
+  if(_capOpen) renderCapHist();
+}
+
+function renderCapHist(){
+  const cap = getCapitalHistorico();
+  const body = document.getElementById('cap-body');
+  const lbl  = document.getElementById('cap-toggle-val');
+  if(lbl) lbl.textContent = cap.pctRecuperado.toFixed(1) + '% · $' + cap.ventas.toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0});
+  if(!body) return;
+
+  const colPct = cap.pctRecuperado >= 100 ? 'var(--gr)' : cap.pctRecuperado >= 50 ? 'var(--go)' : 'var(--pk)';
+  const barWidth = Math.min(cap.pctRecuperado, 100);
+
+  // Opciones del dropdown — todos los activos disponibles
+  const activos = [...L1, ...L2, ...BROKER];
+  const optsHtml = activos.map(a => `<option value="${a.tick}" data-price="${a.price||0}">${a.tick} · ${a.name} (qty ${a.qty})</option>`).join('');
+
+  body.innerHTML = `
+    <div style="background:var(--s2);border-radius:6px;padding:10px 12px;margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);text-transform:uppercase">Capital invertido total</span>
+        <span style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu2)">${cap.fechaActualizacion ? 'act. '+cap.fechaActualizacion : 'sin registrar'}</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="font-family:'DM Mono',monospace;font-size:13px;color:var(--mu)">$</span>
+        <input id="cap-inv-input" type="number" step="0.01" min="0" value="${cap.capitalTotal||''}" placeholder="0.00"
+          onchange="onCapInvChange(this.value)"
+          style="flex:1;padding:6px 10px;background:var(--s3);color:var(--tx);border:1px solid rgba(157,127,240,.3);border-radius:5px;font-family:'Syne',sans-serif;font-size:15px;font-weight:800;text-align:right;outline:none;box-sizing:border-box">
+      </div>
+      <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu2);margin-top:6px;line-height:1.4">Suma de tu inversión histórica (snapshot inicial + aportes mensuales del budget tracker). Actualizar manualmente cada mes.</div>
+    </div>
+
+    <div style="background:var(--s2);border-radius:6px;padding:10px 12px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px">
+        <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--mu);text-transform:uppercase">Recuperado vía ventas</span>
+        <span style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:${colPct}">${cap.pctRecuperado.toFixed(1)}%</span>
+      </div>
+      <div style="background:var(--bd);height:10px;border-radius:5px;overflow:hidden;position:relative">
+        <div style="background:${colPct};width:${barWidth}%;height:100%;transition:width .3s"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:6px;font-family:'DM Mono',monospace;font-size:9px;color:var(--mu)">
+        <span>$${cap.ventas.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})} vendido</span>
+        <span style="color:${cap.pctRecuperado >= 100 ? 'var(--gr)' : 'var(--mu)'}">${cap.pctRecuperado >= 100 ? '✅ Dinero de la casa: $' + (cap.ventas - cap.capitalTotal).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0}) : 'Falta: $' + (cap.capitalTotal - cap.ventas).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0})}</span>
+      </div>
+    </div>
+
+    <!-- FORMULARIO REGISTRAR VENTA -->
+    <div style="background:var(--s2);border-radius:6px;padding:10px 12px;margin-top:10px;border:1px solid rgba(242,92,92,.2)">
+      <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--rd);text-transform:uppercase;margin-bottom:8px;font-weight:700">+ Registrar venta</div>
+      <div style="display:grid;grid-template-columns:1fr;gap:6px;margin-bottom:8px">
+        <select id="sell-tick" onchange="onSellTickChange()"
+          style="padding:7px 10px;background:var(--s3);color:var(--tx);border:1px solid var(--bd2);border-radius:5px;font-family:'DM Mono',monospace;font-size:11px;cursor:pointer">
+          <option value="">— Seleccionar activo —</option>
+          ${optsHtml}
+        </select>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">
+        <div>
+          <label style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu);text-transform:uppercase;display:block;margin-bottom:3px">Cantidad</label>
+          <input id="sell-qty" type="number" step="any" min="0" placeholder="0" oninput="updateSellPreview()"
+            style="width:100%;padding:6px 8px;background:var(--s3);color:var(--tx);border:1px solid var(--bd2);border-radius:5px;font-family:'DM Mono',monospace;font-size:12px;font-weight:700;text-align:right;box-sizing:border-box">
+        </div>
+        <div>
+          <label style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu);text-transform:uppercase;display:block;margin-bottom:3px">Precio USD</label>
+          <input id="sell-precio" type="number" step="any" min="0" placeholder="0" oninput="updateSellPreview()"
+            style="width:100%;padding:6px 8px;background:var(--s3);color:var(--tx);border:1px solid var(--bd2);border-radius:5px;font-family:'DM Mono',monospace;font-size:12px;font-weight:700;text-align:right;box-sizing:border-box">
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span id="sell-preview" style="font-family:'DM Mono',monospace;font-size:10px;color:var(--mu)">Total: $0.00</span>
+        <button onclick="ejecutarRegistroVenta()" style="padding:6px 14px;background:rgba(242,92,92,.15);border:1px solid rgba(242,92,92,.4);color:var(--rd);border-radius:5px;font-family:'DM Mono',monospace;font-size:10px;font-weight:700;cursor:pointer">Registrar</button>
+      </div>
+    </div>
+
+    <div style="margin-top:10px">
+      <button onclick="verTodasTransacciones()" style="width:100%;padding:7px;background:var(--s2);border:1px solid var(--bd2);color:var(--mu);border-radius:5px;font-family:'DM Mono',monospace;font-size:10px;cursor:pointer">📜 Ver todas las ventas registradas</button>
+    </div>
+  `;
+}
+
+function onSellTickChange(){
+  const sel = document.getElementById('sell-tick');
+  const opt = sel.options[sel.selectedIndex];
+  const price = opt?.dataset?.price || 0;
+  if(price > 0){
+    document.getElementById('sell-precio').value = price;
+    updateSellPreview();
+  }
+}
+
+function updateSellPreview(){
+  const q = parseFloat(document.getElementById('sell-qty').value) || 0;
+  const p = parseFloat(document.getElementById('sell-precio').value) || 0;
+  document.getElementById('sell-preview').textContent = 'Total: $' + (q*p).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+
+function ejecutarRegistroVenta(){
+  const tick = document.getElementById('sell-tick').value;
+  const qty = document.getElementById('sell-qty').value;
+  const precio = document.getElementById('sell-precio').value;
+  if(!tick){ alert('Selecciona un activo'); return; }
+  if(registrarTransaccion(tick, 'venta', qty, precio)){
+    // Limpiar campos
+    document.getElementById('sell-tick').value = '';
+    document.getElementById('sell-qty').value = '';
+    document.getElementById('sell-precio').value = '';
+    document.getElementById('sell-preview').textContent = 'Total: $0.00';
+    load();
+  } else {
+    alert('Valores inválidos');
+  }
+}
+
+function onCapInvChange(val){
+  if(setCapitalInvertido(val)){
+    renderCapHist();
+    load();
+  }
+}
+
+function verTodasTransacciones(){
+  const d = ldCap();
+  const trans = d.transacciones || [];
+  if(trans.length === 0){ alert('Sin transacciones registradas'); return; }
+  // Ordenar por fecha descendente
+  const sorted = [...trans].sort((a,b) => new Date(b.fecha) - new Date(a.fecha));
+  const html = sorted.map(t => {
+    const fecha = new Date(t.fecha).toLocaleDateString('es-GT');
+    const col = t.tipo === 'compra' ? 'var(--gr)' : 'var(--rd)';
+    const sign = t.tipo === 'compra' ? '+' : '-';
+    return `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:10px">
+      <span><strong style="color:var(--tx)">${t.tick}</strong> <span style="color:${col}">${sign} ${t.qty} @ $${t.precio}</span></span>
+      <span style="color:var(--mu)">${fecha} · $${t.monto.toFixed(2)}</span>
+    </div>`;
+  }).join('');
+  const modal = `<div id="all-modal-bg" onclick="document.getElementById('all-modal-bg').remove()" style="position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px">
+    <div onclick="event.stopPropagation()" style="background:var(--s1);border:1px solid var(--bd);border-radius:12px;padding:20px;max-width:420px;width:100%;max-height:80vh;overflow-y:auto">
+      <div style="display:flex;justify-content:space-between;margin-bottom:14px">
+        <div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:800">Todas las transacciones</div>
+        <span onclick="document.getElementById('all-modal-bg').remove()" style="cursor:pointer;color:var(--mu);font-size:20px;line-height:1">×</span>
+      </div>
+      ${html}
+    </div>
+  </div>`;
+  const div = document.createElement('div');
+  div.innerHTML = modal;
+  document.body.appendChild(div.firstElementChild);
+}
+
+function eliminarUltimaTransaccion(tick){
+  const d = ldCap();
+  if(!d.transacciones || d.transacciones.length === 0) return false;
+  for(let i = d.transacciones.length - 1; i >= 0; i--){
+    if(d.transacciones[i].tick === tick){
+      const t = d.transacciones[i];
+      const a = [...L1, ...L2, ...BROKER].find(x => x.tick === tick);
+      if(a){
+        a.qty += t.qty; // revertir venta: regresar qty
+        svS(tick, 'qty', a.qty);
+      }
+      d.transacciones.splice(i, 1);
+      svCap(d);
+      return true;
+    }
+  }
+  return false;
+}
+
+function getTransaccionesActivo(tick){
+  const d = ldCap();
+  return (d.transacciones || []).filter(t => t.tick === tick);
+}
+
+// Modal de registro de transacción
+let _txModal = null;
+function abrirRegistroTx(tick, tipo){
+  _txModal = { tick, tipo };
+  const a = [...L1, ...L2, ...BROKER].find(x => x.tick === tick);
+  const colorTipo = tipo === 'compra' ? 'var(--gr)' : 'var(--rd)';
+  const labelTipo = tipo === 'compra' ? 'Compra' : 'Venta';
+  const html = `
+    <div id="tx-modal-bg" onclick="cerrarRegistroTx(event)" style="position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px">
+      <div onclick="event.stopPropagation()" style="background:var(--s1);border:1px solid var(--bd);border-radius:12px;padding:20px;max-width:340px;width:100%">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+          <div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:${colorTipo}">+ ${labelTipo} ${tick}</div>
+          <span onclick="cerrarRegistroTx()" style="cursor:pointer;color:var(--mu);font-size:20px;line-height:1">×</span>
+        </div>
+        <div style="margin-bottom:12px">
+          <label style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);text-transform:uppercase;display:block;margin-bottom:4px">Cantidad</label>
+          <input id="tx-qty" type="number" step="any" min="0" placeholder="0" autofocus
+            style="width:100%;padding:8px 10px;background:var(--s2);color:var(--tx);border:1px solid var(--bd2);border-radius:6px;font-family:'DM Mono',monospace;font-size:13px;font-weight:700;box-sizing:border-box;text-align:right">
+        </div>
+        <div style="margin-bottom:14px">
+          <label style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);text-transform:uppercase;display:block;margin-bottom:4px">Precio por unidad (USD)</label>
+          <input id="tx-precio" type="number" step="any" min="0" placeholder="0" value="${a?.price||''}"
+            style="width:100%;padding:8px 10px;background:var(--s2);color:var(--tx);border:1px solid var(--bd2);border-radius:6px;font-family:'DM Mono',monospace;font-size:13px;font-weight:700;box-sizing:border-box;text-align:right">
+        </div>
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu2);margin-bottom:14px;text-align:right" id="tx-preview">Total: $0.00</div>
+        <div style="display:flex;gap:8px">
+          <button onclick="cerrarRegistroTx()" style="flex:1;padding:9px;background:var(--s2);border:1px solid var(--bd2);color:var(--mu);border-radius:6px;font-family:'DM Mono',monospace;font-size:11px;cursor:pointer">Cancelar</button>
+          <button onclick="confirmarRegistroTx()" style="flex:1;padding:9px;background:${colorTipo};border:none;color:#0a0a0a;border-radius:6px;font-family:'DM Mono',monospace;font-size:11px;font-weight:700;cursor:pointer">Registrar</button>
+        </div>
+      </div>
+    </div>`;
+  const div = document.createElement('div');
+  div.innerHTML = html;
+  document.body.appendChild(div.firstElementChild);
+
+  const upd = () => {
+    const q = parseFloat(document.getElementById('tx-qty').value) || 0;
+    const p = parseFloat(document.getElementById('tx-precio').value) || 0;
+    document.getElementById('tx-preview').textContent = 'Total: $' + (q*p).toLocaleString('en-US',{minimumFractionDigits:2, maximumFractionDigits:2});
+  };
+  document.getElementById('tx-qty').oninput = upd;
+  document.getElementById('tx-precio').oninput = upd;
+}
+
+function cerrarRegistroTx(e){
+  if(e && e.target && e.target.id !== 'tx-modal-bg') return;
+  const el = document.getElementById('tx-modal-bg');
+  if(el) el.remove();
+  _txModal = null;
+}
+
+function confirmarRegistroTx(){
+  if(!_txModal) return;
+  const qty    = document.getElementById('tx-qty').value;
+  const precio = document.getElementById('tx-precio').value;
+  if(registrarTransaccion(_txModal.tick, _txModal.tipo, qty, precio)){
+    cerrarRegistroTx();
+    load();
+  } else {
+    alert('Valores inválidos');
+  }
+}
+
+function verHistorialTx(tick){
+  const trans = getTransaccionesActivo(tick);
+  if(trans.length === 0){ alert('Sin transacciones registradas para '+tick); return; }
+  const html = trans.map((t, i) => {
+    const fecha = new Date(t.fecha).toLocaleDateString('es-GT');
+    const col = t.tipo === 'compra' ? 'var(--gr)' : 'var(--rd)';
+    return `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:11px">
+      <span style="color:${col}">${t.tipo === 'compra' ? '+' : '-'} ${t.qty} @ $${t.precio}</span>
+      <span style="color:var(--mu)">${fecha} · $${t.monto.toFixed(2)}</span>
+    </div>`;
+  }).join('');
+  const modal = `<div id="hist-modal-bg" onclick="document.getElementById('hist-modal-bg').remove()" style="position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px">
+    <div onclick="event.stopPropagation()" style="background:var(--s1);border:1px solid var(--bd);border-radius:12px;padding:20px;max-width:380px;width:100%;max-height:80vh;overflow-y:auto">
+      <div style="display:flex;justify-content:space-between;margin-bottom:12px">
+        <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:800">Historial · ${tick}</div>
+        <span onclick="document.getElementById('hist-modal-bg').remove()" style="cursor:pointer;color:var(--mu);font-size:20px;line-height:1">×</span>
+      </div>
+      ${html}
+      <button onclick="if(confirm('¿Eliminar última transacción de ${tick}?')){eliminarUltimaTransaccion('${tick}');document.getElementById('hist-modal-bg').remove();load();}" style="margin-top:14px;width:100%;padding:8px;background:var(--s2);border:1px solid rgba(242,92,92,.3);color:var(--rd);border-radius:6px;font-family:'DM Mono',monospace;font-size:10px;cursor:pointer">Eliminar última transacción</button>
+    </div>
+  </div>`;
+  const div = document.createElement('div');
+  div.innerHTML = modal;
+  document.body.appendChild(div.firstElementChild);
+}
+
 // ── RESUMEN EJECUTIVO PROFESIONAL ───────────────────────────────
 function descargarResumen(){
   const allAssets=[...L1,...L2,...BROKER];
   let tot=0,cst=0;
+  // Capital histórico
+  const capHist = getCapitalHistorico();
   allAssets.forEach(a=>{
     const v=(a.price||0)*a.qty;
     tot+=v; cst+=a.entry*a.qty;
@@ -1203,6 +1552,16 @@ function descargarResumen(){
   <div class="pbar-wrap">
     <div class="pbar-lbl"><span>Progreso hacia ${fm2(META)}</span><span><strong>${pct.toFixed(1)}%</strong></span></div>
     <div class="pbar"><div class="pbar-fill" style="width:${pct.toFixed(1)}%;background:linear-gradient(90deg,#3db8f5,#9d7ff0)"></div></div>
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sec-hdr"><div class="sec-t">Ventas · Capital recuperado</div><div class="sec-sub">inversión total · ventas registradas · % recuperado</div></div>
+  <div class="kpis">
+    <div class="kpi"><div class="k-lbl">Capital invertido total</div><div class="k-val">${fm2(capHist.capitalTotal)}</div><div class="k-sub">${capHist.fechaActualizacion || 'sin registrar'}</div></div>
+    <div class="kpi"><div class="k-lbl">Ventas acumuladas</div><div class="k-val" style="color:#34d07a">${fm2(capHist.ventas)}</div><div class="k-sub">capital realizado</div></div>
+    <div class="kpi"><div class="k-lbl">% Recuperado</div><div class="k-val" style="color:${capHist.pctRecuperado>=100?'#34d07a':'#e879a0'}">${capHist.pctRecuperado.toFixed(1)}%</div><div class="k-sub">${capHist.pctRecuperado>=100?'dinero de la casa':'sobre capital'}</div></div>
+    <div class="kpi"><div class="k-lbl">${capHist.pctRecuperado>=100?'Dinero de la casa':'Pendiente recuperar'}</div><div class="k-val" style="color:${capHist.pctRecuperado>=100?'#34d07a':'#e8a020'}">${fm2(Math.abs(capHist.capitalTotal - capHist.ventas))}</div><div class="k-sub">${capHist.pctRecuperado>=100?'ganancia realizada':'falta vender'}</div></div>
   </div>
 </div>
 

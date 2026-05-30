@@ -633,9 +633,9 @@ body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--tx);min-heig
   <div class="card-body">
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
       <div style="background:var(--s2);border-radius:7px;padding:10px;text-align:center">
-        <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu);text-transform:uppercase;margin-bottom:4px">Capital inicial (ene–abr)</div>
+        <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu);text-transform:uppercase;margin-bottom:4px">Capital inicial (USD)</div>
         <div id="dca-base-val" style="font-size:15px;font-weight:800;color:var(--ac)">—</div>
-        <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu);margin-top:3px">solo se ingresa una vez</div>
+        <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu);margin-top:3px">snapshot histórico · una sola vez</div>
         <div style="display:flex;align-items:center;gap:6px;margin-top:7px">
           <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--mu)">$</span>
           <input type="number" id="dca-base-inp" step="10" min="0" placeholder="9500"
@@ -648,18 +648,18 @@ body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--tx);min-heig
       <div style="background:var(--s2);border-radius:7px;padding:10px;text-align:center">
         <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu);text-transform:uppercase;margin-bottom:4px">Último mes registrado</div>
         <div id="dca-ultimo-val" style="font-size:15px;font-weight:800;color:var(--go)">—</div>
-        <div id="dca-ultimo-lbl" style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu);margin-top:3px">total posiciones × entrada</div>
+        <div id="dca-ultimo-lbl" style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu);margin-top:3px">acumulado a la fecha</div>
         <div id="dca-delta" style="font-family:'DM Mono',monospace;font-size:10px;font-weight:700;color:var(--gr);margin-top:4px">—</div>
       </div>
     </div>
     <div style="background:var(--s2);border-radius:7px;padding:10px;margin-bottom:12px">
       <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">
-        📥 Registrar cierre de mes — capital total invertido
+        📥 Aporte del mes — cuánto invertiste en cripto
       </div>
       <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu2);margin-bottom:8px">
-        Ingresa el total de posiciones × precio promedio de entrada (del portfolio tracker).
+        Ingresa cuántos quetzales moviste a inversión este mes. Se convierte a USD con el TC vigente y se suma al acumulado.
       </div>
-      <div style="display:flex;gap:8px;align-items:center">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
         <select id="dca-mes-sel" style="background:var(--s3);border:1px solid var(--bd2);color:var(--tx);
           font-family:'DM Mono',monospace;font-size:11px;padding:6px 8px;border-radius:6px;flex:0 0 auto">
           <option value="May 2026">May 2026</option>
@@ -683,16 +683,17 @@ body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--tx);min-heig
           <option value="Nov 2027">Nov 2027</option>
           <option value="Dic 2027">Dic 2027</option>
         </select>
-        <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--mu)">$</span>
-        <input type="number" id="dca-mes-inp" step="10" min="0" placeholder="10200"
+        <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--mu)">Q</span>
+        <input type="number" id="dca-mes-inp" step="10" min="0" placeholder="6880" oninput="updateDCAPreview()"
           style="background:var(--s3);border:1px solid rgba(52,208,122,.3);color:var(--gr);
           font-family:'DM Mono',monospace;font-size:13px;font-weight:700;
-          padding:6px 9px;border-radius:6px;flex:1;text-align:right">
+          padding:6px 9px;border-radius:6px;flex:1;text-align:right;min-width:90px">
         <button onclick="saveDCAMes()"
           style="background:rgba(52,208,122,.15);border:1px solid rgba(52,208,122,.4);color:var(--gr);
           font-family:'DM Mono',monospace;font-size:11px;padding:6px 12px;border-radius:6px;
           cursor:pointer;white-space:nowrap">+ Guardar</button>
       </div>
+      <div id="dca-mes-preview" style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);margin-top:6px;text-align:right">≈ $0 USD · TC actual</div>
     </div>
     <div style="border-top:1px solid var(--bd);padding-top:10px">
       <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">Historial de crecimiento</div>
@@ -912,15 +913,20 @@ function renderQCasos(r, pago, quincena){
 
   // Badge de caso
   const casoColor = {A:'var(--rd)', 'B':'var(--go)', 'B+':'var(--go)', C:'#3db8f5'}[r.caso] || 'var(--mu)';
-  const casoDesc = {
-    A: 'Q1 — 60/40 · personal insuficiente para subs',
-    B: 'Q1 — 60/40 · subs + Lulubit parcial',
-    'B+': 'Q1 — 60/40 · subs + Lulubit + Bantrab parcial',
-    C: 'Q1 — 60/40 · subs + Lulubit completos'
-  }[r.caso] || '';
+  const casoDescQ1 = {
+    A: '60/40 · personal insuficiente para subs',
+    B: '60/40 · subs + Lulubit parcial',
+    'B+': '60/40 · subs + Lulubit + Bantrab parcial',
+    C: '60/40 · subs + Lulubit completos'
+  };
+  const casoDescQ2 = {
+    A: '60/40 · completar Lulubit del mes',
+    B: '60/40 · Lulubit completo · resto a Bantrab'
+  };
+  const casoDesc = (quincena===1 ? casoDescQ1 : casoDescQ2)[r.caso] || '';
 
   const casoBadge = r.caso ? `<div style="font-family:'DM Mono',monospace;font-size:9px;padding:3px 8px;border-radius:4px;background:${casoColor}22;color:${casoColor};margin-bottom:8px;display:inline-block">
-    Caso ${r.caso}${casoDesc ? ' · '+casoDesc : ''}</div>` : '';
+    Q${quincena} · Caso ${r.caso}${casoDesc ? ' · '+casoDesc : ''}</div>` : '';
 
   // Filas según qué se mueve
   const rows = [];
@@ -1517,10 +1523,8 @@ function recalc(){
   const subsQ1 = rQ1 ? rQ1.subs : 0;
   const rQ2 = tQ2 ? distribuirQ2(ST.q2, luluQ1, subsQ1) : null;
 
-  // Excedente mensual total
-  const excQ1 = rQ1 ? rQ1.personal : 0;
-  const excQ2 = rQ2 ? rQ2.personal : 0;
-  const excMes = excQ1 + excQ2;
+  // Excedente mensual total = ingreso - fijos (lo que queda para distribuir)
+  const excMes = Math.max(ingTotal - tf - COBROS_BANCARIOS, 0);
 
   // Totales mensuales
   const invMesQ = (rQ1?.inv||0) + (rQ2?.inv||0);
@@ -1730,17 +1734,26 @@ function descargarResumen(){
   const slope=nn>1?(nn*sumXY-sumX*sumY)/(nn*sumX2-sumX*sumX):0;
 
   const dcaBase=parseFloat(stor.dcaBase)||0;
+  const dcaAportesObj=stor.dcaAportes||{};
   const dcaMesesObj=stor.dcaMeses||{};
   const mOrdDCA2=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  const dcaAportesKeys=Object.keys(dcaAportesObj).sort((a,b)=>{
+    const ya=parseInt(a.slice(-4))||2026, ma=mOrdDCA2.indexOf(a.slice(0,3));
+    const yb=parseInt(b.slice(-4))||2026, mb=mOrdDCA2.indexOf(b.slice(0,3));
+    return ya!==yb ? ya-yb : ma-mb;
+  });
+  let totalAportadoPdfUSD = 0;
+  dcaAportesKeys.forEach(m => { totalAportadoPdfUSD += (dcaAportesObj[m]?.usd || 0); });
   const dcaMesesKeys2=Object.keys(dcaMesesObj).sort((a,b)=>{
     const ya=parseInt(a.slice(-4))||2026,ma=mOrdDCA2.indexOf(a.slice(0,3));
     const yb=parseInt(b.slice(-4))||2026,mb=mOrdDCA2.indexOf(b.slice(0,3));
     return ya!==yb?ya-yb:ma-mb;
   });
-  const dcaUltimoMes=dcaMesesKeys2[dcaMesesKeys2.length-1]||'—';
-  const dcaUltimoVal=dcaUltimoMes!=='—'?(parseFloat(dcaMesesObj[dcaUltimoMes])||0):0;
-  const dcaAcum=Math.max(dcaUltimoVal-dcaBase,0);
-  const dcaTotal=dcaUltimoVal>0?dcaUltimoVal:dcaBase;
+  const usarAportes = dcaAportesKeys.length > 0;
+  const dcaUltimoMes = usarAportes ? (dcaAportesKeys[dcaAportesKeys.length-1] || '—') : (dcaMesesKeys2[dcaMesesKeys2.length-1] || '—');
+  const dcaUltimoVal = usarAportes ? (dcaBase + totalAportadoPdfUSD) : (dcaUltimoMes!=='—'?(parseFloat(dcaMesesObj[dcaUltimoMes])||0):0);
+  const dcaAcum = usarAportes ? totalAportadoPdfUSD : Math.max(dcaUltimoVal-dcaBase,0);
+  const dcaTotal = dcaUltimoVal>0?dcaUltimoVal:dcaBase;
 
   // ── Comparativa mes anterior ──
   const mesActualKey = mOrdR[ST.mes-1] + ' ' + (ST.anio||2026);
@@ -1933,7 +1946,7 @@ function descargarResumen(){
     +'</div>'
 
     // ── INVERSIÓN ──
-    +'<div style="'+S.sec+'">'      +'<span style="'+S.sectl+'">Inversión en portafolio · costo base</span>'      +'<div style="'+S.cards+'">'        +'<div style="'+S.card+'"><span style="'+S.clbl+'">Capital inicial</span>'          +'<span style="'+S.cval+'color:#2563eb">$'+dcaBase.toLocaleString('en-US',{maximumFractionDigits:0})+'</span>'          +'<span style="'+S.csub+'">ene–abr 2026</span></div>'        +'<div style="'+S.card+'"><span style="'+S.clbl+'">Capital actual ('+dcaUltimoMes+')</span>'          +'<span style="'+S.cval+'color:#059669">$'+dcaUltimoVal.toLocaleString('en-US',{maximumFractionDigits:0})+'</span>'          +'<span style="'+S.csub+'">último mes registrado</span></div>'        +'<div style="'+S.card+'"><span style="'+S.clbl+'">Has aportado</span>'          +'<span style="'+S.cval+'color:#7c3aed">$'+dcaAcum.toLocaleString('en-US',{maximumFractionDigits:0})+'</span>'          +'<span style="'+S.csub+'">actual − inicial</span></div>'      +'</div>'      +((()=>{          const mOP3=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];          const ks3=Object.keys(dcaMesesObj).sort((a,b)=>{            const ya=parseInt(a.slice(-4))||2026,ma=mOP3.indexOf(a.slice(0,3));            const yb=parseInt(b.slice(-4))||2026,mb=mOP3.indexOf(b.slice(0,3));            return ya!==yb?ya-yb:ma-mb;          });          if(!ks3.length) return '';          let prev3=dcaBase;          const rows3=ks3.map(m=>{            const v=parseFloat(dcaMesesObj[m])||0;            const d3=v-prev3;            const ds3=(d3>=0?'+$':'-$')+Math.abs(d3).toLocaleString('en-US',{maximumFractionDigits:0});            const dc3=d3>=0?'#059669':'#dc2626';            prev3=v;            return '<tr><td style="'+S.td+'">'+m+'</td><td style="'+S.td+'color:'+dc3+';font-weight:600">'+ds3+'</td><td style="'+S.td+'font-weight:700">$'+v.toLocaleString('en-US',{maximumFractionDigits:0})+'</td></tr>';          }).join('');          return '<table style="'+S.tbl+'"><thead><tr>'            +'<th style="'+S.th+'">Mes</th><th style="'+S.th+'">Aportado</th><th style="'+S.th+'">Total</th>'            +'</tr></thead><tbody>'+rows3+'</tbody></table>';        })())    +'</div>'
+    +'<div style="'+S.sec+'">'      +'<span style="'+S.sectl+'">Inversión en portafolio · costo base</span>'      +'<div style="'+S.cards+'">'        +'<div style="'+S.card+'"><span style="'+S.clbl+'">Capital inicial</span>'          +'<span style="'+S.cval+'color:#2563eb">$'+dcaBase.toLocaleString('en-US',{maximumFractionDigits:0})+'</span>'          +'<span style="'+S.csub+'">ene–abr 2026</span></div>'        +'<div style="'+S.card+'"><span style="'+S.clbl+'">Capital actual ('+dcaUltimoMes+')</span>'          +'<span style="'+S.cval+'color:#059669">$'+dcaUltimoVal.toLocaleString('en-US',{maximumFractionDigits:0})+'</span>'          +'<span style="'+S.csub+'">último mes registrado</span></div>'        +'<div style="'+S.card+'"><span style="'+S.clbl+'">Has aportado</span>'          +'<span style="'+S.cval+'color:#7c3aed">$'+dcaAcum.toLocaleString('en-US',{maximumFractionDigits:0})+'</span>'          +'<span style="'+S.csub+'">actual − inicial</span></div>'      +'</div>'      +((()=>{          if(usarAportes){            if(!dcaAportesKeys.length) return '';            let acum=dcaBase;            const rows3=dcaAportesKeys.map(m=>{              const a=dcaAportesObj[m]||{};              const usd=parseFloat(a.usd)||0;              const q=parseFloat(a.q)||0;              acum+=usd;              return '<tr><td style="'+S.td+'">'+m+'</td><td style="'+S.td+'color:#059669;font-weight:600">+$'+usd.toLocaleString('en-US',{maximumFractionDigits:2})+'</td><td style="'+S.td+'color:#6b7280;font-size:10px">Q'+q.toLocaleString('es-GT')+'</td><td style="'+S.td+'font-weight:700">$'+acum.toLocaleString('en-US',{maximumFractionDigits:0})+'</td></tr>';            }).join('');            return '<table style="'+S.tbl+'"><thead><tr>'              +'<th style="'+S.th+'">Mes</th><th style="'+S.th+'">Aporte USD</th><th style="'+S.th+'">En Q</th><th style="'+S.th+'">Acumulado</th>'              +'</tr></thead><tbody>'+rows3+'</tbody></table>';          } else {            const mOP3=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];            const ks3=Object.keys(dcaMesesObj).sort((a,b)=>{              const ya=parseInt(a.slice(-4))||2026,ma=mOP3.indexOf(a.slice(0,3));              const yb=parseInt(b.slice(-4))||2026,mb=mOP3.indexOf(b.slice(0,3));              return ya!==yb?ya-yb:ma-mb;            });            if(!ks3.length) return '';            let prev3=dcaBase;            const rows3=ks3.map(m=>{              const v=parseFloat(dcaMesesObj[m])||0;              const d3=v-prev3;              const ds3=(d3>=0?'+$':'-$')+Math.abs(d3).toLocaleString('en-US',{maximumFractionDigits:0});              const dc3=d3>=0?'#059669':'#dc2626';              prev3=v;              return '<tr><td style="'+S.td+'">'+m+'</td><td style="'+S.td+'color:'+dc3+';font-weight:600">'+ds3+'</td><td style="'+S.td+'font-weight:700">$'+v.toLocaleString('en-US',{maximumFractionDigits:0})+'</td></tr>';            }).join('');            return '<table style="'+S.tbl+'"><thead><tr>'              +'<th style="'+S.th+'">Mes</th><th style="'+S.th+'">Aportado</th><th style="'+S.th+'">Total</th>'              +'</tr></thead><tbody>'+rows3+'</tbody></table>';          }        })())    +'</div>'
     // ── RESERVAS ──
     +'<div style="'+S.sec+'">'
       +'<span style="'+S.sectl+'">Reservas y patrimonio liquido</span>'
@@ -2215,19 +2228,34 @@ function saveDCAMes(){
   const inpEl=document.getElementById('dca-mes-inp');
   if(!mesEl||!inpEl) return;
   const mes=mesEl.value;
-  const val=parseFloat(inpEl.value)||0;
-  if(!val||val<=0){ inpEl.style.borderColor='rgba(242,92,92,.6)'; return; }
+  const valQ=parseFloat(inpEl.value)||0;
+  if(!valQ||valQ<=0){ inpEl.style.borderColor='rgba(242,92,92,.6)'; return; }
   inpEl.style.borderColor='rgba(52,208,122,.3)';
+  const tc = ST.tc || 7.75;
+  const valUSD = valQ / tc;
   const d=ldS();
-  if(!d.dcaMeses) d.dcaMeses={};
-  d.dcaMeses[mes]=val;
+  if(!d.dcaAportes) d.dcaAportes={};
+  d.dcaAportes[mes] = { q: valQ, usd: valUSD, tc: tc, fecha: new Date().toISOString() };
   svS(d);
   inpEl.value='';
+  const prev=document.getElementById('dca-mes-preview');
+  if(prev) prev.textContent = '≈ $0 USD · TC actual';
   renderDCA();
+}
+
+function updateDCAPreview(){
+  const inp = document.getElementById('dca-mes-inp');
+  const prev = document.getElementById('dca-mes-preview');
+  if(!inp || !prev) return;
+  const valQ = parseFloat(inp.value)||0;
+  const tc = ST.tc || 7.75;
+  const usd = valQ / tc;
+  prev.textContent = '≈ $' + usd.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' USD · TC ' + tc.toFixed(2);
 }
 
 function deleteDCAMes(mes){
   const d=ldS();
+  if(d.dcaAportes) delete d.dcaAportes[mes];
   if(d.dcaMeses) delete d.dcaMeses[mes];
   svS(d);
   renderDCA();
@@ -2236,47 +2264,54 @@ function deleteDCAMes(mes){
 function renderDCA(){
   const d=ldS();
   const base=parseFloat(d.dcaBase)||0;
-  const meses=d.dcaMeses||{};
+  const aportes=d.dcaAportes||{};
   const mOrd=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-  const mesKeys=Object.keys(meses).sort((a,b)=>{
+  const mesKeys=Object.keys(aportes).sort((a,b)=>{
     const ya=parseInt(a.slice(-4))||2026, ma=mOrd.indexOf(a.slice(0,3));
     const yb=parseInt(b.slice(-4))||2026, mb=mOrd.indexOf(b.slice(0,3));
     return ya!==yb ? ya-yb : ma-mb;
   });
-  const ultimoMes=mesKeys[mesKeys.length-1];
-  const ultimoVal=ultimoMes?(parseFloat(meses[ultimoMes])||0):0;
-  const dcaAcum=Math.max(ultimoVal-base,0);
+
+  let totalAportadoUSD = 0;
+  mesKeys.forEach(m => { totalAportadoUSD += (aportes[m]?.usd || 0); });
+  const acumuladoActual = base + totalAportadoUSD;
+
+  const ultimoMes = mesKeys[mesKeys.length-1];
+
   const bv=document.getElementById('dca-base-val');
   const bi=document.getElementById('dca-base-inp');
   const ulv=document.getElementById('dca-ultimo-val');
   const ull=document.getElementById('dca-ultimo-lbl');
   const dlt=document.getElementById('dca-delta');
+
   if(bv) bv.textContent=base>0?'$'+base.toLocaleString('en-US',{maximumFractionDigits:0}):'—';
   if(bi&&!bi.matches(':focus')&&base>0) bi.value=base;
-  if(ulv) ulv.textContent=ultimoVal>0?'$'+ultimoVal.toLocaleString('en-US',{maximumFractionDigits:0}):'—';
-  if(ull) ull.textContent=ultimoMes||'sin registros aún';
+  if(ulv) ulv.textContent=acumuladoActual>0?'$'+acumuladoActual.toLocaleString('en-US',{maximumFractionDigits:0}):'—';
+  if(ull) ull.textContent=ultimoMes ? (ultimoMes + ' · último aporte') : 'sin aportes aún';
   if(dlt){
-    if(dcaAcum>0){ dlt.textContent='+$'+dcaAcum.toLocaleString('en-US',{maximumFractionDigits:0})+' aportado'; dlt.style.color='var(--gr)'; }
-    else { dlt.textContent='—'; }
+    if(totalAportadoUSD>0){ dlt.textContent='+$'+totalAportadoUSD.toLocaleString('en-US',{maximumFractionDigits:0})+' aportado desde base'; dlt.style.color='var(--gr)'; }
+    else { dlt.textContent='—'; dlt.style.color='var(--mu)'; }
   }
+
   const listEl=document.getElementById('dca-hist-list');
   if(!listEl) return;
   if(!mesKeys.length){
-    listEl.innerHTML='<div style="font-family:monospace;font-size:9px;color:var(--mu2);padding:8px 0">Registra el primer mes para ver el historial</div>';
+    listEl.innerHTML='<div style="font-family:monospace;font-size:9px;color:var(--mu2);padding:8px 0">Registra el primer aporte para ver el historial</div>';
     return;
   }
-  let prev=base;
-  listEl.innerHTML=mesKeys.map(mes=>{
-    const val=parseFloat(meses[mes])||0;
-    const delta=val-prev;
-    const deltaStr=delta>=0?'+$'+delta.toLocaleString('en-US',{maximumFractionDigits:0}):'−$'+Math.abs(delta).toLocaleString('en-US',{maximumFractionDigits:0});
-    const deltaCol=delta>=0?'var(--gr)':'var(--rd)';
-    prev=val;
+  let acumPrev = base;
+  listEl.innerHTML = mesKeys.map(mes=>{
+    const a = aportes[mes] || {};
+    const usd = parseFloat(a.usd) || 0;
+    const q = parseFloat(a.q) || 0;
+    const tc = parseFloat(a.tc) || 7.75;
+    acumPrev += usd;
     return `<div style="display:flex;justify-content:space-between;align-items:center;
       padding:6px 0;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-size:10px">
       <span style="color:var(--mu);min-width:70px">${mes}</span>
-      <span style="color:${deltaCol};min-width:70px;text-align:center">${deltaStr}</span>
-      <span style="color:var(--tx);font-weight:700;text-align:right">$${val.toLocaleString('en-US',{maximumFractionDigits:0})}</span>
+      <span style="color:var(--gr);min-width:90px;text-align:center">+$${usd.toLocaleString('en-US',{maximumFractionDigits:2})}</span>
+      <span style="color:var(--mu2);font-size:9px;min-width:70px;text-align:center">Q${q.toLocaleString('es-GT')} @${tc.toFixed(2)}</span>
+      <span style="color:var(--tx);font-weight:700;text-align:right;min-width:75px">$${acumPrev.toLocaleString('en-US',{maximumFractionDigits:0})}</span>
       <span onclick="deleteDCAMes('${mes}')" style="color:var(--mu2);cursor:pointer;margin-left:10px;font-size:11px;padding:2px 5px;border-radius:3px;background:var(--s3)">✕</span>
     </div>`;
   }).join('');

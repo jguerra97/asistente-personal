@@ -303,7 +303,7 @@ body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--tx);min-heig
   <div class="rc"><label>Ingreso del mes</label><div class="rv g" id="r-ing">—</div><div class="rs" id="r-ing-usd">—</div></div>
   <div class="rc"><label>Ahorro BI total</label><div class="rv r" id="r-fij">—</div><div class="rs" id="r-fij-pct">—</div></div>
   <div class="rc"><label>Excedente</label><div class="rv p" id="r-exc">—</div><div class="rs" id="r-exc-usd">—</div></div>
-  <div class="rc"><label>Inversión cripto</label><div class="rv o" id="r-inv">—</div><div class="rs" id="r-inv-sub">Q1,100 Bantrab fijo · 60% resto inversión</div></div>
+  <div class="rc"><label>Inversión cripto</label><div class="rv o" id="r-inv">—</div><div class="rs" id="r-inv-sub">Q1,550 Bantrab fijo · 60% resto inversión</div></div>
 </div>
 
 <!-- STATS INGRESOS -->
@@ -717,16 +717,18 @@ const CUOTA=13959.61;
 const MESES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const MNOMBRES=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 const COBROS_BANCARIOS = 25;     // salen primero desde Monetaria BI
-const FIJOS_TOTAL = 13959.61+1355+969+900+510+500+430.12+17; // Q18,640.73 → Ahorro BI (sin cobros, sin gasolina, sin subs)
+const FIJOS_TOTAL = 13959.61+1355+969+900+581.25+542.62+510+500+400+291.67+17; // Q20,026.15 → Ahorro BI (sin cobros, sin subs)
 const FIJOS_RUBROS=[
   {ico:'🏠',nom:'Hipoteca BI',        amt:13959.61, cat:'vivienda'},
   {ico:'🔧',nom:'Mantenimiento+agua', amt:1355.00,  cat:'vivienda'},
   {ico:'🤖',nom:'Claude AI Max',      amt:969.00,   cat:'digital'},
   {ico:'🏛️',nom:'IUSI (provisión)',   amt:900.00,   cat:'vivienda'},
+  {ico:'📱',nom:'Conectividad (Fi Premium)', amt:581.25, cat:'servicios'},
+  {ico:'🔒',nom:'Buffer fijos (+Airalo)', amt:542.62, cat:'reserva'},
   {ico:'📡',nom:'Internet (Starlink)', amt:510.00,   cat:'servicios'},
-  {ico:'🔒',nom:'Buffer fijos',        amt:500.00,   cat:'reserva'},
-  {ico:'📱',nom:'Conectividad (Fi+Airalo)', amt:430.12, cat:'servicios'},
+  {ico:'🚙',nom:'Buffer auto',         amt:500.00,   cat:'transporte'},
   {ico:'⛽',nom:'Gasolina',            amt:400.00,   cat:'transporte'},
+  {ico:'🚗',nom:'Seguro vehicular',    amt:291.67,   cat:'transporte'},
   {ico:'💡',nom:'Luz',                 amt:17.00,    cat:'servicios'},
   // Cobros bancarios Q25 salen desde Monetaria BI antes de los fijos — ver COBROS_BANCARIOS
 ];
@@ -739,13 +741,13 @@ const SUBS_ENT=[
 
 // Distribución estimada del disfrute personal (referencia visual — no afecta cálculos)
 const LULU_CATS=[
-  {ico:'🎉',nom:'Salidas',  amt:750,  col:'#3db8f5'},
-  {ico:'💐',nom:'Flores',   amt:400,  col:'#e879a0'},
+  {ico:'🎉',nom:'Salidas',  amt:800,  col:'#3db8f5'},
+  {ico:'💐',nom:'Flores',   amt:450,  col:'#e879a0'},
   {ico:'🎁',nom:'Regalos',  amt:350,  col:'#a78bfa'},
   {ico:'⛽',nom:'Gasolina', amt:400,  col:'#f59e0b'},
   {ico:'🛍️',nom:'Otros',   amt:150,  col:'#10b981'},
-]; // Total operativo Q1,650 + gasolina Q400 = Q2,050 real
-const LULU_EST_TOTAL=LULU_CATS.reduce((s,c)=>s+c.amt,0); // Q3,831
+]; // Total operativo Q1,750 + gasolina Q400 = Q2,150 real
+const LULU_EST_TOTAL=LULU_CATS.reduce((s,c)=>s+c.amt,0); // Q2,150
 
 // ── FORMATO ───────────────────────────────────────────────────────
 const fq=(n,d=0)=>'Q'+n.toLocaleString('es-GT',{minimumFractionDigits:d,maximumFractionDigits:d});
@@ -809,16 +811,16 @@ function onBacDeuda(v){ST.bacDeuda=parseFloat(v)||0;saveState();recalc();}
 function onBacDeudaUsd(v){ST.bacDeudaUsd=parseFloat(v)||0;saveState();recalc();}
 function onBamDeuda(v){ST.bamDeuda=parseFloat(v)||0;saveState();recalc();}
 
-// ── DISTRIBUCIÓN (v3 — lógica Q1/Q2 por casos · PDF 5 mayo 2026) ──
-const BANTRAB_FIJO = 550;           // por quincena (Q1,100/mes)
-const GASTO_LULUBIT_MENSUAL = 1650; // tope operativo mensual Lulubit
+// ── DISTRIBUCIÓN (v4 — sesión 16 jun 2026 · base Q31K · paso 1+2) ──
+const BANTRAB_FIJO = 775;           // por quincena (Q1,550/mes = Q1,100 personal + Q450 vestimenta)
+const GASTO_LULUBIT_MENSUAL = 1750; // tope operativo mensual Lulubit (Salidas Q800 + Flores Q450 + Regalos Q350 + Otros Q150)
 const SUBS_Q_MENSUAL = ()=> {       // subs en Q según TC vigente
   return SUBS_ENT.reduce((s,x)=>s+x.usd,0) * (ST.tc||7.75);
 };
 
 // distribuirQ1: lógica Q1
 // 1. Fijos proporcionales (fijos × Q1/sprev)
-// 2. Bantrab fijo Q550
+// 2. Bantrab fijo Q775 (incluye Q225 vestimenta como ahorro)
 // 3. Resto: 60% inversión / 40% personal
 // 4. Del 40% personal: subs primero, luego Lulubit lo que alcance
 function distribuirQ1(pagoQ1){

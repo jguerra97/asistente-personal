@@ -517,7 +517,7 @@ body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--tx);min-heig
 
 <!-- PANEL LULUBIT -->
 <div class="sec"><div class="ld" style="background:#3db8f5;box-shadow:0 0 5px #3db8f5"></div>
-  <div class="lt">Lulubit · personal <span>distribución estimada · reserva · deudas TC</span></div>
+  <div class="lt">Personal <span>distribución estimada · reserva · deudas TC</span></div>
 </div>
 <div class="card">
   <div class="card-body" id="lulubit-panel"></div>
@@ -733,22 +733,22 @@ const FIJOS_TOTAL = 13959.61+1355+969+900+581.25+542.62+510+500+400+291.67+17; /
 const FIJOS_RUBROS=[
   {ico:'🏠',nom:'Hipoteca BI',        amt:13959.61, cat:'vivienda'},
   {ico:'🔧',nom:'Mantenimiento+agua', amt:1355.00,  cat:'vivienda'},
-  {ico:'🤖',nom:'Claude AI Max',      amt:969.00,   cat:'digital',    pagable:true, usd:125.00},
+  {ico:'🤖',nom:'Claude AI Max',      amt:969.00,   cat:'digital',    pagable:true, usd:125.00, tc:'BAM'},
   {ico:'🏛️',nom:'IUSI (provisión)',   amt:900.00,   cat:'vivienda'},
-  {ico:'📱',nom:'Conectividad (Fi Premium)', amt:581.25, cat:'servicios', pagable:true, usd:75.00},
+  {ico:'📱',nom:'Conectividad (Fi Premium)', amt:581.25, cat:'servicios', pagable:true, usd:75.00, tc:'BAC'},
   {ico:'🔒',nom:'Buffer fijos (+Airalo)', amt:542.62, cat:'reserva'},
-  {ico:'📡',nom:'Internet (Starlink)', amt:510.00,   cat:'servicios',  pagable:true},
+  {ico:'📡',nom:'Internet (Starlink)', amt:510.00,   cat:'servicios',  pagable:true, tc:'BAC'},
   {ico:'🚙',nom:'Buffer auto',         amt:500.00,   cat:'transporte'},
   {ico:'⛽',nom:'Gasolina',            amt:400.00,   cat:'transporte', pagable:true},
   {ico:'🚗',nom:'Seguro vehicular',    amt:291.67,   cat:'transporte'},
-  {ico:'💡',nom:'Luz',                 amt:17.00,    cat:'servicios',  pagable:true},
+  {ico:'💡',nom:'Luz',                 amt:17.00,    cat:'servicios',  pagable:true, tc:'BAC'},
   // Cobros bancarios Q25 salen desde Monetaria BI antes de los fijos — ver COBROS_BANCARIOS
 ];
 const SUBS_ENT=[
-  {nom:'Spotify',      usd:6.49,  freq:'mensual'},
-  {nom:'Disney+',      usd:11.49, freq:'mensual'},
-  {nom:'Netflix',      usd:4.99,  freq:'mensual'},
-  {nom:'Amazon Prime', usd:11.58, freq:'~$139/año'},
+  {nom:'Spotify',      usd:6.49,  freq:'mensual',    tc:'BAC'},
+  {nom:'Disney+',      usd:11.49, freq:'mensual',    tc:'BAC'},
+  {nom:'Netflix',      usd:4.99,  freq:'mensual',    tc:'BAC'},
+  {nom:'Amazon Prime', usd:11.58, freq:'~$139/año',  tc:'BAC'},
 ]; // Total ~$34.55/mes = ~Q268 según TC vigente
 
 // Distribución estimada del disfrute personal (referencia visual — no afecta cálculos)
@@ -899,12 +899,12 @@ function renderPagosFijos(){
       <span style="width:18px;height:18px;border-radius:4px;border:1.5px solid ${isPagado?'var(--gr)':'var(--bd2)'};background:${isPagado?'var(--gr)':'transparent'};display:inline-flex;align-items:center;justify-content:center;font-size:11px;color:#0a0a0a;flex-shrink:0">${isPagado?'✓':''}</span>
       <span style="font-size:14px;flex-shrink:0">${r.ico}</span>
       <div style="flex:1;min-width:0">
-        <div style="font-size:11px;color:var(--tx);${isPagado?'text-decoration:line-through':''}">${r.nom}</div>
-        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu2);margin-top:1px">${subTxt}</div>
+        <div style="font-size:11px;color:var(--tx);${isPagado?'text-decoration:line-through':''}">${r.nom}${r.tc?`<span style="display:inline-block;padding:1px 5px;border-radius:3px;background:${r.tc==='BAC'?'#3db8f522':'#f59e0b22'};color:${r.tc==='BAC'?'#3db8f5':'#f59e0b'};font-family:'DM Mono',monospace;font-size:8px;font-weight:700;margin-left:6px;vertical-align:middle">${r.tc}</span>`:''}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:#c5c8d4;margin-top:1px">${subTxt}</div>
       </div>
       <div style="text-align:right;flex-shrink:0">
         <div style="font-family:'DM Mono',monospace;font-size:12px;font-weight:700;color:${isPagado?'var(--gr)':'var(--tx)'}">Q${montoQ.toFixed(2)}</div>
-        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu2)">${isPagado?'pagado':'pendiente'}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:#c5c8d4">${isPagado?'pagado':'pendiente'}</div>
       </div>
     </div>`;
   }).join('');
@@ -1199,13 +1199,13 @@ function renderQCasos(r, pago, quincena){
   const casoColor = {A:'var(--rd)', 'B':'var(--go)', 'B+':'var(--go)', C:'#3db8f5'}[r.caso] || 'var(--mu)';
   const casoDescQ1 = {
     A: '60/40 · personal insuficiente para subs',
-    B: '60/40 · subs + Lulubit parcial',
-    'B+': '60/40 · subs + Lulubit + Bantrab parcial',
-    C: '60/40 · subs + Lulubit completos'
+    B: '60/40 · subs + Personal parcial',
+    'B+': '60/40 · subs + Personal + Bantrab parcial',
+    C: '60/40 · subs + Personal completos'
   };
   const casoDescQ2 = {
-    A: '60/40 · completar Lulubit del mes',
-    B: '60/40 · Lulubit completo · resto a Bantrab'
+    A: '60/40 · completar Personal del mes',
+    B: '60/40 · Personal completo · resto a Bantrab'
   };
   const casoDesc = (quincena===1 ? casoDescQ1 : casoDescQ2)[r.caso] || '';
 
@@ -1225,7 +1225,7 @@ function renderQCasos(r, pago, quincena){
     if(r.ban>0)  rows.push({lbl:'✈️ Bantrab · fijo',     q:r.ban,   c:'#9d7ff0'});
     if(r.inv>0)  rows.push({lbl:'₿ Exchange · inversión (60%)', q:-r.inv, c:'var(--go)'});
     if(r.subs>0) rows.push({lbl:'💳 Ahorro USD BI · subs',  q:-r.subs, c:'#f59e0b'});
-    if(r.lulu>0) rows.push({lbl:'🎉 Lulubit · disfrute',    q:r.lulu,  c:'#3db8f5'});
+    if(r.lulu>0) rows.push({lbl:'🎉 Personal · disfrute',    q:r.lulu,  c:'#3db8f5'});
     if((r.personal_restante||0)>1) rows.push({lbl:'💰 Personal restante', q:r.personal_restante, c:'var(--mu)'});
     // Pendientes para Q2
     const subsQ2 = SUBS_Q_MENSUAL();
@@ -1233,13 +1233,13 @@ function renderQCasos(r, pago, quincena){
     if(r.subs < subsQ2 - 1)
       rows.push({lbl:'⏳ Subs pendientes Q2', q:0, c:'var(--mu)', note:fq(subsQ2-r.subs)});
     if(luluPend2 > 1)
-      rows.push({lbl:'⏳ Lulubit pendiente Q2', q:0, c:'var(--mu)', note:fq(luluPend2)});
+      rows.push({lbl:'⏳ Personal pendiente Q2', q:0, c:'var(--mu)', note:fq(luluPend2)});
   } else {
     rows.push({lbl:'🏦 Ahorro BI · fijos',          q:-r.fijQ2,   c:'var(--rd)'});
     rows.push({lbl:'✈️ Bantrab · fijo',              q:r.ban_fijo, c:'#9d7ff0'});
     if(r.inv>0)      rows.push({lbl:'₿ Exchange · inversión (60%)', q:-r.inv, c:'var(--go)'});
     if(r.subs>0)     rows.push({lbl:'💳 Ahorro USD BI · subs',  q:-r.subs,     c:'#f59e0b'});
-    if(r.lulu>0)     rows.push({lbl:'🎉 Lulubit · completar',   q:r.lulu,      c:'#3db8f5'});
+    if(r.lulu>0)     rows.push({lbl:'🎉 Personal · completar',   q:r.lulu,      c:'#3db8f5'});
     if((r.ban_extra||0)>1) rows.push({lbl:'✈️ Bantrab · extra (ahorro)', q:r.ban_extra, c:'#6b7ff0'});
   }
 
@@ -1296,7 +1296,7 @@ function renderQ(d, fijProp, pago){
   const rows=[
     {lbl:'🏦 Ahorro BI · fijos',    q:-ahorroBI, c:'var(--rd)'},
     {lbl:'₿  Exchange · inversión', q:-d.inv,    c:'var(--go)'},
-    {lbl:'🎉 Lulubit · disfrute',   q:d.dis,     c:'#3db8f5'},
+    {lbl:'🎉 Personal · disfrute',   q:d.dis,     c:'#3db8f5'},
     {lbl:'💰 Bantrab extra',          q:d.ban_extra||0, c:'#10b981'},
     {lbl:'✈️ Bantrab · viajes',     q:d.ban,     c:'#9d7ff0'},
   ];
@@ -1584,7 +1584,7 @@ function renderResumenMes(ingTotal, tf, excMes, dMes, btcQ, invRestQ, tQ1, tQ2){
     {lbl:'─',                               q:null,               c:'',          sep:true},
     {lbl:'🏦 Ahorro BI · fijos',           q:-ahorroBI,          c:'var(--rd)'},
     {lbl:'₿  Exchange · inversión',        q:-(dMes?.inv||0),    c:'var(--go)'},
-    {lbl:'🎉 Lulubit · disfrute',          q:dMes?.dis||0,       c:'#3db8f5'},
+    {lbl:'🎉 Personal · disfrute',          q:dMes?.dis||0,       c:'#3db8f5'},
     {lbl:'💰 Bantrab extra',                q:dMes?.ban_extra||0,  c:'#10b981'},
     {lbl:'✈️ Bantrab · viajes',            q:dMes?.ban||0,       c:'#9d7ff0'},
     {lbl:'─',                               q:null,               c:'',          sep:true},
@@ -1642,12 +1642,13 @@ function renderLulubit(lulMesInput){
     // ── Distribución estimada (colapsable) ──
     +'<div onclick="toggleLuluEst()" id="lulu-est-toggle" style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:var(--s2);border-radius:6px;cursor:pointer;margin-bottom:8px">'
       +'<div>'
-        +'<div style="font-family:\'DM Mono\',monospace;font-size:9px;color:var(--mu);text-transform:uppercase">🎉 Distribución estimada · Q'+LULU_EST_TOTAL.toLocaleString('es-GT')+'</div>'
-        +'<div style="font-family:\'DM Mono\',monospace;font-size:10px;color:var(--mu2);margin-top:2px">Subs $'+totalSubsUsd.toFixed(2)+' · Q'+totalSubsQ.toFixed(0)+'</div>'
+        +'<div style="font-family:\'DM Mono\',monospace;font-size:9px;color:#fff;font-weight:700;letter-spacing:.05em;text-transform:uppercase">🎉 Distribución estimada · Q'+LULU_EST_TOTAL.toLocaleString('es-GT')+'</div>'
+        +'<div style="font-family:\'DM Mono\',monospace;font-size:10px;color:rgba(255,255,255,.65);margin-top:2px">Subs $'+totalSubsUsd.toFixed(2)+' · Q'+totalSubsQ.toFixed(0)+'</div>'
       +'</div>'
-      +'<span id="lulu-est-ico" style="font-size:12px;color:var(--mu);transition:transform .2s">▾</span>'
+      +'<span id="lulu-est-ico" style="font-size:12px;color:#fff;transition:transform .2s">▾</span>'
     +'</div>'
     +'<div id="lulu-est-body" style="display:none;margin-bottom:10px">'
+
       +LULU_CATS.map(function(c){
         return '<div style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:11px">'
           +'<span style="width:18px">'+c.ico+'</span>'
@@ -1662,8 +1663,10 @@ function renderLulubit(lulMesInput){
       +'<div style="margin-top:8px;padding:8px 10px;background:var(--s2);border-radius:6px;font-size:10px">'
         +'<div style="color:var(--mu);margin-bottom:4px;font-weight:600">🎬 Suscripciones ($'+totalSubsUsd.toFixed(2)+' · Q'+totalSubsQ.toFixed(0)+')</div>'
         +SUBS_ENT.map(function(s){
-          return '<div style="display:flex;justify-content:space-between;padding:2px 0;color:var(--mu2)">'
-            +'<span>'+s.nom+'</span>'
+          var tcCol = s.tc==='BAC' ? '#3db8f5' : (s.tc==='BAM' ? '#f59e0b' : 'var(--mu)');
+          var tcBadge = s.tc ? '<span style="display:inline-block;padding:1px 5px;border-radius:3px;background:'+tcCol+'22;color:'+tcCol+';font-family:\'DM Mono\',monospace;font-size:8px;font-weight:700;margin-left:6px;vertical-align:middle">'+s.tc+'</span>' : '';
+          return '<div style="display:flex;justify-content:space-between;padding:2px 0;color:#c5c8d4">'
+            +'<span>'+s.nom+tcBadge+'</span>'
             +'<span style="font-family:\'DM Mono\',monospace">$'+s.usd.toFixed(2)+' · '+s.freq+'</span>'
           +'</div>';
         }).join('')
@@ -1673,7 +1676,7 @@ function renderLulubit(lulMesInput){
     // ── Reserva Lulubit ──
     +'<div style="padding:10px 0;border-top:1px solid var(--bd)">'
       +'<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">'
-        +'<span style="color:var(--tx);font-size:11px">💰 Reserva Lulubit</span>'
+        +'<span style="color:var(--tx);font-size:11px">💰 Reserva Personal</span>'
         +'<span style="font-family:\'DM Mono\',monospace;color:var(--pu);font-weight:700;font-size:14px">'+fq(reserva,0)+'</span>'
       +'</div>'
       +'<div style="position:relative">'

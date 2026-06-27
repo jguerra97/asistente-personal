@@ -951,30 +951,20 @@ function renderQCasos(r, pago, quincena){
   // Filas según qué se mueve
   const rows = [];
   if(quincena===1){
+    // Q1 — distribuye por porcentajes fijos
     rows.push({lbl:'🏦 Monetaria · cobros',         q:-COBROS_BANCARIOS,    c:'var(--mu)'});
     rows.push({lbl:'🏦 Ahorro BI · fijos',           q:-(r.fijQ1||0),        c:'var(--rd)'});
     rows.push({lbl:'🍽️ Personal (salidas+buffer)',   q:-(r.personalQ1||0),   c:'var(--mu)'});
     rows.push({lbl:'✈️ Bantrab · ahorro',             q:(r.ahorroQ1||0),      c:'var(--go)'});
-    if(r.ban>0)  // rows.push({lbl:'✈️ Bantrab · fijo',     q:r.ban,   c:'#9d7ff0'});
-    if(r.inv>0)  rows.push({lbl:'₿ Exchange · inversión (60%)', q:-r.inv, c:'var(--go)'});
-    if(r.subs>0) rows.push({lbl:'💳 Ahorro USD BI · subs',  q:-r.subs, c:'#f59e0b'});
-    if(r.lulu>0) // rows.push({lbl:'🎉 Lulubit · disfrute',    q:r.lulu,  c:'#3db8f5'});
-    if((r.personal_restante||0)>1) rows.push({lbl:'💰 Personal restante', q:r.personal_restante, c:'var(--mu)'});
-    // Pendientes para Q2
-    const subsQ2 = SUBS_Q_MENSUAL();
-    const luluPend2 = Math.max(GASTO_LULUBIT_MENSUAL - (r.lulu||0), 0);
-    if(r.subs < subsQ2 - 1)
-      rows.push({lbl:'⏳ Subs pendientes Q2', q:0, c:'var(--mu)', note:fq(subsQ2-r.subs)});
-    if(luluPend2 > 1)
-      rows.push({lbl:'⏳ Lulubit pendiente Q2', q:0, c:'var(--mu)', note:fq(luluPend2)});
+    if((r.invQ1||0)>0) rows.push({lbl:'₿ Exchange · inversión', q:-(r.invQ1||0), c:'var(--go)'});
   } else {
-    rows.push({lbl:'🏦 Ahorro BI · fijos (dif.)',    q:-(r.fijQ2||0),    c:'var(--rd)'});
-    rows.push({lbl:'🍽️ Personal (diferencia)',        q:-(r.persQ2||0),   c:'var(--mu)'});
-    rows.push({lbl:'✈️ Bantrab · ahorro (dif.)',       q:(r.ahoQ2||0),     c:'#9d7ff0'});
-    if((r.invQ2||0)>0) rows.push({lbl:'₿ Exchange · inversión',          q:-(r.invQ2||0), c:(r.invRecortada||0)>0?'#f59e0b':'var(--go)'});
-    if((r.invRecortada||0)>0) rows.push({lbl:'⚠️ Inversión recortada',   q:-(r.invRecortada||0), c:'#f59e0b'});
-    if(r.subs>0)       rows.push({lbl:'📱 Subs (pendiente)',              q:-r.subs,       c:'var(--mu)'});
-    if((r.ban_extra||0)>1) rows.push({lbl:'✈️ Bantrab · extra (ahorro)', q:r.ban_extra, c:'#6b7ff0'});
+    // Q2 — completa diferencias hasta metas
+    rows.push({lbl:'🏦 Ahorro BI · fijos (dif.)',    q:-(r.fijQ2||0),        c:'var(--rd)'});
+    rows.push({lbl:'🍽️ Personal (diferencia)',        q:-(r.persQ2||0),       c:'var(--mu)'});
+    rows.push({lbl:'✈️ Bantrab · ahorro (dif.)',       q:(r.ahoQ2||0),         c:'var(--go)'});
+    if((r.invQ2||0)>0) rows.push({lbl:'₿ Exchange · inversión', q:-(r.invQ2||0), c:(r.invRecortada||0)>0?'#f59e0b':'var(--go)'});
+    if((r.invRecortada||0)>0) rows.push({lbl:'⚠️ Inversión recortada', q:r.invRecortada||0, c:'#f59e0b'});
+    if((r.ban_extra||0)>1) rows.push({lbl:'💰 Bantrab · excedente', q:r.ban_extra, c:'#10b981'});
   }
 
   const rowsHtml = rows.map((row,idx)=>{

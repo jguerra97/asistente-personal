@@ -303,7 +303,7 @@ body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--tx);min-heig
   <div class="rc"><label>Ingreso del mes</label><div class="rv g" id="r-ing">—</div><div class="rs" id="r-ing-usd">—</div></div>
   <div class="rc"><label>Ahorro BI total</label><div class="rv r" id="r-fij">—</div><div class="rs" id="r-fij-pct">—</div></div>
   <div class="rc"><label>Excedente</label><div class="rv p" id="r-exc">—</div><div class="rs" id="r-exc-usd">—</div></div>
-  <div class="rc"><label>Inversión cripto</label><div class="rv o" id="r-inv">—</div><div class="rs" id="r-inv-sub">Q1,550 Bantrab fijo · 60% resto inversión</div></div>
+  <div class="rc"><label>Inversión cripto</label><div class="rv o" id="r-inv">—</div><div class="rs" id="r-inv-sub">Q1,100 Bantrab fijo · 60% resto inversión</div></div>
 </div>
 
 <!-- STATS INGRESOS -->
@@ -347,18 +347,6 @@ body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--tx);min-heig
       <div id="q2-rows"></div>
     </div>
   </div>
-</div>
-
-<!-- GASTOS DEL MES A EJECUTAR (colapsable) -->
-<div class="card" id="pagos-fijos-card" style="margin-bottom:8px">
-  <div onclick="togglePagosFijos()" id="pagos-toggle" style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;cursor:pointer;-webkit-tap-highlight-color:transparent">
-    <div>
-      <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);text-transform:uppercase;letter-spacing:.1em">📋 Gastos del mes a ejecutar</div>
-      <div id="pagos-resumen" style="font-family:'DM Mono',monospace;font-size:10px;color:var(--mu2);margin-top:2px">— pendiente</div>
-    </div>
-    <span id="pagos-ico" style="font-size:14px;color:var(--mu);transition:transform .2s">▾</span>
-  </div>
-  <div id="pagos-fijos-body" style="display:none;padding:0 12px 12px"></div>
 </div>
 
 <!-- RESUMEN MES -->
@@ -517,7 +505,7 @@ body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--tx);min-heig
 
 <!-- PANEL LULUBIT -->
 <div class="sec"><div class="ld" style="background:#3db8f5;box-shadow:0 0 5px #3db8f5"></div>
-  <div class="lt">Personal <span>distribución estimada · reserva · deudas TC</span></div>
+  <div class="lt">Lulubit · personal <span>distribución estimada · reserva · deudas TC</span></div>
 </div>
 <div class="card">
   <div class="card-body" id="lulubit-panel"></div>
@@ -729,40 +717,36 @@ const CUOTA=13959.61;
 const MESES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const MNOMBRES=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 const COBROS_BANCARIOS = 25;     // salen primero desde Monetaria BI
-const FIJOS_TOTAL = 13959.61+1355+969+900+581.25+542.62+510+500+400+291.67+17; // Q20,026.15 → Ahorro BI (sin cobros, sin subs)
+const FIJOS_TOTAL = 13959.61+1355+969+900+510+1150+50; // Q19,293.61 (modelo julio 2026)
 const FIJOS_RUBROS=[
   {ico:'🏠',nom:'Hipoteca BI',        amt:13959.61, cat:'vivienda'},
   {ico:'🔧',nom:'Mantenimiento+agua', amt:1355.00,  cat:'vivienda'},
-  {ico:'🤖',nom:'Claude AI Max',      amt:969.00,   cat:'digital',    pagable:true, usd:125.00, tc:'BAM'},
+  {ico:'🤖',nom:'Claude AI Max',      amt:969.00,   cat:'digital'},
   {ico:'🏛️',nom:'IUSI (provisión)',   amt:900.00,   cat:'vivienda'},
-  {ico:'📱',nom:'Conectividad (Fi Premium)', amt:581.25, cat:'servicios', pagable:true, usd:75.00, tc:'BAC'},
-  {ico:'🔒',nom:'Buffer fijos (+Airalo)', amt:542.62, cat:'reserva'},
-  {ico:'📡',nom:'Internet (Starlink)', amt:510.00,   cat:'servicios',  pagable:true, tc:'BAC'},
-  {ico:'🚙',nom:'Buffer auto',         amt:500.00,   cat:'transporte'},
-  {ico:'⛽',nom:'Gasolina',            amt:400.00,   cat:'transporte', pagable:true},
-  {ico:'🚗',nom:'Seguro vehicular',    amt:291.67,   cat:'transporte'},
-  {ico:'💡',nom:'Luz',                 amt:17.00,    cat:'servicios',  pagable:true, tc:'BAC'},
+  {ico:'📡',nom:'Internet (Starlink)', amt:510.00,   cat:'servicios'},
+  {ico:'🔒',nom:'Buffer fijos',        amt:1150.00,  cat:'reserva'},
+  {ico:'⛽',nom:'Gasolina',            amt:400.00,   cat:'transporte'},
+  {ico:'💡',nom:'Luz',                 amt:50.00,    cat:'servicios'},
   // Cobros bancarios Q25 salen desde Monetaria BI antes de los fijos — ver COBROS_BANCARIOS
+  // Fi/Airalo Q430.12 fusionado en Buffer fijos
 ];
 const SUBS_ENT=[
-  {nom:'Spotify',      usd:6.49,  freq:'mensual',    tc:'BAC'},
-  {nom:'Disney+',      usd:11.49, freq:'mensual',    tc:'BAC'},
-  {nom:'Netflix',      usd:4.99,  freq:'mensual',    tc:'BAC'},
-  {nom:'Amazon Prime', usd:11.58, freq:'~$139/año',  tc:'BAC'},
+  {nom:'Spotify',      usd:6.49,  freq:'mensual'},
+  {nom:'Disney+',      usd:11.49, freq:'mensual'},
+  {nom:'Netflix',      usd:4.99,  freq:'mensual'},
+  {nom:'Amazon Prime', usd:11.58, freq:'~$139/año'},
 ]; // Total ~$34.55/mes = ~Q268 según TC vigente
 
-// Distribución estimada del disfrute personal (referencia visual — no afecta cálculos)
+// Personal — distribución estimada (referencia visual, no afecta cálculos)
 const LULU_CATS=[
-  {ico:'🎉',nom:'Salidas',  amt:800,  col:'#3db8f5'},
-  {ico:'💐',nom:'Flores',   amt:450,  col:'#e879a0'},
-  {ico:'🎁',nom:'Regalos',  amt:350,  col:'#a78bfa'},
-  {ico:'⛽',nom:'Gasolina', amt:400,  col:'#f59e0b'},
-  {ico:'🛍️',nom:'Otros',   amt:150,  col:'#10b981'},
-]; // Total operativo Q1,750 + gasolina Q400 = Q2,150 real
-const LULU_EST_TOTAL=LULU_CATS.reduce((s,c)=>s+c.amt,0); // Q2,150
+  {ico:'🍽️',nom:'Salidas',        amt:1000, col:'#3db8f5'},
+  {ico:'🛡️',nom:'Buffer personal', amt:1250, col:'#a78bfa'},
+  {ico:'📱',nom:'Subs streaming',  amt:268,  col:'#10b981'},
+]; // Total Q2,518 — Lulubit eliminado, fusionado en Salidas+Buffer
+const LULU_EST_TOTAL=LULU_CATS.reduce((s,c)=>s+c.amt,0); // Q2,518
 
 // ── FORMATO ───────────────────────────────────────────────────────
-const fq=(n,d=0)=>'Q'+n.toLocaleString('es-GT',{minimumFractionDigits:d,maximumFractionDigits:d});
+const fq=(n,d=2)=>'Q'+n.toLocaleString('es-GT',{minimumFractionDigits:d,maximumFractionDigits:d});
 const fd=(n)=>'$'+(n/ST.tc).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
 
 // ── LOAD / SAVE ───────────────────────────────────────────────────
@@ -801,8 +785,6 @@ function loadSaved(){
   renderCols();
   renderCuotasHip();
   renderAbonosHip();
-  renderPagosFijos();
-  autoTogglePagosFijos();
 }
 
 function qKey(){return 'q_'+(ST.anio||2026)+'_'+ST.mes;}
@@ -817,350 +799,112 @@ function saveState(){
 }
 
 function saveCol(k,v){const d=ldS();if(!d.cols)d.cols={};d.cols[k]=v;svS(d);}
-
-// ── PAGOS FIJOS DEL MES (panel checklist) ─────────────────────────
-// Key por mes: pagosFijos.YYYY-MM (storage: state.pagosFijos[key] = {nom: true/false})
-function pagosFijosKey(){
-  const y = ST.anio||2026;
-  const m = String((ST.mes||0)+1).padStart(2,'0');
-  return y+'-'+m;
-}
-function getPagosFijos(){
-  const d=ldS();
-  if(!d.pagosFijos) d.pagosFijos={};
-  const k = pagosFijosKey();
-  if(!d.pagosFijos[k]) d.pagosFijos[k]={};
-  return d.pagosFijos[k];
-}
-function setPagoFijo(nom, val){
-  const d=ldS();
-  if(!d.pagosFijos) d.pagosFijos={};
-  const k = pagosFijosKey();
-  if(!d.pagosFijos[k]) d.pagosFijos[k]={};
-  d.pagosFijos[k][nom]=val;
-  svS(d);
-  renderPagosFijos();
-}
-function togglePagoFijo(nom){
-  const estados = getPagosFijos();
-  setPagoFijo(nom, !estados[nom]);
-}
-function togglePagosFijos(){
-  const body=document.getElementById('pagos-fijos-body');
-  const ico=document.getElementById('pagos-ico');
-  if(!body||!ico) return;
-  const open = body.style.display !== 'none';
-  body.style.display = open ? 'none' : 'block';
-  ico.style.transform = open ? 'rotate(0)' : 'rotate(180deg)';
-}
-// Auto-expandir si hay pendientes; colapsar si todo pagado
-function autoTogglePagosFijos(){
-  const body=document.getElementById('pagos-fijos-body');
-  const ico=document.getElementById('pagos-ico');
-  if(!body||!ico) return;
-  const estados = getPagosFijos();
-  const pagables = FIJOS_RUBROS.filter(r=>r.pagable);
-  const totalPendientes = pagables.filter(r => !estados[r.nom]).length;
-  if(totalPendientes > 0){
-    body.style.display = 'block';
-    ico.style.transform = 'rotate(180deg)';
-  } else {
-    body.style.display = 'none';
-    ico.style.transform = 'rotate(0)';
-  }
-}
-// Render del checklist
-function renderPagosFijos(){
-  const body=document.getElementById('pagos-fijos-body');
-  const resumen=document.getElementById('pagos-resumen');
-  if(!body||!resumen) return;
-  const tc = ST.tc||7.75;
-  const estados = getPagosFijos();
-  const pagables = FIJOS_RUBROS.filter(r=>r.pagable);
-
-  // Calcular monto Q dinámico usando TC vigente para los que tienen usd
-  let totalPendienteQ = 0;
-  let totalPagadoQ = 0;
-  let countPend = 0;
-
-  const rows = pagables.map(r => {
-    // Monto Q: si tiene usd → usd × tc actual; sino → amt fijo
-    const montoQ = r.usd ? (r.usd * tc) : r.amt;
-    const isPagado = !!estados[r.nom];
-    if(isPagado) totalPagadoQ += montoQ;
-    else { totalPendienteQ += montoQ; countPend++; }
-
-    const safeId = 'pf-'+r.nom.replace(/[^a-zA-Z0-9]/g,'');
-    const subTxt = r.usd
-      ? `$${r.usd.toFixed(2)} × ${tc.toFixed(2)}`
-      : 'Q directo';
-
-    return `<div onclick="togglePagoFijo('${r.nom.replace(/'/g,"\\'")}')" style="display:flex;align-items:center;gap:10px;padding:8px 4px;border-bottom:1px solid var(--bd);cursor:pointer;-webkit-tap-highlight-color:transparent;${isPagado?'opacity:.55':''}">
-      <span style="width:18px;height:18px;border-radius:4px;border:1.5px solid ${isPagado?'var(--gr)':'var(--bd2)'};background:${isPagado?'var(--gr)':'transparent'};display:inline-flex;align-items:center;justify-content:center;font-size:11px;color:#0a0a0a;flex-shrink:0">${isPagado?'✓':''}</span>
-      <span style="font-size:14px;flex-shrink:0">${r.ico}</span>
-      <div style="flex:1;min-width:0">
-        <div style="font-size:11px;color:var(--tx);${isPagado?'text-decoration:line-through':''}">${r.nom}${r.tc?`<span style="display:inline-block;padding:1px 5px;border-radius:3px;background:${r.tc==='BAC'?'#3db8f522':'#f59e0b22'};color:${r.tc==='BAC'?'#3db8f5':'#f59e0b'};font-family:'DM Mono',monospace;font-size:8px;font-weight:700;margin-left:6px;vertical-align:middle">${r.tc}</span>`:''}</div>
-        <div style="font-family:'DM Mono',monospace;font-size:9px;color:#c5c8d4;margin-top:1px">${subTxt}</div>
-      </div>
-      <div style="text-align:right;flex-shrink:0">
-        <div style="font-family:'DM Mono',monospace;font-size:12px;font-weight:700;color:${isPagado?'var(--gr)':'var(--tx)'}">Q${montoQ.toFixed(2)}</div>
-        <div style="font-family:'DM Mono',monospace;font-size:9px;color:#c5c8d4">${isPagado?'pagado':'pendiente'}</div>
-      </div>
-    </div>`;
-  }).join('');
-
-  // Mes anterior: ver si quedaron pendientes
-  const d=ldS();
-  const prevKey = getPrevPagosFijosKey();
-  const prevEstados = (d.pagosFijos||{})[prevKey] || {};
-  const prevPendientes = pagables.filter(r => !prevEstados[r.nom]);
-  let avisoPrev = '';
-  if(prevPendientes.length > 0 && Object.keys(prevEstados).length > 0){
-    // Solo mostrar aviso si efectivamente se interactuó con el mes anterior
-    const totalPrevQ = prevPendientes.reduce((s,r)=> s + (r.usd ? r.usd*tc : r.amt), 0);
-    avisoPrev = `<div style="margin-bottom:10px;padding:8px 10px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:5px;font-size:10px;color:#f59e0b;font-family:'DM Mono',monospace">
-      ⚠️ Mes anterior dejó ${prevPendientes.length} pendiente(s): ${prevPendientes.map(r=>r.nom).join(', ')} (~Q${totalPrevQ.toFixed(2)})
-    </div>`;
-  }
-
-  // Totales
-  const totalSection = `<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--bd2);display:flex;justify-content:space-between;align-items:center">
-    <div>
-      <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--mu)">TOTAL PENDIENTE</div>
-      <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu2);margin-top:2px">de Q${(totalPendienteQ+totalPagadoQ).toFixed(2)} planificados</div>
-    </div>
-    <div style="font-family:'DM Mono',monospace;font-size:18px;font-weight:800;color:${countPend===0?'var(--gr)':'var(--rd)'}">Q${totalPendienteQ.toFixed(2)}</div>
-  </div>`;
-
-  body.innerHTML = avisoPrev + rows + totalSection;
-
-  // Resumen colapsado
-  if(countPend === 0){
-    resumen.textContent = '✅ Todo pagado este mes';
-    resumen.style.color = 'var(--gr)';
-  } else {
-    resumen.textContent = `${countPend} pendiente${countPend>1?'s':''} · Q${totalPendienteQ.toFixed(2)}`;
-    resumen.style.color = 'var(--rd)';
-  }
-}
-function getPrevPagosFijosKey(){
-  const y = ST.anio||2026;
-  const m = (ST.mes||0);
-  // Mes anterior: si mes es 0 (enero), año anterior diciembre (11)
-  const prevM = m === 0 ? 11 : m-1;
-  const prevY = m === 0 ? y-1 : y;
-  return prevY+'-'+String(prevM+1).padStart(2,'0');
-}
-function onColChange(k,val){
-  const v=parseFloat(val)||0;
-  COLS[k]=v;
-  saveCol(k,v);
-  // Update ligero (no re-render para mantener focus en input)
-  updateColsTotal();
-  updateColProgress(k);
-}
-// Actualiza el total de reservas y barra de progreso sin reconstruir el HTML
-function updateColsTotal(){
-  const tc = ST.tc||7.75;
-  const btcQty = parseFloat(COLS.btcQty)||0;
-  const btcPx  = parseFloat(COLS.btcPx)||0;
-  const btcUsd = btcQty * btcPx;
-  const btcQ   = btcUsd * tc;
-  const total=COLS.emer+COLS.bant+COLS.buf+(COLS.reimb*tc)+btcQ;
-  const reimbUSD = COLS.reimb || 0;
-  const breakdown = btcUsd > 0
-    ? '$'+reimbUSD.toFixed(0)+' · ₿'+btcQty.toFixed(4)
-    : '$'+reimbUSD.toFixed(0);
-  const el=document.getElementById('r-reservas');
-  if(el) el.textContent=fq(total)+' (incl. '+breakdown+')';
-  // Actualizar Valor USD y Equivalente Q del BTC card si cambia btcQty o btcPx
-  const btcCard = document.querySelectorAll('.col-card');
-  if(btcCard.length > 0){
-    const lastCard = btcCard[btcCard.length-1];
-    const vals = lastCard.querySelectorAll('.col-val');
-    if(vals.length >= 2){
-      vals[vals.length-2].textContent = '$'+btcUsd.toLocaleString('en-US',{maximumFractionDigits:0});
-      vals[vals.length-1].textContent = fq(btcQ);
-    }
-  }
-}
-// Actualiza % progreso y barra de la card específica
-function updateColProgress(k){
-  const defs = {
-    emer:{meta:FIJOS_TOTAL*3, col:'var(--gr)'},
-    bant:{meta:30000, col:'var(--ac)'},
-    buf: {meta:3000,  col:'#3db8f5'},
-    reimb:{meta:null, col:'var(--ac)'},
-  };
-  const c = defs[k];
-  if(!c) return;
-  const val = COLS[k]||0;
-  if(!c.meta) return;
-  const pct = Math.min((val/c.meta)*100, 100);
-  const pctCol = pct>=100?'var(--gr)':pct>=50?'var(--go)':'var(--rd)';
-  const pctTxt = pct>=100?'✅':pct.toFixed(0)+'%';
-  // Buscar la card que tiene este input
-  const inputs = document.querySelectorAll('.col-inp');
-  for(const inp of inputs){
-    const handler = inp.getAttribute('oninput')||inp.getAttribute('onchange')||'';
-    if(handler.includes(`'${k}'`)){
-      const card = inp.closest('.col-card');
-      if(card){
-        const vals = card.querySelectorAll('.col-val');
-        // El último .col-val (Progreso)
-        if(vals.length >= 3){
-          vals[vals.length-1].textContent = pctTxt;
-          vals[vals.length-1].style.color = pctCol;
-        }
-        // Barra
-        const bar = card.querySelector('.pbar-fill');
-        if(bar) bar.style.width = pct.toFixed(1)+'%';
-      }
-      break;
-    }
-  }
-}
+function onColChange(k,val){const v=parseFloat(val)||0;COLS[k]=v;saveCol(k,v);renderCols();}
 
 // Handlers de reserva Lulubit y saldos TC (BAC/BAM)
-// Versión ligera: actualiza solo "Total TC a pagar" sin reconstruir HTML (mantiene focus en input)
-function onReservaLulu(v){
-  ST.reservaLulu=parseFloat(v)||0;
-  saveState();
-  updateLulubitTotals();
-}
-function onBacDeuda(v){
-  ST.bacDeuda=parseFloat(v)||0;
-  saveState();
-  updateLulubitTotals();
-}
-function onBacDeudaUsd(v){
-  ST.bacDeudaUsd=parseFloat(v)||0;
-  saveState();
-  updateLulubitTotals();
-}
-function onBamDeuda(v){
-  ST.bamDeuda=parseFloat(v)||0;
-  saveState();
-  updateLulubitTotals();
-}
-// Actualiza solo los totales del panel Lulubit sin destruir el HTML (mantiene focus)
-function updateLulubitTotals(){
-  const tc = ST.tc||7.75;
-  const bacQ    = parseFloat(ST.bacDeuda)||0;
-  const bacUsd  = parseFloat(ST.bacDeudaUsd)||0;
-  const bac     = bacQ + (bacUsd * tc);
-  const bam     = parseFloat(ST.bamDeuda)||0;
-  const totalTCQ = bac + bam;
-  const reimbUSD = COLS.reimb || 0;
-  const reimbQ   = reimbUSD * tc;
-  const delta    = reimbQ - totalTCQ;
-  const cubre    = delta >= 0;
+function onReservaLulu(v){ST.reservaLulu=parseFloat(v)||0;saveState();recalc();}
+function onBacDeuda(v){ST.bacDeuda=parseFloat(v)||0;saveState();recalc();}
+function onBacDeudaUsd(v){ST.bacDeudaUsd=parseFloat(v)||0;saveState();recalc();}
+function onBamDeuda(v){ST.bamDeuda=parseFloat(v)||0;saveState();recalc();}
 
-  // Actualizar montos individuales (BAC total y BAM total)
-  const bacTotalEl = document.getElementById('lulu-bac-total');
-  if(bacTotalEl) bacTotalEl.textContent = fq(bac,0);
-  const bamTotalEl = document.getElementById('lulu-bam-total');
-  if(bamTotalEl) bamTotalEl.textContent = fq(bam,0);
-  // Conversión USD del BAC
-  const bacUsdConv = document.getElementById('lulu-bac-usd-conv');
-  if(bacUsdConv) bacUsdConv.textContent = bacUsd>0 ? '$'+bacUsd.toFixed(2)+' × '+tc.toFixed(2)+' = '+fq(bacUsd*tc,0) : '';
-  // Total TC a pagar
-  const totalEl = document.getElementById('lulu-total-tc');
-  if(totalEl) totalEl.textContent = fq(totalTCQ,0);
-  // Breakdown
-  const brkEl = document.getElementById('lulu-tc-breakdown');
-  if(brkEl) brkEl.textContent = 'BAC '+fq(bac,0)+' + BAM '+fq(bam,0);
-  // Reserva reembolsos
-  const reimbEl = document.getElementById('lulu-reimb-val');
-  if(reimbEl) reimbEl.textContent = '$'+reimbUSD.toFixed(0)+' · '+fq(reimbQ,0);
-  // Semáforo
-  const semEl = document.getElementById('lulu-semaforo');
-  if(semEl){
-    const semCol = cubre ? 'var(--gr)' : 'var(--rd)';
-    const semIcon = cubre ? '✅' : '⚠️';
-    const semTxt = cubre
-      ? 'Reembolsos cubren · sobran '+fq(delta,0)+' ('+fd(delta)+')'
-      : 'Faltan '+fq(-delta,0)+' ('+fd(-delta)+') — usar Bantrab o ahorrar antes del corte';
-    semEl.style.background = cubre?'rgba(52,208,122,.1)':'rgba(242,92,92,.1)';
-    semEl.style.borderColor = cubre?'rgba(52,208,122,.3)':'rgba(242,92,92,.3)';
-    semEl.innerHTML = '<span style="font-size:11px;color:'+semCol+';font-weight:600">'+semIcon+' '+semTxt+'</span>';
-  }
-}
+// ── DISTRIBUCIÓN (v3 — lógica Q1/Q2 por casos · PDF 5 mayo 2026) ──
+// ── MODELO NUEVO (julio 2026) — porcentajes fijos sobre ingreso real ──
+// Presupuesto base: Q26,815
+// Fijos:      71.95% → Q19,294
+// Personal:   9.39%  → Q2,518 (salidas Q1,000 + buffer Q1,250 + subs Q268)
+// Ahorro:     4.10%  → Q1,100 (Bantrab fijo)
+// Inversión: 14.54%  → Q3,900 (~$503)
+const PCT_FIJOS     = 0.71986;  // 71.9860% — incluye cobros Q25
+const PCT_PERSONAL  = 0.09383;  // 9.3827%
+const PCT_AHORRO    = 0.04099;  // 4.0989%
+const PCT_INVERSION = 0.14532;  // 14.5324%
 
-// ── DISTRIBUCIÓN (v4 — sesión 16 jun 2026 · base Q31K · paso 1+2) ──
-const BANTRAB_FIJO = 775;           // por quincena (Q1,550/mes = Q1,100 personal + Q450 vestimenta)
-const GASTO_LULUBIT_MENSUAL = 1750; // tope operativo mensual Lulubit (Salidas Q800 + Flores Q450 + Regalos Q350 + Otros Q150)
-const SUBS_Q_MENSUAL = ()=> {       // subs en Q según TC vigente
+// Metas mensuales absolutas (fijos incluyen Q25 cobros bancarios)
+const META_FIJOS     = 19318.61;  // Q19,293.61 fijos + Q25 cobros bancarios
+const META_PERSONAL  = 2518.00;
+const META_AHORRO    = 1100.00;
+const META_INVERSION = 3900.00;
+
+// Legacy (mantenido para compatibilidad con renderQ antiguo)
+const BANTRAB_FIJO = 550;
+const GASTO_LULUBIT_MENSUAL = 0; // eliminado — fusionado en Personal
+const SUBS_Q_MENSUAL = ()=> {
   return SUBS_ENT.reduce((s,x)=>s+x.usd,0) * (ST.tc||7.75);
 };
 
-// distribuirQ1: lógica Q1
-// 1. Fijos proporcionales (fijos × Q1/sprev)
-// 2. Bantrab fijo Q775 (incluye Q225 vestimenta como ahorro)
-// 3. Resto: 60% inversión / 40% personal
-// 4. Del 40% personal: subs primero, luego Lulubit lo que alcance
+// distribuirQ1: modelo nuevo julio 2026
+// Aplica porcentajes fijos sobre el ingreso real de Q1
+// Q1 paga su proporción de cada rubro según PCT_*
 function distribuirQ1(pagoQ1){
-  const tc = ST.tc||7.75;
-  const tf = FIJOS_TOTAL;
-  const sprev = ST.sprev||30052.58;
-  const subsQ = SUBS_Q_MENSUAL();
-  // Cobros y fijos proporcionales
-  const cobros = COBROS_BANCARIOS;
-  const prop = sprev>0 ? Math.min(pagoQ1/sprev, 1) : 0.5;
-  const fijQ1 = tf * prop;
-  // Excedente tras cobros y fijos
-  const exc = Math.max(pagoQ1 - cobros - fijQ1, 0);
-  // Bantrab fijo primero
-  const ban = Math.min(BANTRAB_FIJO, exc);
-  const resto = Math.max(exc - ban, 0);
-  // 60/40 del resto
-  const inv = resto * 0.60;
-  const personal40 = resto * 0.40;
-  // Del 40%: subs primero, luego Lulubit
-  const subs = Math.min(subsQ, personal40);
-  const lulu = Math.min(GASTO_LULUBIT_MENSUAL, Math.max(personal40 - subs, 0));
-  const personal_restante = Math.max(personal40 - subs - lulu, 0);
-  // Caso para el badge
-  let caso = '';
-  if(personal40 < subsQ) caso = 'A';
-  else if(personal40 < subsQ + GASTO_LULUBIT_MENSUAL) caso = 'B';
-  else caso = 'C';
+  // Cobros Q25 ya incluidos en PCT_FIJOS (META_FIJOS = Q19,318.61)
+  const base = Math.max(pagoQ1, 0);
 
-  return {fijQ1, exc, ban, inv, subs, lulu, personal40, personal_restante, caso, subsQ};
+  const fijQ1      = base * PCT_FIJOS;
+  const personalQ1 = base * PCT_PERSONAL;
+  const ahorroQ1   = base * PCT_AHORRO;
+  const invQ1      = base * PCT_INVERSION;
+
+  // Para compatibilidad con renderQCasos
+  const caso = 'A'; // Q1 siempre es parcial — Q2 completa
+  const subsQ = SUBS_Q_MENSUAL();
+  const subs = Math.min(subsQ, personalQ1);
+  const lulu = 0; // eliminado
+  const ban = ahorroQ1;
+  const inv = invQ1;
+  const personal40 = personalQ1;
+  const personal_restante = Math.max(personalQ1 - subs, 0);
+  const exc = Math.max(base - fijQ1, 0);
+
+  return {fijQ1, exc, ban, inv, subs, lulu, personal40, personal_restante, caso, subsQ,
+          personalQ1, ahorroQ1, invQ1};
 }
 
-// distribuirQ2: misma lógica que Q1 pero con fijos restantes y completando pendientes
-// 1. Fijos Q2 = fijos - fijQ1
-// 2. Bantrab Q550
-// 3. 60% inversión / 40% personal
-// 4. Del 40%: subs pendientes → Lulubit pendiente → sobrante a Bantrab extra
-function distribuirQ2(pagoQ2, luluQ1, subsMovidasQ1){
-  const tf = FIJOS_TOTAL;
-  const sprev = ST.sprev||30052.58;
-  const subsQ = SUBS_Q_MENSUAL();
-  // Fijos Q2
-  const prop = sprev>0 ? Math.min((ST.q1||0)/sprev, 1) : 0.5;
-  const fijQ1 = tf * prop;
-  const fijQ2 = tf - fijQ1;
-  // Excedente tras fijos Q2
-  const exc = Math.max(pagoQ2 - fijQ2, 0);
-  // Bantrab fijo
-  const ban_fijo = Math.min(BANTRAB_FIJO, exc);
-  const resto = Math.max(exc - ban_fijo, 0);
-  // 60/40
-  const inv = resto * 0.60;
-  const personal40 = resto * 0.40;
-  // Del 40%: pendientes de Q1 primero
-  const subsPend = Math.max(subsQ - (subsMovidasQ1||0), 0);
-  const luluPend = Math.max(GASTO_LULUBIT_MENSUAL - (luluQ1||0), 0);
-  const subs = Math.min(subsPend, personal40);
-  const lulu = Math.min(luluPend, Math.max(personal40 - subs, 0));
-  const ban_extra = Math.max(personal40 - subs - lulu, 0);
-  const ban = ban_fijo + ban_extra;
-  // Caso badge
-  const caso = luluPend > 1 ? 'A' : 'B';
+// distribuirQ2: modelo nuevo julio 2026
+// Completa la diferencia de cada rubro hasta su meta mensual
+// Prioridad: fijos → personal → ahorro → inversión
+// Válvula: si falta para inversión, usa excedente Bantrab o recorta inversión
+function distribuirQ2(pagoQ2, _luluQ1, _subsMovidasQ1){
+  const rQ1 = distribuirQ1(ST.q1 || 0);
 
-  return {fijQ2, exc, ban_fijo, ban_extra, ban, inv, personal40, subs, lulu, caso, subsPend, luluPend};
+  // Cuánto ya se movió en Q1
+  const fijYa  = rQ1.fijQ1;
+  const persYa = rQ1.personalQ1 || 0;
+  const ahoYa  = rQ1.ahorroQ1   || 0;
+  const invYa  = rQ1.invQ1      || 0;
+
+  // Diferencias para completar metas
+  const fijQ2  = Math.max(META_FIJOS     - fijYa,  0);
+  const persQ2 = Math.max(META_PERSONAL  - persYa, 0);
+  const ahoQ2  = Math.max(META_AHORRO    - ahoYa,  0);
+  const invMeta = Math.max(META_INVERSION - invYa,  0);
+
+  // Protegidos primero
+  const protegido = fijQ2 + persQ2 + ahoQ2;
+  const disponible = Math.max(pagoQ2 - protegido, 0);
+
+  // Inversión con válvula
+  const invQ2 = Math.min(invMeta, disponible);
+  const excedente_bantrab = Math.max(disponible - invMeta, 0);
+
+  // Para compatibilidad con renders
+  const fijQ2_out = fijQ2;
+  const exc = Math.max(pagoQ2 - fijQ2, 0);
+  const ban_fijo = ahoQ2;
+  const ban_extra = excedente_bantrab;
+  const ban = ban_fijo + ban_extra;
+  const inv = invQ2;
+  const personal40 = persQ2;
+  const subsQ = SUBS_Q_MENSUAL();
+  const subs = Math.min(subsQ, persQ2);
+  const lulu = 0;
+  const caso = excedente_bantrab > 0 ? 'B' : 'A';
+  const subsPend = 0;
+  const luluPend = 0;
+
+  return {fijQ2: fijQ2_out, exc, ban_fijo, ban_extra, ban, inv, personal40,
+          subs, lulu, caso, subsPend, luluPend,
+          persQ2, ahoQ2, invQ2, excedente_bantrab,
+          invRecortada: Math.max(invMeta - invQ2, 0)};
 }
 
 // distribuir() legacy — para compatibilidad con renderQ simple
@@ -1188,44 +932,33 @@ const INV_ACTIVOS=[
 function renderQCasos(r, pago, quincena){
   if(!r || pago<=0) return '<div class="row"><span class="row-lbl" style="color:var(--mu2)">Ingresa el pago</span></div>';
   const tc = ST.tc||7.75;
-  const sprev = ST.sprev||30052.58;
-
-  // Porcentaje de fijos aplicado en esta quincena
-  const propPct = sprev>0 ? Math.min(pago/sprev*100, 100) : 50;
-  const propFijos = sprev>0 ? Math.min(pago/sprev, 1) : 0.5;
-  const fijMes = FIJOS_TOTAL;
 
   // Badge de caso
   const casoColor = {A:'var(--rd)', 'B':'var(--go)', 'B+':'var(--go)', C:'#3db8f5'}[r.caso] || 'var(--mu)';
   const casoDescQ1 = {
-    A: '60/40 · personal insuficiente para subs',
-    B: '60/40 · subs + Personal parcial',
-    'B+': '60/40 · subs + Personal + Bantrab parcial',
-    C: '60/40 · subs + Personal completos'
+    A: 'pct fijos · parcial — Q2 completa',
+    B: 'pct fijos · completo en Q1',
   };
   const casoDescQ2 = {
-    A: '60/40 · completar Personal del mes',
-    B: '60/40 · Personal completo · resto a Bantrab'
+    A: 'diferencias completadas · inversión ajustada',
+    B: 'diferencias completadas · excedente a Bantrab'
   };
   const casoDesc = (quincena===1 ? casoDescQ1 : casoDescQ2)[r.caso] || '';
 
-  const casoBadge = r.caso ? `<div style="font-family:'DM Mono',monospace;font-size:9px;padding:3px 8px;border-radius:4px;background:${casoColor}22;color:${casoColor};margin-bottom:6px;display:inline-block">
+  const casoBadge = r.caso ? `<div style="font-family:'DM Mono',monospace;font-size:9px;padding:3px 8px;border-radius:4px;background:${casoColor}22;color:${casoColor};margin-bottom:8px;display:inline-block">
     Q${quincena} · Caso ${r.caso}${casoDesc ? ' · '+casoDesc : ''}</div>` : '';
-
-  // Info proporcional (siempre visible cuando hay pago)
-  const propInfo = `<div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu2);margin-bottom:8px;line-height:1.4">
-    📊 ${propPct.toFixed(1)}% del mes (ref. sprev Q${sprev.toLocaleString('en-US',{maximumFractionDigits:0})})
-    · Fijos: Q${fijMes.toLocaleString('en-US',{maximumFractionDigits:0})} × ${propFijos.toFixed(3)} = Q${(fijMes*propFijos).toLocaleString('en-US',{maximumFractionDigits:0})}</div>`;
 
   // Filas según qué se mueve
   const rows = [];
   if(quincena===1){
-    rows.push({lbl:'🏦 Monetaria · cobros',   q:-COBROS_BANCARIOS, c:'var(--mu)'});
-    rows.push({lbl:'🏦 Ahorro BI · fijos',     q:-r.fijQ1,          c:'var(--rd)'});
-    if(r.ban>0)  rows.push({lbl:'✈️ Bantrab · fijo',     q:r.ban,   c:'#9d7ff0'});
+    rows.push({lbl:'🏦 Monetaria · cobros',         q:-COBROS_BANCARIOS,    c:'var(--mu)'});
+    rows.push({lbl:'🏦 Ahorro BI · fijos',           q:-(r.fijQ1||0),        c:'var(--rd)'});
+    rows.push({lbl:'🍽️ Personal (salidas+buffer)',   q:-(r.personalQ1||0),   c:'var(--mu)'});
+    rows.push({lbl:'✈️ Bantrab · ahorro',             q:(r.ahorroQ1||0),      c:'var(--go)'});
+    if(r.ban>0)  // rows.push({lbl:'✈️ Bantrab · fijo',     q:r.ban,   c:'#9d7ff0'});
     if(r.inv>0)  rows.push({lbl:'₿ Exchange · inversión (60%)', q:-r.inv, c:'var(--go)'});
     if(r.subs>0) rows.push({lbl:'💳 Ahorro USD BI · subs',  q:-r.subs, c:'#f59e0b'});
-    if(r.lulu>0) rows.push({lbl:'🎉 Personal · disfrute',    q:r.lulu,  c:'#3db8f5'});
+    if(r.lulu>0) // rows.push({lbl:'🎉 Lulubit · disfrute',    q:r.lulu,  c:'#3db8f5'});
     if((r.personal_restante||0)>1) rows.push({lbl:'💰 Personal restante', q:r.personal_restante, c:'var(--mu)'});
     // Pendientes para Q2
     const subsQ2 = SUBS_Q_MENSUAL();
@@ -1233,13 +966,14 @@ function renderQCasos(r, pago, quincena){
     if(r.subs < subsQ2 - 1)
       rows.push({lbl:'⏳ Subs pendientes Q2', q:0, c:'var(--mu)', note:fq(subsQ2-r.subs)});
     if(luluPend2 > 1)
-      rows.push({lbl:'⏳ Personal pendiente Q2', q:0, c:'var(--mu)', note:fq(luluPend2)});
+      rows.push({lbl:'⏳ Lulubit pendiente Q2', q:0, c:'var(--mu)', note:fq(luluPend2)});
   } else {
-    rows.push({lbl:'🏦 Ahorro BI · fijos',          q:-r.fijQ2,   c:'var(--rd)'});
-    rows.push({lbl:'✈️ Bantrab · fijo',              q:r.ban_fijo, c:'#9d7ff0'});
-    if(r.inv>0)      rows.push({lbl:'₿ Exchange · inversión (60%)', q:-r.inv, c:'var(--go)'});
-    if(r.subs>0)     rows.push({lbl:'💳 Ahorro USD BI · subs',  q:-r.subs,     c:'#f59e0b'});
-    if(r.lulu>0)     rows.push({lbl:'🎉 Personal · completar',   q:r.lulu,      c:'#3db8f5'});
+    rows.push({lbl:'🏦 Ahorro BI · fijos (dif.)',    q:-(r.fijQ2||0),    c:'var(--rd)'});
+    rows.push({lbl:'🍽️ Personal (diferencia)',        q:-(r.persQ2||0),   c:'var(--mu)'});
+    rows.push({lbl:'✈️ Bantrab · ahorro (dif.)',       q:(r.ahoQ2||0),     c:'#9d7ff0'});
+    if((r.invQ2||0)>0) rows.push({lbl:'₿ Exchange · inversión',          q:-(r.invQ2||0), c:(r.invRecortada||0)>0?'#f59e0b':'var(--go)'});
+    if((r.invRecortada||0)>0) rows.push({lbl:'⚠️ Inversión recortada',   q:-(r.invRecortada||0), c:'#f59e0b'});
+    if(r.subs>0)       rows.push({lbl:'📱 Subs (pendiente)',              q:-r.subs,       c:'var(--mu)'});
     if((r.ban_extra||0)>1) rows.push({lbl:'✈️ Bantrab · extra (ahorro)', q:r.ban_extra, c:'#6b7ff0'});
   }
 
@@ -1286,7 +1020,7 @@ function renderQCasos(r, pago, quincena){
       <div class="inv-list" id="${uid}">${activosRows}${totalRow}</div>`;
   }
 
-  return casoBadge + propInfo + rowsHtml + tablaActivos;
+  return casoBadge + rowsHtml + tablaActivos;
 }
 
 function renderQ(d, fijProp, pago){
@@ -1296,7 +1030,7 @@ function renderQ(d, fijProp, pago){
   const rows=[
     {lbl:'🏦 Ahorro BI · fijos',    q:-ahorroBI, c:'var(--rd)'},
     {lbl:'₿  Exchange · inversión', q:-d.inv,    c:'var(--go)'},
-    {lbl:'🎉 Personal · disfrute',   q:d.dis,     c:'#3db8f5'},
+    {lbl:'🎉 Lulubit · disfrute',   q:d.dis,     c:'#3db8f5'},
     {lbl:'💰 Bantrab extra',          q:d.ban_extra||0, c:'#10b981'},
     {lbl:'✈️ Bantrab · viajes',     q:d.ban,     c:'#9d7ff0'},
   ];
@@ -1348,7 +1082,7 @@ function renderCols(){
   const defs=[
     {k:'emer',ttl:'💰 Ahorro BI',          meta:tf*3, cuenta:'Ahorro BI',   col:'var(--gr)'},
     {k:'bant',ttl:'✈️ Bantrab',            meta:30000,      cuenta:'Bantrab',     col:'var(--ac)'},
-    {k:'buf', ttl:'🔧 Monetaria BI · caja chica',meta:3000,cuenta:'Monetaria BI',col:'#3db8f5'},
+    {k:'buf', ttl:'🔧 Monetaria BI · caja chica',meta:3000,cuenta:'Monetaria BI',col:'var(--mu)'},
     {k:'reimb',ttl:'💵 Reembolsos trabajo',meta:null,       cuenta:'USD cash',    col:'var(--ac)',usd:true},
   ];
 
@@ -1365,8 +1099,8 @@ function renderCols(){
       <div class="col-row"><span class="col-lbl">Meta</span><span class="col-val" style="color:var(--mu)">${metaLbl}</span></div>
       <div class="col-row"><span class="col-lbl">Actual</span><span class="col-val">${c.usd?'':''}</span></div>
       ${c.usd
-        ?`<input class="col-inp" type="number" value="${val}" step="0.01" min="0" oninput="onColChange('${c.k}',this.value)" style="color:${c.col};border-color:${c.col}44;margin:4px 0">`
-        :`<input class="col-inp" type="number" value="${val}" step="1" min="0" oninput="onColChange('${c.k}',this.value)" style="color:${c.col};border-color:${c.col}44;margin:4px 0">`
+        ?`<input class="col-inp" type="number" value="${val}" step="0.01" min="0" onchange="onColChange('${c.k}',this.value)" style="color:${c.col};border-color:${c.col}44;margin:4px 0">`
+        :`<input class="col-inp" type="number" value="${val}" step="1" min="0" onchange="onColChange('${c.k}',this.value)" style="color:${c.col};border-color:${c.col}44;margin:4px 0">`
       }
       <div class="col-row"><span class="col-lbl">Progreso</span><span class="col-val" style="color:${pctCol}">${pctTxt}</span></div>
       <div class="pbar"><div class="pbar-fill" style="background:${c.col};width:${Math.min(pct,100).toFixed(1)}%"></div></div>
@@ -1384,11 +1118,11 @@ function renderCols(){
     <div class="col-cuenta">🏦 SeedSigner · HODL</div>
     <div class="col-row"><span class="col-lbl">Cantidad BTC</span></div>
     <input class="col-inp" type="number" value="${btcQty}" step="0.00000001" min="0"
-      oninput="onColChange('btcQty',this.value)"
+      onchange="onColChange('btcQty',this.value)"
       placeholder="0.10289" style="color:${btcOrange};border-color:${btcOrange}55;margin:4px 0">
     <div class="col-row" style="margin-top:6px"><span class="col-lbl">Precio BTC (USD)</span></div>
     <input class="col-inp" type="number" value="${btcPx}" step="1" min="0"
-      oninput="onColChange('btcPx',this.value)"
+      onchange="onColChange('btcPx',this.value)"
       placeholder="78670" style="color:${btcOrange};border-color:${btcOrange}55;margin:4px 0">
     <div class="col-row" style="margin-top:8px;border-top:1px solid var(--bd);padding-top:6px">
       <span class="col-lbl">Valor USD</span>
@@ -1406,8 +1140,8 @@ function renderCols(){
   const total=COLS.emer+COLS.bant+COLS.buf+(COLS.reimb*tc)+btcQ;
   const reimbUSD = COLS.reimb || 0;
   const breakdown = btcUsd > 0
-    ? '$'+reimbUSD.toFixed(0)+' · ₿'+btcQty.toFixed(4)
-    : '$'+reimbUSD.toFixed(0);
+    ? '$'+reimbUSD.toFixed(0)+'USD · ₿'+btcQty.toFixed(4)
+    : '$'+reimbUSD.toFixed(0)+'USD';
   document.getElementById('r-reservas').textContent=fq(total)+' (incl. '+breakdown+')';
 }
 
@@ -1576,22 +1310,34 @@ function renderResumenMes(ingTotal, tf, excMes, dMes, btcQ, invRestQ, tQ1, tQ2){
   card.style.display='block';
   empty.style.display='none';
 
-  const ahorroBI=tf; // fijos ya incluyen Q1,267 imprevistos
+  const ahorroBI=tf;
   const tc=ST.tc||7.75;
 
+  // Calcular rQ1/rQ2 aquí para obtener invRecMes antes de usarlo
+  const _rQ1early = tQ1 ? distribuirQ1(ST.q1||0) : null;
+  const _rQ2early = tQ2 ? distribuirQ2(ST.q2||0, _rQ1early?.lulu||0, _rQ1early?.subs||0) : null;
+  const invRecMes = _rQ2early?.invRecortada || 0;
+  const invMesQ   = (_rQ1early?.inv||0) + (_rQ2early?.inv||0);
+  const subsMesE  = (_rQ1early?.subs||0) + (_rQ2early?.subs||0);
+  const banExtraE = (_rQ1early?.ban_extra||0) + (_rQ2early?.ban_extra||0);
+
+  const invRecBadgeHTML = invRecMes>0
+    ? `<div style="font-family:'DM Mono',monospace;font-size:9px;color:#f59e0b;padding:4px 8px;background:rgba(245,158,11,.1);border-radius:4px;margin-bottom:8px">⚠️ Inversión recortada —Q${Math.round(invRecMes)} · mes corto</div>`
+    : '';
   const rows=[
-    {lbl:'💰 Ingreso total del mes',        q:ingTotal,           c:'var(--gr)', bold:true},
+    {lbl:'💰 Ingreso total del mes',         q:ingTotal,                c:'var(--gr)', bold:true},
+    {lbl:'─',                                q:null,                    c:'',          sep:true},
+    {lbl:'🏦 Ahorro BI · fijos',            q:-META_FIJOS,             c:'var(--rd)'},
+    {lbl:'🍽️ Personal (salidas+buffer)',    q:-META_PERSONAL,          c:'var(--mu)'},
+    // Subs incluidas dentro de META_PERSONAL — no se muestran por separado
+    {lbl:'✈️ Bantrab · ahorro fijo',         q:META_AHORRO,             c:'#9d7ff0'},
+    {lbl:'💰 Bantrab · excedente',           q:banExtraE,               c:'#10b981'},
+    {lbl:'₿  Exchange · inversión',         q:-(invMesQ||0),           c:invRecMes>0?'#f59e0b':'var(--go)'},
     {lbl:'─',                               q:null,               c:'',          sep:true},
-    {lbl:'🏦 Ahorro BI · fijos',           q:-ahorroBI,          c:'var(--rd)'},
-    {lbl:'₿  Exchange · inversión',        q:-(dMes?.inv||0),    c:'var(--go)'},
-    {lbl:'🎉 Personal · disfrute',          q:dMes?.dis||0,       c:'#3db8f5'},
-    {lbl:'💰 Bantrab extra',                q:dMes?.ban_extra||0,  c:'#10b981'},
-    {lbl:'✈️ Bantrab · viajes',            q:dMes?.ban||0,       c:'#9d7ff0'},
-    {lbl:'─',                               q:null,               c:'',          sep:true},
-    {lbl:'✅ Excedente neto',              q:excMes,             c:'var(--pu)', bold:true},
+    {lbl:'✅ Sin distribuir (debe ser 0)', q:excMes,             c:excMes>1?'var(--yw)':'var(--gr)', bold:true},
   ];
 
-  body.innerHTML=rows.map(r=>{
+  body.innerHTML=invRecBadgeHTML+rows.map(r=>{
     if(r.sep) return '<div style="border-top:1px solid var(--bd);margin:4px 0"></div>';
     if(r.q===null) return '';
     return '<div class="row" style="'+(r.bold?'padding:8px 0;':'')+'border-bottom:'+(r.bold?'none':'1px solid var(--bd)')+'">'
@@ -1642,13 +1388,12 @@ function renderLulubit(lulMesInput){
     // ── Distribución estimada (colapsable) ──
     +'<div onclick="toggleLuluEst()" id="lulu-est-toggle" style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:var(--s2);border-radius:6px;cursor:pointer;margin-bottom:8px">'
       +'<div>'
-        +'<div style="font-family:\'DM Mono\',monospace;font-size:9px;color:#fff;font-weight:700;letter-spacing:.05em;text-transform:uppercase">🎉 Distribución estimada · Q'+LULU_EST_TOTAL.toLocaleString('es-GT')+'</div>'
-        +'<div style="font-family:\'DM Mono\',monospace;font-size:10px;color:rgba(255,255,255,.65);margin-top:2px">Subs $'+totalSubsUsd.toFixed(2)+' · Q'+totalSubsQ.toFixed(0)+'</div>'
+        +'<div style="font-family:\'DM Mono\',monospace;font-size:9px;color:var(--mu);text-transform:uppercase">🎉 Distribución estimada · Q'+LULU_EST_TOTAL.toLocaleString('es-GT')+'</div>'
+        +'<div style="font-family:\'DM Mono\',monospace;font-size:10px;color:var(--mu2);margin-top:2px">Subs $'+totalSubsUsd.toFixed(2)+' · Q'+totalSubsQ.toFixed(0)+'</div>'
       +'</div>'
-      +'<span id="lulu-est-ico" style="font-size:12px;color:#fff;transition:transform .2s">▾</span>'
+      +'<span id="lulu-est-ico" style="font-size:12px;color:var(--mu);transition:transform .2s">▾</span>'
     +'</div>'
     +'<div id="lulu-est-body" style="display:none;margin-bottom:10px">'
-
       +LULU_CATS.map(function(c){
         return '<div style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:11px">'
           +'<span style="width:18px">'+c.ico+'</span>'
@@ -1663,10 +1408,8 @@ function renderLulubit(lulMesInput){
       +'<div style="margin-top:8px;padding:8px 10px;background:var(--s2);border-radius:6px;font-size:10px">'
         +'<div style="color:var(--mu);margin-bottom:4px;font-weight:600">🎬 Suscripciones ($'+totalSubsUsd.toFixed(2)+' · Q'+totalSubsQ.toFixed(0)+')</div>'
         +SUBS_ENT.map(function(s){
-          var tcCol = s.tc==='BAC' ? '#3db8f5' : (s.tc==='BAM' ? '#f59e0b' : 'var(--mu)');
-          var tcBadge = s.tc ? '<span style="display:inline-block;padding:1px 5px;border-radius:3px;background:'+tcCol+'22;color:'+tcCol+';font-family:\'DM Mono\',monospace;font-size:8px;font-weight:700;margin-left:6px;vertical-align:middle">'+s.tc+'</span>' : '';
-          return '<div style="display:flex;justify-content:space-between;padding:2px 0;color:#c5c8d4">'
-            +'<span>'+s.nom+tcBadge+'</span>'
+          return '<div style="display:flex;justify-content:space-between;padding:2px 0;color:var(--mu2)">'
+            +'<span>'+s.nom+'</span>'
             +'<span style="font-family:\'DM Mono\',monospace">$'+s.usd.toFixed(2)+' · '+s.freq+'</span>'
           +'</div>';
         }).join('')
@@ -1676,12 +1419,12 @@ function renderLulubit(lulMesInput){
     // ── Reserva Lulubit ──
     +'<div style="padding:10px 0;border-top:1px solid var(--bd)">'
       +'<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">'
-        +'<span style="color:var(--tx);font-size:11px">💰 Reserva Personal</span>'
+        +'<span style="color:var(--tx);font-size:11px">💰 Reserva Lulubit</span>'
         +'<span style="font-family:\'DM Mono\',monospace;color:var(--pu);font-weight:700;font-size:14px">'+fq(reserva,0)+'</span>'
       +'</div>'
       +'<div style="position:relative">'
         +'<span style="position:absolute;left:8px;top:50%;transform:translateY(-50%);color:var(--mu2);font-size:11px;font-family:\'DM Mono\',monospace;pointer-events:none">Q</span>'
-        +'<input type="number" value="'+reserva+'" step="0.01" min="0" oninput="onReservaLulu(this.value)" placeholder="0" '
+        +'<input type="number" value="'+reserva+'" step="0.01" min="0" onchange="onReservaLulu(this.value)" placeholder="0" '
           +'style="width:100%;padding:6px 8px 6px 22px;background:var(--s2);color:var(--pu);border:1px solid rgba(157,127,240,.3);border-radius:4px;font-family:\'DM Mono\',monospace;font-size:12px;text-align:right;outline:none;box-sizing:border-box">'
       +'</div>'
     +'</div>'
@@ -1690,34 +1433,32 @@ function renderLulubit(lulMesInput){
     +'<div style="padding:10px 0;border-top:1px solid var(--bd);margin-top:4px">'
       +'<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">'
         +'<span style="color:var(--tx);font-size:11px">🏦 BAC <span style="color:var(--mu2);font-size:9px">· corte día 21</span></span>'
-        +'<span id="lulu-bac-total" style="font-family:\'DM Mono\',monospace;color:var(--rd);font-weight:700;font-size:14px">'+fq(bac,0)+'</span>'
+        +'<span style="font-family:\'DM Mono\',monospace;color:var(--rd);font-weight:700;font-size:14px">'+fq(bac,0)+'</span>'
       +'</div>'
       +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">'
         +'<div style="position:relative">'
           +'<span style="position:absolute;left:8px;top:50%;transform:translateY(-50%);color:var(--mu2);font-size:11px;font-family:\'DM Mono\',monospace;pointer-events:none">Q</span>'
-          +'<input type="number" value="'+bacQ+'" step="0.01" min="0" oninput="onBacDeuda(this.value)" placeholder="0" '
+          +'<input type="number" value="'+bacQ+'" step="0.01" min="0" onchange="onBacDeuda(this.value)" placeholder="0" '
             +'style="width:100%;padding:6px 8px 6px 22px;background:var(--s2);color:var(--rd);border:1px solid rgba(157,127,240,.3);border-radius:4px;font-family:\'DM Mono\',monospace;font-size:12px;text-align:right;outline:none;box-sizing:border-box">'
         +'</div>'
         +'<div style="position:relative">'
           +'<span style="position:absolute;left:8px;top:50%;transform:translateY(-50%);color:var(--mu2);font-size:11px;font-family:\'DM Mono\',monospace;pointer-events:none">$</span>'
-          +'<input type="number" value="'+bacUsd+'" step="0.01" min="0" oninput="onBacDeudaUsd(this.value)" placeholder="0" '
+          +'<input type="number" value="'+bacUsd+'" step="0.01" min="0" onchange="onBacDeudaUsd(this.value)" placeholder="0" '
             +'style="width:100%;padding:6px 8px 6px 22px;background:var(--s2);color:var(--rd);border:1px solid rgba(157,127,240,.3);border-radius:4px;font-family:\'DM Mono\',monospace;font-size:12px;text-align:right;outline:none;box-sizing:border-box">'
         +'</div>'
       +'</div>'
-      +'<div id="lulu-bac-usd-conv" style="font-size:9px;color:var(--mu2);text-align:right;margin-top:4px;font-family:\'DM Mono\',monospace">'
-        +(bacUsd>0?'$'+bacUsd.toFixed(2)+' × '+tc2.toFixed(2)+' = '+fq(bacUsd*tc2,0):'')
-      +'</div>'
+      +(bacUsd>0?'<div style="font-size:9px;color:var(--mu2);text-align:right;margin-top:4px;font-family:\'DM Mono\',monospace">$'+bacUsd.toFixed(2)+' × '+tc2.toFixed(2)+' = '+fq(bacUsd*tc2,0)+'</div>':'')
     +'</div>'
 
     // ── BAM ──
     +'<div style="padding:10px 0;border-top:1px solid var(--bd);margin-top:4px">'
       +'<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">'
         +'<span style="color:var(--tx);font-size:11px">🏦 BAM <span style="color:var(--mu2);font-size:9px">· corte día 01</span></span>'
-        +'<span id="lulu-bam-total" style="font-family:\'DM Mono\',monospace;color:var(--rd);font-weight:700;font-size:14px">'+fq(bam,0)+'</span>'
+        +'<span style="font-family:\'DM Mono\',monospace;color:var(--rd);font-weight:700;font-size:14px">'+fq(bam,0)+'</span>'
       +'</div>'
       +'<div style="position:relative">'
         +'<span style="position:absolute;left:8px;top:50%;transform:translateY(-50%);color:var(--mu2);font-size:11px;font-family:\'DM Mono\',monospace;pointer-events:none">Q</span>'
-        +'<input type="number" value="'+bam+'" step="0.01" min="0" oninput="onBamDeuda(this.value)" placeholder="0" '
+        +'<input type="number" value="'+bam+'" step="0.01" min="0" onchange="onBamDeuda(this.value)" placeholder="0" '
           +'style="width:100%;padding:6px 8px 6px 22px;background:var(--s2);color:var(--rd);border:1px solid rgba(157,127,240,.3);border-radius:4px;font-family:\'DM Mono\',monospace;font-size:12px;text-align:right;outline:none;box-sizing:border-box">'
       +'</div>'
     +'</div>'
@@ -1732,22 +1473,22 @@ function renderLulubit(lulMesInput){
       var semCol   = cubre ? 'var(--gr)' : 'var(--rd)';
       var semIcon  = cubre ? '✅' : '⚠️';
       var semTxt   = cubre
-        ? 'Reembolsos cubren · sobran '+fq(delta,0)+' ('+fd(delta)+')'
-        : 'Faltan '+fq(-delta,0)+' ('+fd(-delta)+') — usar Bantrab o ahorrar antes del corte';
+        ? 'Reembolsos cubren · sobran '+fq(delta,0)+' ($'+fd(delta)+')'
+        : 'Faltan '+fq(-delta,0)+' ($'+fd(-delta)+') — usar Bantrab o ahorrar antes del corte';
       return '<div style="margin-top:10px;padding:12px;background:var(--s2);border-radius:6px">'
         +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">'
           +'<span style="font-size:11px;color:var(--tx);font-weight:600">💳 Total TC a pagar</span>'
-          +'<span id="lulu-total-tc" style="font-family:var(--fmono);font-size:18px;font-weight:800;color:var(--rd)">'+fq(totalTCQ,0)+'</span>'
+          +'<span style="font-family:var(--fmono);font-size:18px;font-weight:800;color:var(--rd)">'+fq(totalTCQ,0)+'</span>'
         +'</div>'
-        +'<div id="lulu-tc-breakdown" style="font-size:9px;color:var(--mu2);font-family:var(--fmono);margin-bottom:8px">'
+        +'<div style="font-size:9px;color:var(--mu2);font-family:var(--fmono);margin-bottom:8px">'
           +'BAC '+fq(bac,0)+' + BAM '+fq(bam,0)
         +'</div>'
         +'<div style="border-top:1px solid var(--bd);padding-top:8px">'
           +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">'
             +'<span style="font-size:10px;color:var(--mu)">💵 Reserva reembolsos</span>'
-            +'<span id="lulu-reimb-val" style="font-family:var(--fmono);font-size:12px;font-weight:700;color:var(--ac)">$'+reimbUSD.toFixed(0)+' · '+fq(reimbQ,0)+'</span>'
+            +'<span style="font-family:var(--fmono);font-size:12px;font-weight:700;color:var(--ac)">$'+reimbUSD.toFixed(0)+' · '+fq(reimbQ,0)+'</span>'
           +'</div>'
-          +'<div id="lulu-semaforo" style="padding:8px 10px;border-radius:5px;background:'+(cubre?'rgba(52,208,122,.1)':'rgba(242,92,92,.1)')+';border:1px solid '+(cubre?'rgba(52,208,122,.3)':'rgba(242,92,92,.3)')+'">'
+          +'<div style="padding:8px 10px;border-radius:5px;background:'+(cubre?'rgba(52,208,122,.1)':'rgba(242,92,92,.1)')+';border:1px solid '+(cubre?'rgba(52,208,122,.3)':'rgba(242,92,92,.3)')+'">'
             +'<span style="font-size:11px;color:'+semCol+';font-weight:600">'+semIcon+' '+semTxt+'</span>'
           +'</div>'
         +'</div>'
@@ -1817,14 +1558,17 @@ function recalc(){
   const subsQ1 = rQ1 ? rQ1.subs : 0;
   const rQ2 = tQ2 ? distribuirQ2(ST.q2, luluQ1, subsQ1) : null;
 
-  // Excedente mensual total = ingreso - fijos (lo que queda para distribuir)
-  const excMes = Math.max(ingTotal - tf - COBROS_BANCARIOS, 0);
-
   // Totales mensuales
-  const invMesQ = (rQ1?.inv||0) + (rQ2?.inv||0);
-  const luluMes = (rQ1?.lulu||0) + (rQ2?.lulu||0);
-  const banMes  = (rQ1?.ban||0)  + (rQ2?.ban||0);
-  const subsMes = (rQ1?.subs||0) + (rQ2?.subs||0);
+  const invMesQ  = (rQ1?.inv||0)  + (rQ2?.inv||0);
+  const luluMes  = (rQ1?.lulu||0) + (rQ2?.lulu||0);
+  const banMes   = (rQ1?.ban||0)  + (rQ2?.ban||0);
+  const subsMes  = (rQ1?.subs||0) + (rQ2?.subs||0);
+
+  // Excedente mensual total = ingreso - todos los rubros
+  const excMes = Math.max(ingTotal - META_FIJOS - META_PERSONAL - META_AHORRO - invMesQ, 0);
+  // const persMes = (rQ1?.personalQ1||0) + (rQ2?.persQ2||0); — ya declarado en bloque early
+  // const ahoMes  = (rQ1?.ahorroQ1||0)  + (rQ2?.ahoQ2||0); — ya declarado en bloque early
+  // const invRecMes = rQ2?.invRecortada || 0; — ya declarado en bloque early
 
   const btcQ = Math.min(200*tc, invMesQ);
   const invRestQ = Math.max(invMesQ - btcQ, 0);
@@ -1832,14 +1576,14 @@ function recalc(){
 
   // ── RESUMEN TOP ──
   document.getElementById('r-ing').textContent    = tQ1||tQ2 ? fq(ingTotal) : '—';
-  document.getElementById('r-ing-usd').textContent= tQ1||tQ2 ? fd(ingTotal) : '—';
+  document.getElementById('r-ing-usd').textContent= tQ1||tQ2 ? fd(ingTotal)+' USD' : '—';
   // Fijos reservados = fijos fijos + imprevistos del mes (ambos van a Ahorro BI)
   document.getElementById('r-fij').textContent    = tQ1||tQ2 ? fq(ahorroMes,2) : fq(tf,2);
   document.getElementById('r-fij-pct').textContent= tQ1||tQ2
     ? fq(tf,2)+' (incl. Q500 buffer · Q25 cobros separados)'
     : fq(tf,2)+' (incl. Q500 buffer · Q25 cobros separados)';
   document.getElementById('r-exc').textContent    = tQ1&&tQ2 ? fq(excMes) : '—';
-  document.getElementById('r-exc-usd').textContent= tQ1&&tQ2 ? fd(excMes) : '';
+  document.getElementById('r-exc-usd').textContent= tQ1&&tQ2 ? fd(excMes)+' USD' : '';
   document.getElementById('r-inv').textContent    = tQ1&&tQ2 ? fq(invMesQ) : '—';
   document.getElementById('r-inv-sub').textContent= tQ1&&tQ2
     ? '₿ Q'+btcQ.toFixed(0)+' fijo + Q'+invRestQ.toFixed(0)+' prop.'
@@ -1849,8 +1593,8 @@ function recalc(){
   const badge=(id,cls,txt)=>{const e=document.getElementById(id);if(e){e.className='badge '+cls;e.textContent=txt;}};
   badge('q1-est',tQ1?'ok':'pend',tQ1?'recibida':'pendiente');
   badge('q2-est',tQ2?'ok':'pend',tQ2?'recibida':'pendiente');
-  document.getElementById('q1-usd').textContent=tQ1?fd(ST.q1):'—';
-  document.getElementById('q2-usd').textContent=tQ2?fd(ST.q2):'—';
+  document.getElementById('q1-usd').textContent=tQ1?fd(ST.q1)+' USD':'—';
+  document.getElementById('q2-usd').textContent=tQ2?fd(ST.q2)+' USD':'—';
   document.getElementById('q1-rows').innerHTML=renderQCasos(rQ1, ST.q1, 1);
   document.getElementById('q2-rows').innerHTML=renderQCasos(rQ2, ST.q2, 2);
 
@@ -1861,8 +1605,6 @@ function recalc(){
   renderResumenMes(ingTotal, tf, excMes, dMes, btcQ, invRestQ, tQ1, tQ2);
   // ── PANEL LULUBIT (siempre, no depende de Q1+Q2) ──
   renderLulubit(dMes.dis);
-  // ── PAGOS FIJOS DEL MES ──
-  renderPagosFijos();
   // ── HIPOTECA ──
   recalcHipSaldo();
   renderCuotasHip();

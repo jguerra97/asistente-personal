@@ -952,8 +952,10 @@ function renderQCasos(r, pago, quincena){
   const rows = [];
   if(quincena===1){
     // Q1 — distribuye por porcentajes fijos
-    rows.push({lbl:'🏦 Monetaria · cobros',         q:-COBROS_BANCARIOS,    c:'var(--mu)'});
-    rows.push({lbl:'🏦 Ahorro BI · fijos',           q:-(r.fijQ1||0),        c:'var(--rd)'});
+    // Los cobros Q25 YA están dentro de fijQ1 (vía PCT_FIJOS). Se muestran como
+    // línea de referencia pero se descuentan de Ahorro BI para no duplicarlos.
+    rows.push({lbl:'🏦 Monetaria · cobros',         q:-COBROS_BANCARIOS,                          c:'var(--mu)'});
+    rows.push({lbl:'🏦 Ahorro BI · fijos',           q:-Math.max((r.fijQ1||0)-COBROS_BANCARIOS,0), c:'var(--rd)'});
     rows.push({lbl:'🍽️ Personal (salidas+buffer)',   q:-(r.personalQ1||0),   c:'var(--mu)'});
     rows.push({lbl:'✈️ Bantrab · ahorro',             q:(r.ahorroQ1||0),      c:'var(--go)'});
     if((r.invQ1||0)>0) rows.push({lbl:'₿ Exchange · inversión', q:-(r.invQ1||0), c:'var(--go)'});

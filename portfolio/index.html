@@ -1317,9 +1317,11 @@ function descargarResumen(){
   const pnl=tot-cst;
   const pnlPct=cst>0?((pnl/cst)*100).toFixed(1):'0';
   const mult=cst>0?(tot/cst).toFixed(2):'—';
-  const META = 88000; // Meta nueva: capital cripto + MSTR para reducir cuota hipoteca a Q10K
+  const META = 88000; // Meta piso: cripto + MSTR para reducir cuota hipoteca a Q10K
+  const META_ASPIRACIONAL = 150000; // Meta aspiracional: liquidar hipoteca dic 2028
   const META_CAPITAL = 50000; // Capital invertido objetivo
   const pct=Math.min((tot/META)*100,100);
+  const pctAspiracional=Math.min((tot/META_ASPIRACIONAL)*100,100);
   const pctCapital=Math.min((cst/META_CAPITAL)*100,100);
   const fecha=new Date().toLocaleDateString('es-GT',{day:'2-digit',month:'long',year:'numeric'});
   const timestamp=new Date().toLocaleString('es-GT',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
@@ -1555,14 +1557,16 @@ function descargarResumen(){
     <div style="background:rgba(61,184,245,.12);border:1px solid rgba(61,184,245,.25);color:#3db8f5;font-size:9px;padding:4px 10px;border-radius:20px;align-self:flex-start">Informe Personal</div>
   </div>
   <div class="kpis">
-    <div class="kpi"><div class="k-lbl">Valor mercado</div><div class="k-val">${fm2(tot)}</div><div class="k-sub">${pct.toFixed(1)}% de meta</div></div>
+    <div class="kpi"><div class="k-lbl">Valor mercado</div><div class="k-val">${fm2(tot)}</div><div class="k-sub">${pct.toFixed(1)}% del piso · ${pctAspiracional.toFixed(1)}% aspiracional</div></div>
     <div class="kpi"><div class="k-lbl">Capital invertido</div><div class="k-val">${fm2(cst)}</div><div class="k-sub">${pctCapital.toFixed(1)}% del capital meta</div></div>
     <div class="kpi"><div class="k-lbl">P&L no realizado</div><div class="k-val" style="color:${pnl>=0?'#34d07a':'#f25c5c'}">${pnl>=0?'+':''}${fm2(Math.abs(pnl))}</div><div class="k-sub">${pnlPct}%</div></div>
     <div class="kpi"><div class="k-lbl">Multiplo</div><div class="k-val" style="color:${parseFloat(mult)>=1?'#34d07a':'#f25c5c'}">${mult}x</div><div class="k-sub">retorno</div></div>
   </div>
   <div class="pbar-wrap">
-    <div class="pbar-lbl"><span>Progreso hacia ${fm2(META)}</span><span><strong>${pct.toFixed(1)}%</strong></span></div>
+    <div class="pbar-lbl"><span>Meta piso · ${fm2(META)} <span style="opacity:.6">(reducir cuota · jul 2028)</span></span><span><strong>${pct.toFixed(1)}%</strong></span></div>
     <div class="pbar"><div class="pbar-fill" style="width:${pct.toFixed(1)}%;background:linear-gradient(90deg,#3db8f5,#9d7ff0)"></div></div>
+    <div class="pbar-lbl" style="margin-top:8px"><span>Meta aspiracional · ${fm2(META_ASPIRACIONAL)} <span style="opacity:.6">(liquidar hipoteca · dic 2028)</span></span><span style="opacity:.75">${pctAspiracional.toFixed(1)}%</span></div>
+    <div class="pbar" style="opacity:.55"><div class="pbar-fill" style="width:${pctAspiracional.toFixed(1)}%;background:linear-gradient(90deg,#34d07a,#3db8f5)"></div></div>
   </div>
 </div>
 
@@ -1578,6 +1582,9 @@ function descargarResumen(){
   </table>
   <div style="margin-top:10px;padding:10px;background:#ecfdf5;border-left:3px solid #059669;border-radius:3px;font-size:10px;color:#065f46;line-height:1.5">
     <strong>+${fm2(cambioValor)}</strong> en valor desde inicio (+${cambioPct}%) · Capital aportado: <strong>+${fm2(cambioCapital)}</strong>
+  </div>
+  <div style="margin-top:8px;padding:10px;background:#f5f3ff;border-left:3px solid #7c3aed;border-radius:3px;font-size:10px;color:#4c1d95;line-height:1.6">
+    <strong>Dos metas, un rumbo.</strong> El <strong>piso ($88K, jul 2028)</strong> reduce la cuota de la hipoteca y da libertad para dejar el empleo sin presión — es el objetivo realista y alcanzable. La <strong>aspiracional ($150K, dic 2028)</strong> liquida la hipoteca por completo — es el norte. El piso ancla lo alcanzable; la aspiracional marca la dirección.
   </div>
 </div>
 

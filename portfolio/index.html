@@ -1329,9 +1329,10 @@ function descargarResumen(){
 
   // Hitos del portafolio (datos historicos hardcoded)
   const HITOS = [
-    {label:'Inicio (ene 2026)',  capital: 12038, valor: 12038},
-    {label:'Hoy ('+fecha+')',    capital: cst,   valor: tot},
-    {label:'Meta (jul 2028)',    capital: META_CAPITAL, valor: META},
+    {label:'Inicio (ene 2026)',      capital: 12038, valor: 12038},
+    {label:'Hoy ('+fecha+')',        capital: cst,   valor: tot},
+    {label:'Meta piso (jul 2028)',   capital: META_CAPITAL, valor: META},
+    {label:'Meta aspiracional (dic 2028)', capital: META_CAPITAL, valor: 150000},
   ];
   const cambioCapital = cst - 12038;
   const cambioValor = tot - 12038;
@@ -1340,12 +1341,12 @@ function descargarResumen(){
   // ── PROYECCIÓN A META — TRANCHES Y TRAILING (calcular primero) ──
   // La proyección define el valor objetivo que cada activo aporta a la meta $88K
   const PROY_TRANCHES = {
-    'HYPE':   { t1:{pct:10,px:46.50}, t2:{pct:15,px:48.50}, t3:{pct:20,px:58.00}, moon:{pct:30,px:100.00}, trailing:{pct:25,px:150.00} },
-    'ONDO':   { t1:{pct:15,px:0.525}, t2:{pct:15,px:0.705}, t3:{pct:20,px:0.885}, moon:{pct:30,px:1.90},   trailing:{pct:20,px:2.80}   },
-    'AKT':    { t1:{pct:20,px:1.12},  t2:{pct:25,px:2.45},  t3:{pct:20,px:3.13},  moon:{pct:15,px:5.30},   trailing:{pct:20,px:7.50}   },
-    'MORPHO': { t1:{pct:15,px:2.96},  t2:{pct:15,px:3.30},  t3:{pct:25,px:4.10},  moon:{pct:30,px:8.60},   trailing:{pct:15,px:12.00}  },
-    'MSTR':   { t1:{pct:25,px:237.5}, t2:{pct:30,px:295.0}, t3:{pct:25,px:375.0}, moon:null,               trailing:{pct:20,px:450.00} },
-    'POPCAT': { t1:{pct:20,px:0.25},  t2:{pct:25,px:0.38},  t3:{pct:25,px:1.00},  moon:{pct:20,px:2.05},   trailing:{pct:10,px:5.00}   },
+    'HYPE':   { t1:{pct:25,px:100.00}, t2:{pct:30,px:200.00}, t3:{pct:25,px:350.00}, moon:null, trailing:{pct:20,px:500.00} },
+    'ONDO':   { t1:{pct:20,px:0.75},   t2:{pct:25,px:1.20},   t3:{pct:30,px:2.00},   moon:null, trailing:{pct:25,px:3.00}   },
+    'AKT':    { t1:{pct:20,px:1.50},   t2:{pct:25,px:3.00},   t3:{pct:30,px:5.50},   moon:null, trailing:{pct:25,px:8.00}   },
+    'MORPHO': { t1:{pct:20,px:3.50},   t2:{pct:25,px:6.00},   t3:{pct:30,px:10.00},  moon:null, trailing:{pct:25,px:15.00}  },
+    'MSTR':   { t1:{pct:20,px:200.0},  t2:{pct:25,px:350.0},  t3:{pct:30,px:500.0},  moon:null, trailing:{pct:25,px:750.00} },
+    'POPCAT': { t1:{pct:25,px:0.20},   t2:{pct:30,px:0.50},   t3:{pct:25,px:1.00},   moon:null, trailing:{pct:20,px:2.00}   },
   };
   const PROY_BTC_PEAK = { pct:10, px:250000 };
   const PROY_META = 88000;
@@ -1466,8 +1467,8 @@ function descargarResumen(){
 
   // Tabla hitos
   const hitosRows = HITOS.map((h,i) => {
-    const isMeta = i === HITOS.length - 1;
-    const isHoy = i === HITOS.length - 2;
+    const isMeta = h.label.includes('Meta');
+    const isHoy = h.label.includes('Hoy');
     const bgColor = isMeta ? '#f5f3ff' : (isHoy ? '#ecfdf5' : '#f9fafb');
     const fontWeight = (isHoy || isMeta) ? '700' : '500';
     return `<tr style="background:${bgColor}">
@@ -1531,6 +1532,16 @@ function descargarResumen(){
     th{background:#ede9fe;color:#4c1d95;font-weight:600;font-size:10px;text-transform:uppercase;padding:7px 10px;text-align:left;letter-spacing:.5px}
     .note{background:#fff7ed;border-left:3px solid #f59e0b;border-radius:3px;padding:8px 12px;font-size:10px;color:#78350f;line-height:1.5;margin-top:16px}
     .foot{text-align:center;margin-top:20px;padding-top:12px;border-top:1px solid #e5e7eb;font-size:10px;color:#9ca3af}
+    @page{size:A4;margin:12mm;}
+    @media print{
+      body{background:#fff !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+      .page{max-width:100% !important;padding:0 !important;}
+      .sec{break-inside:avoid;page-break-inside:avoid;box-shadow:none !important;border:1px solid #e5e7eb !important;}
+      .cover{break-inside:avoid;page-break-inside:avoid;}
+      table{page-break-inside:auto;}
+      tr{page-break-inside:avoid;}
+      thead{display:table-header-group;}
+    }
   `;
 
   const html2=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
@@ -1552,16 +1563,6 @@ function descargarResumen(){
   <div class="pbar-wrap">
     <div class="pbar-lbl"><span>Progreso hacia ${fm2(META)}</span><span><strong>${pct.toFixed(1)}%</strong></span></div>
     <div class="pbar"><div class="pbar-fill" style="width:${pct.toFixed(1)}%;background:linear-gradient(90deg,#3db8f5,#9d7ff0)"></div></div>
-  </div>
-</div>
-
-<div class="sec">
-  <div class="sec-hdr"><div class="sec-t">Ventas · Capital recuperado</div><div class="sec-sub">inversión total · ventas registradas · % recuperado</div></div>
-  <div class="kpis">
-    <div class="kpi"><div class="k-lbl">Capital invertido total</div><div class="k-val">${fm2(capHist.capitalTotal)}</div><div class="k-sub">${capHist.fechaActualizacion || 'sin registrar'}</div></div>
-    <div class="kpi"><div class="k-lbl">Ventas acumuladas</div><div class="k-val" style="color:#34d07a">${fm2(capHist.ventas)}</div><div class="k-sub">capital realizado</div></div>
-    <div class="kpi"><div class="k-lbl">% Recuperado</div><div class="k-val" style="color:${capHist.pctRecuperado>=100?'#34d07a':'#e879a0'}">${capHist.pctRecuperado.toFixed(1)}%</div><div class="k-sub">${capHist.pctRecuperado>=100?'dinero de la casa':'sobre capital'}</div></div>
-    <div class="kpi"><div class="k-lbl">${capHist.pctRecuperado>=100?'Dinero de la casa':'Pendiente recuperar'}</div><div class="k-val" style="color:${capHist.pctRecuperado>=100?'#34d07a':'#e8a020'}">${fm2(Math.abs(capHist.capitalTotal - capHist.ventas))}</div><div class="k-sub">${capHist.pctRecuperado>=100?'ganancia realizada':'falta vender'}</div></div>
   </div>
 </div>
 
@@ -1598,7 +1599,7 @@ function descargarResumen(){
   <div class="sec-hdr"><div class="sec-t">Tokens objetivo para meta $88K</div><div class="sec-sub">($88K − BTC peak) ÷ 6 activos ÷ px pond. venta</div></div>
   ${accRows}
   <div style="margin-top:8px;padding:8px 10px;background:#fff7ed;border-left:3px solid #f59e0b;border-radius:3px;font-size:9px;color:#78350f;line-height:1.5">
-    Meta distribuida equitativamente entre 6 activos operativos (incl. POPCAT moonshot). Tokens necesarios = meta por activo ÷ precio promedio ponderado de tranches (T1/T2/T3/Moonshot/Trailing). Sirve para medir rezago en acumulación de unidades, no peso del portafolio.
+    Meta distribuida equitativamente entre 6 activos operativos (incl. POPCAT moonshot). Tokens necesarios = meta por activo ÷ precio promedio ponderado de tranches (T1/T2/T3/T4). Sirve para medir rezago en acumulación de unidades, no peso del portafolio.
   </div>
 </div>
 
@@ -1655,7 +1656,63 @@ function descargarResumen(){
     <tbody>${proyRows}${btcRow}</tbody>
   </table>
   <div style="margin-top:10px;padding:10px;background:#f0f9ff;border-left:3px solid #3b82f6;border-radius:3px;font-size:10px;color:#1e40af;line-height:1.5">
-    <strong>Distribución por activo:</strong> 3 tranches en zonas TA (T1/T2/T3) + Moonshot fundamental + Trailing arriba del moonshot. BTC excepcional: 10% único en cycle peak ~$250K. 90% restante mantiene función de colchón LF.
+    <strong>Distribución por activo:</strong> 4 tranches escalonados de venta (T1/T2/T3/T4) según precios objetivo del plan. BTC excepcional: venta escalonada en 4 niveles ($130K/$160K/$200K/$250K, 10% c/u) manteniendo 60% como colchón LF multi-ciclo.
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sec-hdr"><div class="sec-t">Tesis por activo</div><div class="sec-sub">por qué está en cartera</div></div>
+  <table>
+    <thead><tr><th>Activo</th><th>Tesis</th></tr></thead>
+    <tbody>
+      <tr><td style="font-weight:700;color:#f7931a">BTC</td><td>Colchón multi-ciclo. Reserva de valor base. Hold 60% permanente, venta escalonada del resto.</td></tr>
+      <tr><td style="font-weight:700;color:#3db8f5">HYPE</td><td>Perp DEX líder. ETFs institucionales activos, buybacks recurrentes. Motor de crecimiento del portafolio.</td></tr>
+      <tr><td style="font-weight:700;color:#818cf8">ONDO</td><td>RWA / tokenización de bonos. Catalizador DTCC fechado (oct 2026). Posición completa.</td></tr>
+      <tr><td style="font-weight:700;color:#10b981">AKT</td><td>DePIN / cómputo descentralizado. BME mecánico activo (presión compradora). Mayor upside por dólar.</td></tr>
+      <tr><td style="font-weight:700;color:#9d7ff0">MORPHO</td><td>Lending DeFi. Apollo comprador estructural (90M tokens, 48 meses). Posición completa.</td></tr>
+      <tr><td style="font-weight:700;color:#e8a020">MSTR</td><td>Proxy apalancado de BTC vía balance corporativo. Trigger de recompra: BTC sostenido &gt;$65K.</td></tr>
+      <tr><td style="font-weight:700;color:#ff6eb4">POPCAT</td><td>Moonshot meme Solana. Supply 98% circulante (sin dilución). Hold puro, alta asimetría.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="sec">
+  <div class="sec-hdr"><div class="sec-t">Estrategia de salida</div><div class="sec-sub">tranches escalonados · sin emoción</div></div>
+  <table>
+    <thead><tr><th>Activo</th><th style="text-align:right">T1</th><th style="text-align:right">T2</th><th style="text-align:right">T3</th><th style="text-align:right">T4</th></tr></thead>
+    <tbody>
+      <tr><td style="font-weight:700">BTC</td><td style="text-align:right">$130K</td><td style="text-align:right">$160K</td><td style="text-align:right">$200K</td><td style="text-align:right">$250K</td></tr>
+      <tr><td style="font-weight:700">HYPE</td><td style="text-align:right">$100</td><td style="text-align:right">$200</td><td style="text-align:right">$350</td><td style="text-align:right">$500</td></tr>
+      <tr><td style="font-weight:700">ONDO</td><td style="text-align:right">$0.75</td><td style="text-align:right">$1.20</td><td style="text-align:right">$2.00</td><td style="text-align:right">$3.00</td></tr>
+      <tr><td style="font-weight:700">AKT</td><td style="text-align:right">$1.50</td><td style="text-align:right">$3.00</td><td style="text-align:right">$5.50</td><td style="text-align:right">$8.00</td></tr>
+      <tr><td style="font-weight:700">MORPHO</td><td style="text-align:right">$3.50</td><td style="text-align:right">$6.00</td><td style="text-align:right">$10.0</td><td style="text-align:right">$15.0</td></tr>
+      <tr><td style="font-weight:700">MSTR</td><td style="text-align:right">$200</td><td style="text-align:right">$350</td><td style="text-align:right">$500</td><td style="text-align:right">$750</td></tr>
+      <tr><td style="font-weight:700">POPCAT</td><td style="text-align:right">$0.20</td><td style="text-align:right">$0.50</td><td style="text-align:right">$1.00</td><td style="text-align:right">$2.00</td></tr>
+    </tbody>
+  </table>
+  <div style="margin-top:10px;padding:10px;background:#f0f9ff;border-left:3px solid #3b82f6;border-radius:3px;font-size:10px;color:#1e40af;line-height:1.5">
+    Venta escalonada por precio objetivo, ejecutada sin emoción. BTC mantiene 60% como colchón multi-ciclo. Tranches revisados 8 jul 2026 para un escenario bull razonable-alto.
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sec-hdr"><div class="sec-t">Filosofía y disciplina</div><div class="sec-sub">cómo se opera</div></div>
+  <div style="font-size:11px;color:#374151;line-height:1.7">
+    <strong>DCA disciplinado:</strong> aporte mensual constante, BTC nunca se recorta.<br>
+    <strong>Modulación por ciclo:</strong> BTC &gt;$70K sostenido → asegurar parte en estable; &gt;$80K → foco en ejecutar tranches.<br>
+    <strong>Salida sin emoción:</strong> tranches documentados por adelantado, no decisiones reactivas.<br>
+    <strong>Colchón intocable:</strong> 60% del BTC se mantiene multi-ciclo, fuera de la operación.<br>
+    <strong>Meta con propósito:</strong> el portafolio alimenta la liquidación anticipada de la hipoteca (dic 2028).
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sec-hdr"><div class="sec-t">Track record</div><div class="sec-sub">contexto histórico · oct 2022 → hoy</div></div>
+  <div style="font-size:11px;color:#374151;line-height:1.7">
+    Capital total desplegado desde oct 2022: <strong>~$66K</strong>. De ese total, <strong>~$48K se perdió</strong> en las fases de aprendizaje (2022-2023), y <strong>~$18K sobrevive</strong> en el portafolio actual.
+    <div style="margin-top:8px;padding:10px;background:#ecfdf5;border-left:3px solid #059669;border-radius:3px;color:#065f46">
+      El portafolio actual opera bajo un sistema distinto: tiers de salida documentados, DCA disciplinado y reglas de modulación. La distinción entre las fases —caro aprendizaje temprano vs operación estructurada— es la que define el perfil de inversionista de hoy.
+    </div>
   </div>
 </div>
 
@@ -1703,12 +1760,12 @@ const ACC_META_COLORS = {
 // Editar solo en sesiones de revisión TA con datos nuevos.
 const META_OBJETIVO = 88000;
 const TRANCHES = {
-  'HYPE':   { t1: {pct:10, px:46.50}, t2: {pct:15, px:48.50}, t3: {pct:20, px:58.00}, moon: {pct:30, px:100.00}, trailing: {pct:25, px:150.00} },
-  'ONDO':   { t1: {pct:15, px:0.525}, t2: {pct:15, px:0.705}, t3: {pct:20, px:0.885}, moon: {pct:30, px:1.90},   trailing: {pct:20, px:2.80}   },
-  'AKT':    { t1: {pct:20, px:1.12},  t2: {pct:25, px:2.45},  t3: {pct:20, px:3.13},  moon: {pct:15, px:5.30},   trailing: {pct:20, px:7.50}   },
-  'MORPHO': { t1: {pct:15, px:2.96},  t2: {pct:15, px:3.30},  t3: {pct:25, px:4.10},  moon: {pct:30, px:8.60},   trailing: {pct:15, px:12.00}  },
-  'MSTR':   { t1: {pct:25, px:237.5}, t2: {pct:30, px:295.0}, t3: {pct:25, px:375.0}, moon: null,                trailing: {pct:20, px:450.00} },
-  'POPCAT': { t1: {pct:20, px:0.25},  t2: {pct:25, px:0.38},  t3: {pct:25, px:1.00},  moon: {pct:20, px:2.05},   trailing: {pct:10, px:5.00}   },
+  'HYPE':   { t1: {pct:25, px:100.00}, t2: {pct:30, px:200.00}, t3: {pct:25, px:350.00}, moon: null, trailing: {pct:20, px:500.00} },
+  'ONDO':   { t1: {pct:20, px:0.75},   t2: {pct:25, px:1.20},   t3: {pct:30, px:2.00},   moon: null, trailing: {pct:25, px:3.00}   },
+  'AKT':    { t1: {pct:20, px:1.50},   t2: {pct:25, px:3.00},   t3: {pct:30, px:5.50},   moon: null, trailing: {pct:25, px:8.00}   },
+  'MORPHO': { t1: {pct:20, px:3.50},   t2: {pct:25, px:6.00},   t3: {pct:30, px:10.00},  moon: null, trailing: {pct:25, px:15.00}  },
+  'MSTR':   { t1: {pct:20, px:200.0},  t2: {pct:25, px:350.0},  t3: {pct:30, px:500.0},  moon: null, trailing: {pct:25, px:750.00} },
+  'POPCAT': { t1: {pct:25, px:0.20},   t2: {pct:30, px:0.50},   t3: {pct:25, px:1.00},   moon: null, trailing: {pct:20, px:2.00}   },
 };
 // BTC se calcula aparte: solo 10% del holding actual en cycle peak
 const BTC_PEAK = { pct: 10, px: 250000 };
@@ -1836,7 +1893,7 @@ function renderProy(){
       <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--fg);padding:2px 0"><span>T2 ${t.t2.pct}% @ $${t.t2.px}</span><span style="color:var(--mu)">→ $${(r.qty*t.t2.pct/100*t.t2.px).toLocaleString('en-US',{maximumFractionDigits:0})}</span></div>
       <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--fg);padding:2px 0"><span>T3 ${t.t3.pct}% @ $${t.t3.px}</span><span style="color:var(--mu)">→ $${(r.qty*t.t3.pct/100*t.t3.px).toLocaleString('en-US',{maximumFractionDigits:0})}</span></div>
       ${moonRow}
-      ${t.trailing ? `<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--fg);padding:2px 0"><span><b style="color:#3db8f5">Trailing ${t.trailing.pct}%</b> @ $${t.trailing.px}</span><span style="color:var(--mu)">→ $${(r.qty*t.trailing.pct/100*t.trailing.px).toLocaleString('en-US',{maximumFractionDigits:0})}</span></div>` : ''}
+      ${t.trailing ? `<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--fg);padding:2px 0"><span><b style="color:#3db8f5">T4 ${t.trailing.pct}%</b> @ $${t.trailing.px}</span><span style="color:var(--mu)">→ $${(r.qty*t.trailing.pct/100*t.trailing.px).toLocaleString('en-US',{maximumFractionDigits:0})}</span></div>` : ''}
     </div>`;
   }).join('');
 
@@ -1860,45 +1917,45 @@ function updateProySummary(){
 const STRAT = {
   'BTC': {
     color:'#f7931a', ico:'₿', name:'Bitcoin',
-    tag:'COLCHÓN · 10% PEAK', tagColor:'#f7931a',
-    plan:'Colchón LF · DCA semanal $50 (de reembolsos USD). Venta única: 10% del holding @ ~$250K (cycle peak) para cerrar meta. 90% restante se mantiene como reserva multi-ciclo. Sale antes solo si tesis multi-ciclo rota o necesidad personal extrema.',
-    updated:'6 may 2026'
+    tag:'COLCHÓN · HOLD 60%', tagColor:'#f7931a',
+    plan:'Venta escalonada: T1 10% @ $130K · T2 10% @ $160K · T3 10% @ $200K · T4 10% @ $250K. Hold 60% permanente como colchón multi-ciclo.',
+    updated:'8 jul 2026'
   },
   'HYPE': {
     color:'#3db8f5', ico:'H', name:'Hyperliquid',
     tag:'VENTA ESCALONADA', tagColor:'#3db8f5',
-    plan:'Compra: $33-36 si pullback / $23-26 reserva. Venta: T1 10% @ $46.50 · T2 15% @ $48.50 · T3 20% @ $58 · Moonshot 30% @ $100 · Trailing 25% @ $150.',
-    updated:'6 may 2026'
+    plan:'Venta: T1 25% @ $100 · T2 30% @ $200 · T3 25% @ $350 · T4 20% @ $500.',
+    updated:'8 jul 2026'
   },
   'ONDO': {
     color:'#818cf8', ico:'O', name:'Ondo Finance',
-    tag:'ACUMULACIÓN', tagColor:'#818cf8',
-    plan:'Compra: $0.31-0.33 (precio actual zona) · $0.24-0.28 si pullback. Venta: T1 15% @ $0.525 · T2 15% @ $0.705 · T3 20% @ $0.885 · Moonshot 30% @ $1.90 · Trailing 20% @ $2.80.',
-    updated:'6 may 2026'
+    tag:'VENTA ESCALONADA', tagColor:'#818cf8',
+    plan:'Venta: T1 20% @ $0.75 · T2 25% @ $1.20 · T3 30% @ $2.00 · T4 25% @ $3.00.',
+    updated:'8 jul 2026'
   },
   'AKT': {
     color:'#10b981', ico:'A', name:'Akash Network',
-    tag:'ACUMULACIÓN', tagColor:'#10b981',
-    plan:'Compra: $0.64-0.72 (precio actual zona) · $0.38-0.42 reserva. Venta: T1 20% @ $1.12 · T2 25% @ $2.45 · T3 20% @ $3.13 · Moonshot 15% @ $5.30 · Trailing 20% @ $7.50.',
-    updated:'6 may 2026'
+    tag:'VENTA ESCALONADA', tagColor:'#10b981',
+    plan:'Venta: T1 20% @ $1.50 · T2 25% @ $3.00 · T3 30% @ $5.50 · T4 25% @ $8.00.',
+    updated:'8 jul 2026'
   },
   'MORPHO': {
     color:'#9d7ff0', ico:'M', name:'Morpho Protocol',
-    tag:'TRANCHES ACTIVOS', tagColor:'#9d7ff0',
-    plan:'Compra: T2 ($363) si pullback $1.90-1.99 · T3 ($259) si breakout $2.35 con vol o pullback $1.56-1.68. Venta: T1 15% @ $2.96 · T2 15% @ $3.30 · T3 25% @ $4.10 · Moonshot 30% @ $8.60 · Trailing 15% @ $12.',
-    updated:'6 may 2026'
+    tag:'VENTA ESCALONADA', tagColor:'#9d7ff0',
+    plan:'Venta: T1 20% @ $3.50 · T2 25% @ $6.00 · T3 30% @ $10.00 · T4 25% @ $15.00.',
+    updated:'8 jul 2026'
   },
   'MSTR': {
     color:'#e8a020', ico:'M', name:'MicroStrategy',
-    tag:'HOLD · TRIGGERS', tagColor:'#e8a020',
-    plan:'No compra adicional sin triggers (mNAV >1.2x sostenido · Saylor reanuda BTC · breakout $205 · BTC cierra >$90K). Venta: T1 25% @ $237.50 · T2 30% @ $295 · T3 25% @ $375 · Trailing 20% @ $450.',
-    updated:'6 may 2026'
+    tag:'VENTA ESCALONADA', tagColor:'#e8a020',
+    plan:'Venta: T1 20% @ $200 · T2 25% @ $350 · T3 30% @ $500 · T4 25% @ $750.',
+    updated:'8 jul 2026'
   },
   'POPCAT': {
     color:'#ff6eb4', ico:'🐱', name:'Popcat (POPCAT)',
     tag:'MOONSHOT · MEME SOLANA', tagColor:'#ff6eb4',
-    plan:'Slot moonshot activado 7 mayo 2026. Capital: $614 (rotado de ORAI). 8,929 tokens @ $0.0688. Venta por zonas de volumen: T1 20% @ $0.25 · T2 25% @ $0.38 · T3 25% @ $1.00 · T4 20% @ $2.05 (ATH) · Moon 10% @ $5.00. Total proyectado $11,653. Supply 98% circulando — sin dilución. Vol $21M/día. Catalyst: altseason Solana.',
-    updated:'7 may 2026'
+    plan:'Venta: T1 25% @ $0.20 · T2 30% @ $0.50 · T3 25% @ $1.00 · T4 20% @ $2.00.',
+    updated:'8 jul 2026'
   },
 };
 

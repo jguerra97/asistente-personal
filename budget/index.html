@@ -737,15 +737,17 @@ function assignTabs(){
   const wrap=document.querySelector('.wrap');
   if(!wrap) return;
   let current=null;
-  // Elementos que NO se agrupan (header, resumen, tabs, stats, foot): quedan siempre visibles
-  const skip=['resumen','tabbar','stats-wrap','foot','head'];
+  // Elementos globales que quedan siempre visibles (header, resumen top, tabs, stats, foot).
+  // Coincidencia EXACTA de clase/id para no atrapar 'resumen-mes-card' por contener 'resumen'.
+  const skipCls=['resumen','tabbar','hdr','io-wrap','foot','hdr-row'];
+  const skipId=['stats-wrap','tabbar'];
   Array.from(wrap.children).forEach(el=>{
-    const cls=el.className||'';
+    const clsList=(el.className||'').split(/\s+/);
     const id=el.id||'';
-    // saltar elementos globales
-    if(skip.some(s=>cls.includes(s)||id.includes(s))){ return; }
+    // saltar elementos globales (clase exacta o id exacto)
+    if(clsList.some(c=>skipCls.includes(c)) || skipId.includes(id)){ return; }
     // ¿es un encabezado de sección? actualiza el tab actual
-    if(cls.includes('sec')){
+    if(clsList.includes('sec')){
       const lt=el.querySelector('.lt');
       const txt=lt?lt.textContent:'';
       for(const key in TAB_MAP){ if(txt.includes(key)){ current=TAB_MAP[key]; break; } }
@@ -761,7 +763,18 @@ function assignTabs(){
 function showTab(tab){
   document.querySelectorAll('[data-tab]').forEach(el=>{
     if(el.classList.contains('tabbtn')) return; // los botones no se ocultan
-    el.classList.toggle('tabsec-hidden', el.getAttribute('data-tab')!==tab);
+    const belongs = el.getAttribute('data-tab')===tab;
+    if(belongs){
+      // Restaurar: quitar el ocultamiento por tab. Si el elemento tiene su propio
+      // control de display (ej. resumen-mes-card), dejar que su lógica JS lo maneje.
+      el.classList.remove('tabsec-hidden');
+      if(el.dataset.tabHidden==='1'){ el.style.display=''; el.dataset.tabHidden='0'; }
+    } else {
+      // Ocultar con display inline (gana sobre cualquier style propio)
+      el.classList.add('tabsec-hidden');
+      el.style.display='none';
+      el.dataset.tabHidden='1';
+    }
   });
   document.querySelectorAll('.tabbtn').forEach(b=>{
     b.classList.toggle('active', b.getAttribute('data-tab')===tab);

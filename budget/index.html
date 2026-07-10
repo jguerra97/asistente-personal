@@ -249,6 +249,13 @@ body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--tx);min-heig
   .rv{font-size:15px;}
   .io-btns{flex-wrap:wrap;}
 }
+/* ── BARRA DE TABS ─────────────────────────────────────── */
+.tabbar{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:16px;position:sticky;top:0;z-index:20;background:var(--bg);padding:8px 0;}
+.tabbtn{font-family:'DM Mono',monospace;font-size:10px;font-weight:600;letter-spacing:.03em;color:var(--mu);background:var(--s1);border:1px solid var(--bd);border-radius:8px;padding:10px 6px;cursor:pointer;transition:all .2s;line-height:1.2;text-align:center;}
+.tabbtn:hover{color:var(--tx);border-color:var(--bd2);}
+.tabbtn.active{color:var(--bg);background:var(--gr);border-color:var(--gr);font-weight:700;box-shadow:0 0 8px rgba(52,208,122,.4);}
+.tabsec-hidden{display:none !important;}
+@media(max-width:520px){.tabbtn{font-size:8.5px;padding:8px 2px;letter-spacing:0;}}
 </style>
 </head>
 <body>
@@ -311,6 +318,14 @@ body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--tx);min-heig
   <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px">Historial de ingresos</div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;" id="stats-cards"></div>
   <div id="stats-bars"></div>
+</div>
+
+<!-- BARRA DE TABS -->
+<div class="tabbar" id="tabbar">
+  <button class="tabbtn active" data-tab="mes"      onclick="showTab('mes')">📊 Mes</button>
+  <button class="tabbtn"        data-tab="reservas" onclick="showTab('reservas')">💰 Reservas</button>
+  <button class="tabbtn"        data-tab="deudas"   onclick="showTab('deudas')">📉 Deudas/Personal</button>
+  <button class="tabbtn"        data-tab="inv"      onclick="showTab('inv')">📈 Inversión</button>
 </div>
 
 <!-- QUINCENAS -->
@@ -707,6 +722,59 @@ body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--tx);min-heig
 
 <script>
 const LS='bdgt_v4';
+
+// ── SISTEMA DE TABS ──────────────────────────────────────────────
+// Mapea cada bloque de contenido a su tab según el título de sección.
+// No reordena el HTML: asigna data-tab recorriendo el DOM en orden.
+const TAB_MAP = {
+  // texto clave del título → tab destino
+  'Quincenas':'mes', 'Resumen del mes':'mes', 'Horas extras':'mes',
+  'Reservas':'reservas',
+  'Lulubit':'deudas', 'Gastos fijos':'deudas', 'Hipoteca':'deudas',
+  'Capital invertido':'inv',
+};
+function assignTabs(){
+  const wrap=document.querySelector('.wrap');
+  if(!wrap) return;
+  let current=null;
+  // Elementos que NO se agrupan (header, resumen, tabs, stats, foot): quedan siempre visibles
+  const skip=['resumen','tabbar','stats-wrap','foot','head'];
+  Array.from(wrap.children).forEach(el=>{
+    const cls=el.className||'';
+    const id=el.id||'';
+    // saltar elementos globales
+    if(skip.some(s=>cls.includes(s)||id.includes(s))){ return; }
+    // ¿es un encabezado de sección? actualiza el tab actual
+    if(cls.includes('sec')){
+      const lt=el.querySelector('.lt');
+      const txt=lt?lt.textContent:'';
+      for(const key in TAB_MAP){ if(txt.includes(key)){ current=TAB_MAP[key]; break; } }
+    } else {
+      // bloque de contenido: hereda el tab actual detectado
+      // detectar títulos que vienen dentro de un bloque (resumen mes, horas extras, capital, lulubit)
+      const inner=el.querySelector('.lt');
+      if(inner){ const t=inner.textContent; for(const key in TAB_MAP){ if(t.includes(key)){ current=TAB_MAP[key]; break; } } }
+    }
+    if(current){ el.setAttribute('data-tab',current); }
+  });
+}
+function showTab(tab){
+  document.querySelectorAll('[data-tab]').forEach(el=>{
+    if(el.classList.contains('tabbtn')) return; // los botones no se ocultan
+    el.classList.toggle('tabsec-hidden', el.getAttribute('data-tab')!==tab);
+  });
+  document.querySelectorAll('.tabbtn').forEach(b=>{
+    b.classList.toggle('active', b.getAttribute('data-tab')===tab);
+  });
+  try{ const d=JSON.parse(localStorage.getItem(LS))||{}; d.activeTab=tab; localStorage.setItem(LS,JSON.stringify(d)); }catch(e){}
+}
+function initTabs(){
+  assignTabs();
+  let saved='mes';
+  try{ const d=JSON.parse(localStorage.getItem(LS))||{}; if(d.activeTab) saved=d.activeTab; }catch(e){}
+  showTab(saved);
+}
+
 function ldS(){try{return JSON.parse(localStorage.getItem(LS))||{};}catch(e){return{};}}
 function svS(d){try{localStorage.setItem(LS,JSON.stringify(d));}catch(e){}}
 
@@ -2983,6 +3051,7 @@ renderSubsEnt();
 renderReimb();
 autoSnapshotIfNewMonth();
 renderSnap();
+initTabs();
 
 // ── GOOGLE DRIVE SYNC ─────────────────────────────────────────────
 const DRIVE_CLIENT_ID = '625753563994-ckkovl3isvbmajduferhvhcf4qr3lqsc.apps.googleusercontent.com';

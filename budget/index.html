@@ -931,6 +931,41 @@ function renderPatrimonio(){
   const patNetoU = totalActivosU - hipU;
   const patNetoQ = patNetoU*tc;
 
+  // Patrimonio SIN casa (recordatorio de dependencia)
+  const patSinCasaU = (portSinBtcU + reservasU) - hipU;
+  const patSinCasaQ = patSinCasaU*tc;
+  // Liquidez maniobrable (lo que puedes tocar, sin restar hipoteca)
+  const liqManiobrableQ = portSinBtcU*tc + reservasQ;
+
+  // ── SEMÁFOROS DE SALUD FINANCIERA ──
+  const fijosMes = FIJOS_TOTAL;
+  const ingresoMes = (ST.q1||0)+(ST.q2||0) > 0 ? (ST.q1||0)+(ST.q2||0) : 31568; // usa mes actual o promedio
+  const cashSinBtc = (COLS.emer||0)+(COLS.bant||0)+(COLS.buf||0)+((COLS.reimb||0)*tc)+((COLS.abiUsd||0)*tc); // reservas sin BTC
+  // 1. Colchón (Ahorro BI / fijos)
+  const s1 = (COLS.emer||0)/fijosMes;
+  const s1c = s1<2?'rd':(s1<4?'go':'gr');
+  // 2. Peso hipoteca (cuota / ingreso) — ajustado a realidad
+  const s2 = CUOTA/ingresoMes*100;
+  const s2c = s2>48?'rd':(s2>40?'go':'gr');
+  // 3. Supervivencia sin ingreso (todas reservas / fijos)
+  const s3 = reservasQ/fijosMes;
+  const s3c = s3<3?'rd':(s3<6?'go':'gr');
+  // 4. Tasa de ahorro (excedente / ingreso)
+  const s4 = Math.max(ingresoMes-fijosMes,0)/ingresoMes*100;
+  const s4c = s4<15?'rd':(s4<30?'go':'gr');
+  // 5. Liquidez inmediata (cash sin BTC / fijos)
+  const s5 = cashSinBtc/fijosMes;
+  const s5c = s5<1.5?'rd':(s5<3?'go':'gr');
+  const dot=c=>({rd:'🔴',go:'🟡',gr:'🟢'}[c]);
+  const cvar=c=>({rd:'var(--rd)',go:'var(--go)',gr:'var(--gr)'}[c]);
+  const semaforo=(dotc,lbl,val,detalle)=>`<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--bd)">
+    <span style="font-size:13px">${dot(dotc)}</span>
+    <div style="flex:1"><div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tx);font-weight:600">${lbl}</div>
+    <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu2)">${detalle}</div></div>
+    <div style="font-family:'DM Mono',monospace;font-size:12px;font-weight:700;color:${cvar(dotc)}">${val}</div>
+  </div>`;
+
+
   const fusdR=n=>'$'+n.toLocaleString('en-US',{maximumFractionDigits:0});
   const fqR=n=>'Q'+n.toLocaleString('es-GT',{maximumFractionDigits:0});
 
@@ -942,11 +977,27 @@ function renderPatrimonio(){
   </div>`;
 
   wrap.innerHTML=`
+    <!-- PANEL DE SEMÁFOROS -->
+    <div class="col-card" style="margin-bottom:12px;border-color:var(--bd2)">
+      <div class="col-ttl">🚦 Indicadores de salud · decisión a tiempo</div>
+      ${semaforo(s1c,'Colchón operativo',s1.toFixed(1)+' m','Ahorro BI ÷ fijos · meta >4 meses')}
+      ${semaforo(s2c,'Peso hipoteca',s2.toFixed(0)+'%','cuota ÷ ingreso · 🟢<40 🟡40-48 🔴>48')}
+      ${semaforo(s3c,'Supervivencia sin ingreso',s3.toFixed(1)+' m','todas reservas ÷ fijos · meta >6 meses')}
+      ${semaforo(s4c,'Tasa de ahorro',s4.toFixed(0)+'%','excedente ÷ ingreso · meta >30%')}
+      ${semaforo(s5c,'Liquidez inmediata',s5.toFixed(1)+' m','cash sin BTC ÷ fijos · meta >3 meses')}
+      <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu2);margin-top:8px;line-height:1.5">
+        Verde = sano · Amarillo = vigilar · Rojo = actúa. El de hipoteca mide tu ingreso: sube a Q35K+ y pasa a verde.</div>
+    </div>
+
     <!-- KPI patrimonio neto -->
     <div class="col-card" style="border-color:var(--go)55;background:linear-gradient(135deg,var(--s1),rgba(245,166,35,.06));margin-bottom:12px">
       <div class="col-ttl" style="color:var(--go)">🏛️ Patrimonio neto</div>
       <div style="font-family:'DM Mono',monospace;font-size:28px;font-weight:800;color:var(--go);letter-spacing:-1px;margin:6px 0 2px">${fusdR(patNetoU)}</div>
       <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--mu)">${fqR(patNetoQ)}</div>
+      <div style="border-top:1px solid var(--bd);margin-top:8px;padding-top:8px;font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);line-height:1.6">
+        💵 Liquidez maniobrable: <b style="color:var(--ac)">${fusdR(liqManiobrableQ/tc)}</b> (${fqR(liqManiobrableQ)}) — lo que puedes mover hoy<br>
+        📉 Sin casa (neto): <b style="color:${patSinCasaU<0?'var(--rd)':'var(--gr)'}">${fusdR(patSinCasaU)}</b> — tu solvencia depende de la casa
+      </div>
     </div>
 
     <!-- Campos manuales -->

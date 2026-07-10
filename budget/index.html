@@ -911,6 +911,8 @@ function renderPatrimonio(){
   const btcQ=btcUsd*tc;
   const reservasQ = (COLS.emer||0)+(COLS.bant||0)+(COLS.buf||0)
                   +((COLS.reimb||0)*tc)+((COLS.abiUsd||0)*tc)+btcQ;
+  // Cash personal Lulubit (disponible hoy, se cuenta como liquidez)
+  const luluQ = parseFloat(ST.reservaLulu)||0;
 
   // Valores manuales (USD)
   const casaUsd=parseFloat(ST.casaUsd)||210000;
@@ -922,7 +924,8 @@ function renderPatrimonio(){
   const casaU=casaUsd;
   const portSinBtcU=portSinBtcUsd;
   const reservasU=reservasQ/tc;
-  const totalActivosU = casaU + portSinBtcU + reservasU;
+  const luluU=(parseFloat(ST.reservaLulu)||0)/tc;
+  const totalActivosU = casaU + portSinBtcU + reservasU + luluU;
 
   // Pasivos
   const hipU=salHip/tc;
@@ -932,23 +935,23 @@ function renderPatrimonio(){
   const patNetoQ = patNetoU*tc;
 
   // Patrimonio SIN casa (recordatorio de dependencia)
-  const patSinCasaU = (portSinBtcU + reservasU) - hipU;
+  const patSinCasaU = (portSinBtcU + reservasU + luluQ/tc) - hipU;
   const patSinCasaQ = patSinCasaU*tc;
   // Liquidez maniobrable (lo que puedes tocar, sin restar hipoteca)
-  const liqManiobrableQ = portSinBtcU*tc + reservasQ;
+  const liqManiobrableQ = portSinBtcU*tc + reservasQ + luluQ;
 
   // ── SEMÁFOROS DE SALUD FINANCIERA ──
   const fijosMes = FIJOS_TOTAL;
   const ingresoMes = (ST.q1||0)+(ST.q2||0) > 0 ? (ST.q1||0)+(ST.q2||0) : 31568; // usa mes actual o promedio
-  const cashSinBtc = (COLS.emer||0)+(COLS.bant||0)+(COLS.buf||0)+((COLS.reimb||0)*tc)+((COLS.abiUsd||0)*tc); // reservas sin BTC
+  const cashSinBtc = (COLS.emer||0)+(COLS.bant||0)+(COLS.buf||0)+((COLS.reimb||0)*tc)+((COLS.abiUsd||0)*tc)+luluQ; // reservas sin BTC + cash personal
   // 1. Colchón (Ahorro BI / fijos)
   const s1 = (COLS.emer||0)/fijosMes;
   const s1c = s1<2?'rd':(s1<4?'go':'gr');
   // 2. Peso hipoteca (cuota / ingreso) — ajustado a realidad
   const s2 = CUOTA/ingresoMes*100;
   const s2c = s2>48?'rd':(s2>40?'go':'gr');
-  // 3. Supervivencia sin ingreso (todas reservas / fijos)
-  const s3 = reservasQ/fijosMes;
+  // 3. Supervivencia sin ingreso (todas reservas + lulu / fijos)
+  const s3 = (reservasQ+luluQ)/fijosMes;
   const s3c = s3<3?'rd':(s3<6?'go':'gr');
   // 4. Tasa de ahorro (excedente / ingreso)
   const s4 = Math.max(ingresoMes-fijosMes,0)/ingresoMes*100;
@@ -995,7 +998,13 @@ function renderPatrimonio(){
       <div style="font-family:'DM Mono',monospace;font-size:28px;font-weight:800;color:var(--go);letter-spacing:-1px;margin:6px 0 2px">${fusdR(patNetoU)}</div>
       <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--mu)">${fqR(patNetoQ)}</div>
       <div style="border-top:1px solid var(--bd);margin-top:8px;padding-top:8px;font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);line-height:1.6">
-        💵 Liquidez maniobrable: <b style="color:var(--ac)">${fusdR(liqManiobrableQ/tc)}</b> (${fqR(liqManiobrableQ)}) — lo que puedes mover hoy<br>
+        💵 Liquidez maniobrable: <b style="color:var(--ac)">${fusdR(liqManiobrableQ/tc)}</b> (${fqR(liqManiobrableQ)})
+        <div style="font-size:8px;color:var(--mu);margin:4px 0 6px;padding-left:10px;border-left:2px solid var(--ac);line-height:1.7">
+          = Portafolio sin BTC <b style="color:var(--tx)">${fqR(portSinBtcU*tc)}</b><br>
+          + Reservas líquidas <b style="color:var(--tx)">${fqR(reservasQ)}</b> <span style="color:var(--mu)">(incl. BTC)</span><br>
+          + Cash personal Lulubit <b style="color:var(--tx)">${fqR(luluQ)}</b><br>
+          <span style="color:var(--ac)">— lo que puedes mover hoy, sin vender la casa</span>
+        </div>
         📉 Sin casa (neto): <b style="color:${patSinCasaU<0?'var(--rd)':'var(--gr)'}">${fusdR(patSinCasaU)}</b> — tu solvencia depende de la casa
       </div>
     </div>
@@ -1022,6 +1031,7 @@ function renderPatrimonio(){
       ${row('🏠 Casa','valor de mercado',casaU,'var(--gr)')}
       ${row('📊 Portafolio (sin BTC)','total − BTC · el BTC va en reservas',portSinBtcU,'var(--ac)')}
       ${row('💰 Reservas líquidas','todas · incluye BTC colchón',reservasU,'var(--pu)')}
+      ${luluU>0?row('👤 Cash personal (Lulubit)','disponible hoy · liquidez inmediata',luluU,'var(--go)'):''}
       <div class="col-row" style="border-top:1px solid var(--bd2);margin-top:4px;padding-top:8px">
         <span style="font-family:'DM Mono',monospace;font-size:11px;font-weight:700;color:var(--tx)">Total activos</span>
         <div style="text-align:right"><div style="font-family:'DM Mono',monospace;font-size:12px;font-weight:700;color:var(--gr)">${fusdR(totalActivosU)}</div>

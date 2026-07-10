@@ -763,22 +763,14 @@ function assignTabs(){
 function showTab(tab){
   document.querySelectorAll('[data-tab]').forEach(el=>{
     if(el.classList.contains('tabbtn')) return; // los botones no se ocultan
-    const belongs = el.getAttribute('data-tab')===tab;
-    if(belongs){
-      // Restaurar: quitar el ocultamiento por tab. Si el elemento tiene su propio
-      // control de display (ej. resumen-mes-card), dejar que su lógica JS lo maneje.
-      el.classList.remove('tabsec-hidden');
-      if(el.dataset.tabHidden==='1'){ el.style.display=''; el.dataset.tabHidden='0'; }
-    } else {
-      // Ocultar con display inline (gana sobre cualquier style propio)
-      el.classList.add('tabsec-hidden');
-      el.style.display='none';
-      el.dataset.tabHidden='1';
-    }
+    el.classList.toggle('tabsec-hidden', el.getAttribute('data-tab')!==tab);
   });
   document.querySelectorAll('.tabbtn').forEach(b=>{
     b.classList.toggle('active', b.getAttribute('data-tab')===tab);
   });
+  // Re-ejecutar el render para que cada bloque restaure su estado interno correcto
+  // (ej. resumen-mes-card vs resumen-mes-empty según haya o no quincenas).
+  try{ if(typeof recalc==='function') recalc(); }catch(e){}
   try{ const d=JSON.parse(localStorage.getItem(LS))||{}; d.activeTab=tab; localStorage.setItem(LS,JSON.stringify(d)); }catch(e){}
 }
 function initTabs(){

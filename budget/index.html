@@ -2035,12 +2035,26 @@ function descargarResumen(){
 
   let out='<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">'
     +'<meta name="viewport" content="width=device-width,initial-scale=1">'
+    +'<style>'
+    +'@page{size:A4;margin:12mm;}'
+    +'@media print{'
+    +'  body{background:#fff !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}'
+    +'  .rpage{max-width:100% !important;padding:0 !important;background:#fff !important;}'
+    +'  .rsec{break-inside:avoid;page-break-inside:avoid;box-shadow:none !important;border:1px solid #e5e7eb !important;}'
+    +'  .rcover{break-inside:avoid;page-break-inside:avoid;}'
+    +'  table{page-break-inside:auto;}'
+    +'  tr{page-break-inside:avoid;page-break-after:auto;}'
+    +'  thead{display:table-header-group;}'
+    +'  svg{max-width:100% !important;height:auto !important;}'
+    +'  .rkpi{break-inside:avoid;}'
+    +'}'
+    +'</style>'
     +'<title>Perfil Financiero · '+mes+'</title></head>'
     +'<body style="margin:0;padding:0;background:#f5f6fa;">'
-    +'<div style="'+S.page+'">'
+    +'<div class="rpage" style="'+S.page+'">'
 
     // ── PORTADA ──
-    +'<div style="'+S.cover+'">'
+    +'<div class="rcover" style="'+S.cover+'">'
       +'<h1 style="'+S.h1+'">Perfil Financiero Personal</h1>'
       +'<p style="'+S.sub+'">Preparado al '+fecha+' · '+mes+'</p>'
       +'<div style="'+S.kpis+'">'
@@ -2066,8 +2080,37 @@ function descargarResumen(){
       +'</div>'
     +'</div>'
 
+    // ── PATRIMONIO NETO (tabla detallada activos/pasivos) ──
+    +(()=>{
+      const casaU=parseFloat(ST.casaUsd)||210000;
+      const portTotalU=parseFloat(ST.portafolioUsd)||0;
+      const portSinBtcU=Math.max(portTotalU-btcUsd,0);
+      const reservasU=totalRes/tc;
+      const hipU=salHip/tc;
+      const totalActU=casaU+portSinBtcU+reservasU;
+      const patNetoU=totalActU-hipU;
+      const fu=n=>'$'+n.toLocaleString('en-US',{maximumFractionDigits:0});
+      const pctA=n=>totalActU>0?(n/totalActU*100).toFixed(0)+'%':'—';
+      return '<div class="rsec" style="'+S.sec+'">'
+        +'<span style="'+S.sectl+'">Patrimonio neto · foto macro</span>'
+        +'<table style="'+S.tbl+'"><thead><tr>'
+          +'<th style="'+S.th+'">Concepto</th><th style="'+S.th+'">Detalle</th><th style="'+S.th+'">USD</th><th style="'+S.th+'">Q</th>'
+        +'</tr></thead><tbody>'
+          +'<tr><td style="'+S.td+'font-weight:700;color:#4c1d95" colspan="4">Activos</td></tr>'
+          +'<tr><td style="'+S.td+'">🏠 Casa</td><td style="'+S.td+'color:#888">valor mercado · '+pctA(casaU)+' de activos</td><td style="'+S.td+'color:#059669;font-weight:600">'+fu(casaU)+'</td><td style="'+S.td+'color:#888">'+fqR(casaU*tc)+'</td></tr>'
+          +'<tr><td style="'+S.td+'">📊 Portafolio (sin BTC)</td><td style="'+S.td+'color:#888">total '+fu(portTotalU)+' − BTC '+fu(btcUsd)+' · '+pctA(portSinBtcU)+'</td><td style="'+S.td+'color:#059669;font-weight:600">'+fu(portSinBtcU)+'</td><td style="'+S.td+'color:#888">'+fqR(portSinBtcU*tc)+'</td></tr>'
+          +'<tr><td style="'+S.td+'">💰 Reservas líquidas</td><td style="'+S.td+'color:#888">todas · incluye BTC colchón · '+pctA(reservasU)+'</td><td style="'+S.td+'color:#059669;font-weight:600">'+fu(reservasU)+'</td><td style="'+S.td+'color:#888">'+fqR(totalRes)+'</td></tr>'
+          +'<tr><td style="'+S.td+'font-weight:700" colspan="2">Total activos</td><td style="'+S.td+'font-weight:700;color:#059669">'+fu(totalActU)+'</td><td style="'+S.td+'font-weight:700;color:#059669">'+fqR(totalActU*tc)+'</td></tr>'
+          +'<tr><td style="'+S.td+'font-weight:700;color:#4c1d95" colspan="4">Pasivos</td></tr>'
+          +'<tr><td style="'+S.td+'">🏦 Hipoteca BI</td><td style="'+S.td+'color:#888">saldo estimado · '+pctA(hipU)+' de activos</td><td style="'+S.td+'color:#dc2626;font-weight:600">-'+fu(hipU)+'</td><td style="'+S.td+'color:#888">'+fqR(salHip)+'</td></tr>'
+          +'<tr style="background:#f5f3ff"><td style="'+S.td+'font-weight:800;color:#4c1d95;font-size:13px" colspan="2">PATRIMONIO NETO</td><td style="'+S.td+'font-weight:800;color:#4c1d95;font-size:13px">'+fu(patNetoU)+'</td><td style="'+S.td+'font-weight:800;color:#4c1d95;font-size:13px">'+fqR(patNetoU*tc)+'</td></tr>'
+        +'</tbody></table>'
+        +'<div style="font-size:9px;color:#a0aec0;margin-top:8px;line-height:1.5">Portafolio y casa son valores manuales que actualizas en la app. Reservas e hipoteca se calculan automáticamente. El BTC se cuenta una vez (en reservas), por eso el portafolio se muestra sin BTC.</div>'
+      +'</div>';
+    })()
+
     // ── HISTORIAL DE INGRESOS (con grafica mes a mes) ──
-    +'<div style="'+S.sec+'">'
+    +'<div class="rsec" style="'+S.sec+'">'
       +'<span style="'+S.sectl+'">Historial de ingresos</span>'
       +(hist.length===0
         ?'<p style="font-size:12px;color:#888">Sin historial aun.</p>'
@@ -2160,9 +2203,9 @@ function descargarResumen(){
     +'</div>'
 
     // ── INVERSIÓN ──
-    +'<div style="'+S.sec+'">'      +'<span style="'+S.sectl+'">Inversión en portafolio · costo base</span>'      +'<div style="'+S.cards+'">'        +'<div style="'+S.card+'"><span style="'+S.clbl+'">Capital inicial</span>'          +'<span style="'+S.cval+'color:#2563eb">$'+dcaBase.toLocaleString('en-US',{maximumFractionDigits:0})+'</span>'          +'<span style="'+S.csub+'">ene–abr 2026</span></div>'        +'<div style="'+S.card+'"><span style="'+S.clbl+'">Capital actual ('+dcaUltimoMes+')</span>'          +'<span style="'+S.cval+'color:#059669">$'+dcaUltimoVal.toLocaleString('en-US',{maximumFractionDigits:0})+'</span>'          +'<span style="'+S.csub+'">último mes registrado</span></div>'        +'<div style="'+S.card+'"><span style="'+S.clbl+'">Has aportado</span>'          +'<span style="'+S.cval+'color:#7c3aed">$'+dcaAcum.toLocaleString('en-US',{maximumFractionDigits:0})+'</span>'          +'<span style="'+S.csub+'">actual − inicial</span></div>'      +'</div>'      +((()=>{          if(usarAportes){            if(!dcaAportesKeys.length) return '';            let acum=dcaBase;            const rows3=dcaAportesKeys.map(m=>{              const a=dcaAportesObj[m]||{};              const usd=parseFloat(a.usd)||0;              const q=parseFloat(a.q)||0;              acum+=usd;              return '<tr><td style="'+S.td+'">'+m+'</td><td style="'+S.td+'color:#059669;font-weight:600">+$'+usd.toLocaleString('en-US',{maximumFractionDigits:2})+'</td><td style="'+S.td+'color:#6b7280;font-size:10px">Q'+q.toLocaleString('es-GT')+'</td><td style="'+S.td+'font-weight:700">$'+acum.toLocaleString('en-US',{maximumFractionDigits:0})+'</td></tr>';            }).join('');            return '<table style="'+S.tbl+'"><thead><tr>'              +'<th style="'+S.th+'">Mes</th><th style="'+S.th+'">Aporte USD</th><th style="'+S.th+'">En Q</th><th style="'+S.th+'">Acumulado</th>'              +'</tr></thead><tbody>'+rows3+'</tbody></table>';          } else {            const mOP3=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];            const ks3=Object.keys(dcaMesesObj).sort((a,b)=>{              const ya=parseInt(a.slice(-4))||2026,ma=mOP3.indexOf(a.slice(0,3));              const yb=parseInt(b.slice(-4))||2026,mb=mOP3.indexOf(b.slice(0,3));              return ya!==yb?ya-yb:ma-mb;            });            if(!ks3.length) return '';            let prev3=dcaBase;            const rows3=ks3.map(m=>{              const v=parseFloat(dcaMesesObj[m])||0;              const d3=v-prev3;              const ds3=(d3>=0?'+$':'-$')+Math.abs(d3).toLocaleString('en-US',{maximumFractionDigits:0});              const dc3=d3>=0?'#059669':'#dc2626';              prev3=v;              return '<tr><td style="'+S.td+'">'+m+'</td><td style="'+S.td+'color:'+dc3+';font-weight:600">'+ds3+'</td><td style="'+S.td+'font-weight:700">$'+v.toLocaleString('en-US',{maximumFractionDigits:0})+'</td></tr>';            }).join('');            return '<table style="'+S.tbl+'"><thead><tr>'              +'<th style="'+S.th+'">Mes</th><th style="'+S.th+'">Aportado</th><th style="'+S.th+'">Total</th>'              +'</tr></thead><tbody>'+rows3+'</tbody></table>';          }        })())    +'</div>'
+    +'<div class="rsec" style="'+S.sec+'">'      +'<span style="'+S.sectl+'">Inversión en portafolio · costo base</span>'      +'<div style="'+S.cards+'">'        +'<div style="'+S.card+'"><span style="'+S.clbl+'">Capital inicial</span>'          +'<span style="'+S.cval+'color:#2563eb">$'+dcaBase.toLocaleString('en-US',{maximumFractionDigits:0})+'</span>'          +'<span style="'+S.csub+'">ene–abr 2026</span></div>'        +'<div style="'+S.card+'"><span style="'+S.clbl+'">Capital actual ('+dcaUltimoMes+')</span>'          +'<span style="'+S.cval+'color:#059669">$'+dcaUltimoVal.toLocaleString('en-US',{maximumFractionDigits:0})+'</span>'          +'<span style="'+S.csub+'">último mes registrado</span></div>'        +'<div style="'+S.card+'"><span style="'+S.clbl+'">Has aportado</span>'          +'<span style="'+S.cval+'color:#7c3aed">$'+dcaAcum.toLocaleString('en-US',{maximumFractionDigits:0})+'</span>'          +'<span style="'+S.csub+'">actual − inicial</span></div>'      +'</div>'      +((()=>{          if(usarAportes){            if(!dcaAportesKeys.length) return '';            let acum=dcaBase;            const rows3=dcaAportesKeys.map(m=>{              const a=dcaAportesObj[m]||{};              const usd=parseFloat(a.usd)||0;              const q=parseFloat(a.q)||0;              acum+=usd;              return '<tr><td style="'+S.td+'">'+m+'</td><td style="'+S.td+'color:#059669;font-weight:600">+$'+usd.toLocaleString('en-US',{maximumFractionDigits:2})+'</td><td style="'+S.td+'color:#6b7280;font-size:10px">Q'+q.toLocaleString('es-GT')+'</td><td style="'+S.td+'font-weight:700">$'+acum.toLocaleString('en-US',{maximumFractionDigits:0})+'</td></tr>';            }).join('');            return '<table style="'+S.tbl+'"><thead><tr>'              +'<th style="'+S.th+'">Mes</th><th style="'+S.th+'">Aporte USD</th><th style="'+S.th+'">En Q</th><th style="'+S.th+'">Acumulado</th>'              +'</tr></thead><tbody>'+rows3+'</tbody></table>';          } else {            const mOP3=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];            const ks3=Object.keys(dcaMesesObj).sort((a,b)=>{              const ya=parseInt(a.slice(-4))||2026,ma=mOP3.indexOf(a.slice(0,3));              const yb=parseInt(b.slice(-4))||2026,mb=mOP3.indexOf(b.slice(0,3));              return ya!==yb?ya-yb:ma-mb;            });            if(!ks3.length) return '';            let prev3=dcaBase;            const rows3=ks3.map(m=>{              const v=parseFloat(dcaMesesObj[m])||0;              const d3=v-prev3;              const ds3=(d3>=0?'+$':'-$')+Math.abs(d3).toLocaleString('en-US',{maximumFractionDigits:0});              const dc3=d3>=0?'#059669':'#dc2626';              prev3=v;              return '<tr><td style="'+S.td+'">'+m+'</td><td style="'+S.td+'color:'+dc3+';font-weight:600">'+ds3+'</td><td style="'+S.td+'font-weight:700">$'+v.toLocaleString('en-US',{maximumFractionDigits:0})+'</td></tr>';            }).join('');            return '<table style="'+S.tbl+'"><thead><tr>'              +'<th style="'+S.th+'">Mes</th><th style="'+S.th+'">Aportado</th><th style="'+S.th+'">Total</th>'              +'</tr></thead><tbody>'+rows3+'</tbody></table>';          }        })())    +'</div>'
     // ── RESERVAS ──
-    +'<div style="'+S.sec+'">'
+    +'<div class="rsec" style="'+S.sec+'">'
       +'<span style="'+S.sectl+'">Reservas y patrimonio liquido</span>'
       +'<table style="'+S.tbl+'"><thead><tr>'
         +'<th style="'+S.th+'">Reserva</th><th style="'+S.th+'">Institucion</th>'
@@ -2179,7 +2222,7 @@ function descargarResumen(){
     +'</div>'
 
     // ── EVOLUCION DE RESERVAS (snapshots historicos) ──
-    +(SNAPSHOTS && SNAPSHOTS.length >= 1 ? ('<div style="'+S.sec+'">'
+    +(SNAPSHOTS && SNAPSHOTS.length >= 1 ? ('<div class="rsec" style="'+S.sec+'">'
       +'<span style="'+S.sectl+'">Evolucion de reservas en el tiempo</span>'
       +(function(){
         // Si solo hay 1 snapshot, mostrar mensaje suave
@@ -2313,7 +2356,7 @@ function descargarResumen(){
     +'</div>') : '')
 
     // ── DESGLOSE GASTOS FIJOS ──
-    +'<div style="'+S.sec+'">'
+    +'<div class="rsec" style="'+S.sec+'">'
       +'<span style="'+S.sectl+'">Desglose de gastos fijos</span>'
       +'<div style="font-size:10px;color:#718096;margin-bottom:10px">Total mensual: <strong style="color:#dc2626">'+fqR(tf)+'</strong> ('+(avgNorm>0?(tf/avgNorm*100).toFixed(0):'—')+'% del ingreso promedio)</div>'
       +'<table style="'+S.tbl+'"><thead><tr>'
@@ -2332,7 +2375,7 @@ function descargarResumen(){
     +'</div>'
 
     // ── HIPOTECA ──
-    +'<div style="'+S.sec+'">'
+    +'<div class="rsec" style="'+S.sec+'">'
       +'<span style="'+S.sectl+'">Credito hipotecario</span>'
       +'<div style="'+S.cards+'">'
         +'<div style="'+S.card+'"><span style="'+S.clbl+'">Saldo pendiente</span>'
@@ -2354,7 +2397,7 @@ function descargarResumen(){
     +'</div>'
 
     // ── REGISTRO DE BONO (histórico, solo marca si se recibió este mes) ──
-    +((ST.mes===7||ST.mes===12)?('<div style="'+S.sec+'">'
+    +((ST.mes===7||ST.mes===12)?('<div class="rsec" style="'+S.sec+'">'
       +'<span style="'+S.sectl+'">'+(ST.mes===7?'Bono 14':'Aguinaldo')+' · registro</span>'
       +'<div style="background:#f5f3ff;border:1px solid #ddd6fe;border-radius:8px;padding:12px 14px;font-size:12px;color:#4c1d95;line-height:1.6">'
         +'<strong>'+(ST.mes===7?'Bono 14':'Aguinaldo')+' de '+(ST.anio||2026)+'</strong> — prestación recibida este mes.<br>'

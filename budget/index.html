@@ -712,7 +712,7 @@ function svS(d){try{localStorage.setItem(LS,JSON.stringify(d));}catch(e){}}
 
 // ── ESTADO ────────────────────────────────────────────────────────
 let ST={tc:7.75,mes:3,anio:2026,q1:0,q2:0,sprev:30052.58,reservaLulu:0,bacDeuda:0,bacDeudaUsd:0,bamDeuda:0};
-var COLS={emer:54275,bant:14204,imp:0,buf:119,reimb:0,btcQty:0,btcPx:0};
+var COLS={emer:54275,bant:14204,imp:0,buf:119,reimb:0,abiUsd:0,btcQty:0,btcPx:0};
 const CUOTA=13959.61;
 const MESES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const MNOMBRES=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
@@ -768,6 +768,7 @@ function loadSaved(){
     if(d.cols.imp!=null) COLS.imp =d.cols.imp;
     if(d.cols.buf!=null) COLS.buf =d.cols.buf;
     if(d.cols.reimb!=null)COLS.reimb=d.cols.reimb;
+    if(d.cols.abiUsd!=null)COLS.abiUsd=d.cols.abiUsd;
     if(d.cols.btcQty!=null)COLS.btcQty=d.cols.btcQty;
     if(d.cols.btcPx!=null) COLS.btcPx =d.cols.btcPx;
   }
@@ -1076,6 +1077,7 @@ function renderCols(){
     {k:'bant',ttl:'✈️ Bantrab',            meta:30000,      cuenta:'Bantrab',     col:'var(--ac)'},
     {k:'buf', ttl:'🔧 Monetaria BI · caja chica',meta:3000,cuenta:'Monetaria BI',col:'var(--mu)'},
     {k:'reimb',ttl:'💵 Reembolsos trabajo',meta:null,       cuenta:'USD cash',    col:'var(--ac)',usd:true},
+    {k:'abiUsd',ttl:'💵 Ahorro BI · USD',  meta:null,       cuenta:'Ahorro BI dólares · superávit',col:'var(--gr)',usd:true},
   ];
 
   // Render cards normales
@@ -1128,12 +1130,14 @@ function renderCols(){
 
   document.getElementById('col-grid').innerHTML = cardsHtml;
 
-  // Total reservas (incluye BTC convertido a Q)
-  const total=COLS.emer+COLS.bant+COLS.buf+(COLS.reimb*tc)+btcQ;
+  // Total reservas (incluye BTC y Ahorro BI USD convertidos a Q)
+  const abiUsdVal = COLS.abiUsd || 0;
+  const total=COLS.emer+COLS.bant+COLS.buf+(COLS.reimb*tc)+(abiUsdVal*tc)+btcQ;
   const reimbUSD = COLS.reimb || 0;
+  const usdTotal = reimbUSD + abiUsdVal;
   const breakdown = btcUsd > 0
-    ? '$'+reimbUSD.toFixed(0)+'USD · ₿'+btcQty.toFixed(4)
-    : '$'+reimbUSD.toFixed(0)+'USD';
+    ? '$'+usdTotal.toFixed(0)+'USD · ₿'+btcQty.toFixed(4)
+    : '$'+usdTotal.toFixed(0)+'USD';
   document.getElementById('r-reservas').textContent=fq(total)+' (incl. '+breakdown+')';
 }
 
@@ -1738,7 +1742,7 @@ function descargarResumen(){
   const btcPx  = +(COLS.btcPx||0);
   const btcUsd = btcQty * btcPx;
   const btcQ   = btcUsd * tc;
-  const totalRes=COLS.emer+COLS.bant+COLS.buf+(COLS.reimb*tc)+btcQ; // imp unificado en emer; BTC sumado al total
+  const totalRes=COLS.emer+COLS.bant+COLS.buf+(COLS.reimb*tc)+((COLS.abiUsd||0)*tc)+btcQ; // imp unificado en emer; BTC y Ahorro BI USD sumados al total
   const salHip=(()=>{
     const anio=ST.anio||2026;
     const mD=Math.max((anio-2026)*12+(ST.mes-1),0);

@@ -250,7 +250,7 @@ body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--tx);min-heig
   .io-btns{flex-wrap:wrap;}
 }
 /* ── BARRA DE TABS ─────────────────────────────────────── */
-.tabbar{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:16px;position:sticky;top:0;z-index:20;background:var(--bg);padding:8px 0;}
+.tabbar{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin-bottom:16px;position:sticky;top:0;z-index:20;background:var(--bg);padding:8px 0;}
 .tabbtn{font-family:'DM Mono',monospace;font-size:10px;font-weight:600;letter-spacing:.03em;color:var(--mu);background:var(--s1);border:1px solid var(--bd);border-radius:8px;padding:10px 6px;cursor:pointer;transition:all .2s;line-height:1.2;text-align:center;}
 .tabbtn:hover{color:var(--tx);border-color:var(--bd2);}
 .tabbtn.active{color:var(--bg);background:var(--gr);border-color:var(--gr);font-weight:700;box-shadow:0 0 8px rgba(52,208,122,.4);}
@@ -323,10 +323,15 @@ body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--tx);min-heig
 <!-- BARRA DE TABS -->
 <div class="tabbar" id="tabbar">
   <button class="tabbtn active" data-tab="mes"      onclick="showTab('mes')">📊 Mes</button>
+  <button class="tabbtn"        data-tab="patrimonio" onclick="showTab('patrimonio')">🏛️ Patrimonio</button>
   <button class="tabbtn"        data-tab="reservas" onclick="showTab('reservas')">💰 Reservas</button>
   <button class="tabbtn"        data-tab="deudas"   onclick="showTab('deudas')">📉 Deudas/Personal</button>
   <button class="tabbtn"        data-tab="inv"      onclick="showTab('inv')">📈 Inversión</button>
 </div>
+
+<!-- PATRIMONIO -->
+<div class="sec"><div class="ld" style="background:var(--go);box-shadow:0 0 5px var(--go)"></div><div class="lt">Patrimonio <span>tu foto macro · activos − pasivos</span></div></div>
+<div id="patrimonio-wrap"></div>
 
 <!-- QUINCENAS -->
 <div class="sec"><div class="ld" style="background:var(--gr);box-shadow:0 0 5px var(--gr)"></div><div class="lt">Quincenas <span>ingresa al recibir · distribución automática</span></div></div>
@@ -729,6 +734,7 @@ const LS='bdgt_v4';
 const TAB_MAP = {
   // texto clave del título → tab destino
   'Quincenas':'mes', 'Resumen del mes':'mes', 'Horas extras':'mes',
+  'Patrimonio':'patrimonio',
   'Reservas':'reservas',
   'Lulubit':'deudas', 'Gastos fijos':'deudas', 'Hipoteca':'deudas',
   'Capital invertido':'inv',
@@ -784,7 +790,7 @@ function ldS(){try{return JSON.parse(localStorage.getItem(LS))||{};}catch(e){ret
 function svS(d){try{localStorage.setItem(LS,JSON.stringify(d));}catch(e){}}
 
 // ── ESTADO ────────────────────────────────────────────────────────
-let ST={tc:7.75,mes:3,anio:2026,q1:0,q2:0,sprev:30052.58,reservaLulu:0,bacDeuda:0,bacDeudaUsd:0,bamDeuda:0};
+let ST={tc:7.75,mes:3,anio:2026,q1:0,q2:0,sprev:30052.58,reservaLulu:0,bacDeuda:0,bacDeudaUsd:0,bamDeuda:0,portafolioUsd:0,casaUsd:210000};
 var COLS={emer:54275,bant:14204,imp:0,buf:119,reimb:0,abiUsd:0,btcQty:0,btcPx:0};
 const CUOTA=13959.61;
 const MESES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
@@ -834,6 +840,8 @@ function loadSaved(){
   if(d.reservaLulu!=null) ST.reservaLulu=parseFloat(d.reservaLulu)||0;
   if(d.bacDeuda!=null)    ST.bacDeuda   =parseFloat(d.bacDeuda)||0;
   if(d.bacDeudaUsd!=null) ST.bacDeudaUsd=parseFloat(d.bacDeudaUsd)||0;
+  if(d.casaUsd!=null)     ST.casaUsd    =parseFloat(d.casaUsd)||210000;
+  if(d.portafolioUsd!=null) ST.portafolioUsd=parseFloat(d.portafolioUsd)||0;
   if(d.bamDeuda!=null)    ST.bamDeuda   =parseFloat(d.bamDeuda)||0;
   if(d.cols){
     if(d.cols.emer!=null)COLS.emer=d.cols.emer;
@@ -874,6 +882,119 @@ function saveState(){
 
 function saveCol(k,v){const d=ldS();if(!d.cols)d.cols={};d.cols[k]=v;svS(d);}
 function onColChange(k,val){const v=parseFloat(val)||0;COLS[k]=v;saveCol(k,v);renderCols();}
+
+// ── PATRIMONIO ───────────────────────────────────────────────────
+function onPatChange(k,val){
+  const v=parseFloat(val)||0;
+  ST[k]=v;
+  const d=ldS(); d[k]=v; svS(d);
+  renderPatrimonio();
+}
+function renderPatrimonio(){
+  const wrap=document.getElementById('patrimonio-wrap');
+  if(!wrap) return;
+  const tc=ST.tc||7.75;
+
+  // Saldo hipoteca (mismo cálculo que el resumen)
+  const salHip=(()=>{
+    const anio=ST.anio||2026;
+    const mD=Math.max((anio-2026)*12+(ST.mes-1),0);
+    const tM=0.0726/12;let s=1480000;
+    for(let i=0;i<mD;i++){const int=s*tM;s=s-(CUOTA-int);}
+    return Math.max(s-getAbonosHip().reduce((a,x)=>a+x.amt,0),0);
+  })();
+
+  // Reservas líquidas (TODAS, en Q) — incluye BTC reserva
+  const btcQty=parseFloat(COLS.btcQty)||0;
+  const btcPx=parseFloat(COLS.btcPx)||0;
+  const btcUsd=btcQty*btcPx;
+  const btcQ=btcUsd*tc;
+  const reservasQ = (COLS.emer||0)+(COLS.bant||0)+(COLS.buf||0)
+                  +((COLS.reimb||0)*tc)+((COLS.abiUsd||0)*tc)+btcQ;
+
+  // Valores manuales (USD)
+  const casaUsd=parseFloat(ST.casaUsd)||210000;
+  const portTotalUsd=parseFloat(ST.portafolioUsd)||0;  // incluye TODO el BTC
+  const portSinBtcUsd=Math.max(portTotalUsd-btcUsd,0);  // resto = total − BTC (referencia)
+  const portNegativo = (portTotalUsd>0 && portTotalUsd<btcUsd);
+
+  // Activos (todo en USD)
+  const casaU=casaUsd;
+  const portSinBtcU=portSinBtcUsd;
+  const reservasU=reservasQ/tc;
+  const totalActivosU = casaU + portSinBtcU + reservasU;
+
+  // Pasivos
+  const hipU=salHip/tc;
+
+  // Patrimonio neto
+  const patNetoU = totalActivosU - hipU;
+  const patNetoQ = patNetoU*tc;
+
+  const fusdR=n=>'$'+n.toLocaleString('en-US',{maximumFractionDigits:0});
+  const fqR=n=>'Q'+n.toLocaleString('es-GT',{maximumFractionDigits:0});
+
+  const row=(lbl,detalle,usd,col)=>`<div class="col-row" style="padding:8px 0">
+    <div><div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--tx)">${lbl}</div>
+    ${detalle?`<div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu2);margin-top:2px">${detalle}</div>`:''}</div>
+    <div style="text-align:right"><div style="font-family:'DM Mono',monospace;font-size:12px;font-weight:700;color:${col||'var(--tx)'}">${fusdR(usd)}</div>
+    <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu2)">${fqR(usd*tc)}</div></div>
+  </div>`;
+
+  wrap.innerHTML=`
+    <!-- KPI patrimonio neto -->
+    <div class="col-card" style="border-color:var(--go)55;background:linear-gradient(135deg,var(--s1),rgba(245,166,35,.06));margin-bottom:12px">
+      <div class="col-ttl" style="color:var(--go)">🏛️ Patrimonio neto</div>
+      <div style="font-family:'DM Mono',monospace;font-size:28px;font-weight:800;color:var(--go);letter-spacing:-1px;margin:6px 0 2px">${fusdR(patNetoU)}</div>
+      <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--mu)">${fqR(patNetoQ)}</div>
+    </div>
+
+    <!-- Campos manuales -->
+    <div class="col-card" style="margin-bottom:12px">
+      <div class="col-ttl">✏️ Valores manuales · actualiza estos</div>
+      <div class="col-row"><span class="col-lbl">🏠 Casa (mercado, USD)</span></div>
+      <input class="col-inp" type="number" value="${casaUsd}" step="1000" min="0"
+        onchange="onPatChange('casaUsd',this.value)" style="color:var(--gr);border-color:var(--gr)44;margin:4px 0">
+      <div class="col-row" style="margin-top:6px"><span class="col-lbl">📊 Portafolio total (USD, incl. BTC)</span></div>
+      <input class="col-inp" type="number" value="${portTotalUsd}" step="10" min="0"
+        onchange="onPatChange('portafolioUsd',this.value)" style="color:var(--ac);border-color:var(--ac)44;margin:4px 0"
+        placeholder="valor del portfolio tracker">
+      <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu2);margin-top:4px;line-height:1.4">
+        Copia el valor total de tu portfolio tracker (incluye tu BTC).
+        El BTC ya cuenta en Reservas, así que aquí se resta: se usa solo el resto.</div>
+      ${portNegativo?`<div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--rd);margin-top:6px;padding:6px 8px;background:rgba(242,92,92,.1);border-radius:5px">⚠️ El portafolio total (${fusdR(portTotalUsd)}) es menor que tu BTC (${fusdR(btcUsd)}). Revisa que ambos estén actualizados.</div>`:''}
+    </div>
+
+    <!-- Desglose activos -->
+    <div class="col-card" style="margin-bottom:12px">
+      <div class="col-ttl" style="color:var(--gr)">Activos</div>
+      ${row('🏠 Casa','valor de mercado',casaU,'var(--gr)')}
+      ${row('📊 Portafolio (sin BTC)','total − BTC · el BTC va en reservas',portSinBtcU,'var(--ac)')}
+      ${row('💰 Reservas líquidas','todas · incluye BTC colchón',reservasU,'var(--pu)')}
+      <div class="col-row" style="border-top:1px solid var(--bd2);margin-top:4px;padding-top:8px">
+        <span style="font-family:'DM Mono',monospace;font-size:11px;font-weight:700;color:var(--tx)">Total activos</span>
+        <div style="text-align:right"><div style="font-family:'DM Mono',monospace;font-size:12px;font-weight:700;color:var(--gr)">${fusdR(totalActivosU)}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu2)">${fqR(totalActivosU*tc)}</div></div>
+      </div>
+    </div>
+
+    <!-- Pasivos -->
+    <div class="col-card" style="margin-bottom:12px">
+      <div class="col-ttl" style="color:var(--rd)">Pasivos</div>
+      ${row('🏦 Hipoteca BI','saldo estimado al mes actual',hipU,'var(--rd)')}
+    </div>
+
+    <!-- Composición -->
+    <div class="col-card">
+      <div class="col-ttl">Composición del patrimonio</div>
+      <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);line-height:1.7;margin-top:4px">
+        Casa: ${totalActivosU>0?(casaU/totalActivosU*100).toFixed(0):0}% de activos<br>
+        Portafolio: ${totalActivosU>0?(portSinBtcU/totalActivosU*100).toFixed(0):0}% · Reservas: ${totalActivosU>0?(reservasU/totalActivosU*100).toFixed(0):0}%<br>
+        Apalancamiento: hipoteca = ${totalActivosU>0?(hipU/totalActivosU*100).toFixed(0):0}% de activos
+      </div>
+    </div>
+  `;
+}
 
 // Handlers de reserva Lulubit y saldos TC (BAC/BAM)
 function onReservaLulu(v){ST.reservaLulu=parseFloat(v)||0;saveState();recalc();}
@@ -1202,6 +1323,7 @@ function renderCols(){
   </div>`;
 
   document.getElementById('col-grid').innerHTML = cardsHtml;
+  if(typeof renderPatrimonio==='function') renderPatrimonio();
 
   // Total reservas (incluye BTC y Ahorro BI USD convertidos a Q)
   const abiUsdVal = COLS.abiUsd || 0;
@@ -1873,30 +1995,6 @@ function descargarResumen(){
   const excAnterior = mesAntHist ? Math.max((mesAntHist.ingreso||0) - tf, 0) : 0;
   const deltaExc = excAnterior > 0 ? ((excActual - excAnterior) / excAnterior * 100) : 0;
 
-  // ── Proyección hipoteca con bonos del plan ──
-  const sueldoBase = avgNorm > 0 ? avgNorm : 31500;
-  const proyHipoteca = (() => {
-    const tM = 0.0726/12;
-    const mesActual = (ST.mes - 1) + ((ST.anio||2026) - 2026) * 12;
-    const horizontes = [12, 24, 30];
-    const proys = {};
-    horizontes.forEach(h => {
-      let saldo = salHip;
-      for (let i = 1; i <= h; i++) {
-        const mesGlobal = mesActual + i;
-        const mesEnAno = mesGlobal % 12;
-        const intereses = saldo * tM;
-        saldo -= (CUOTA - intereses);
-        if (mesEnAno === 6) saldo -= sueldoBase * 0.40; // jul: 40%
-        const anoActualReal = (ST.anio||2026) + Math.floor((ST.mes - 1 + i) / 12);
-        if (mesEnAno === 11 && anoActualReal !== 2026) saldo -= sueldoBase * 0.35; // dic: 35%, excepto 2026 (Italia)
-        if (saldo < 0) saldo = 0;
-      }
-      proys[h] = saldo;
-    });
-    return proys;
-  })();
-
   // helpers — sin clases, todo inline
   const fqR=n=>'Q'+n.toLocaleString('es-GT',{maximumFractionDigits:0});
   const fusd=n=>'$'+(n/tc).toLocaleString('en-US',{maximumFractionDigits:0});
@@ -1946,6 +2044,15 @@ function descargarResumen(){
       +'<h1 style="'+S.h1+'">Perfil Financiero Personal</h1>'
       +'<p style="'+S.sub+'">Preparado al '+fecha+' · '+mes+'</p>'
       +'<div style="'+S.kpis+'">'
+        +(()=>{
+          const casaU=parseFloat(ST.casaUsd)||210000;
+          const portTotalU=parseFloat(ST.portafolioUsd)||0;
+          const portSinBtcU=Math.max(portTotalU-btcUsd,0);
+          const reservasU=totalRes/tc;
+          const hipU=salHip/tc;
+          const patNetoU=casaU+portSinBtcU+reservasU-hipU;
+          return '<div style="'+S.kpi+';background:rgba(245,166,35,.14)"><span style="'+S.klbl+'">🏛️ Patrimonio neto</span><span style="'+S.kval+'">$'+patNetoU.toLocaleString('en-US',{maximumFractionDigits:0})+'</span><span style="'+S.ksub+'">'+fqR(patNetoU*tc)+'</span></div>';
+        })()
         +'<div style="'+S.kpi+'"><span style="'+S.klbl+'">Ingreso promedio</span><span style="'+S.kval+'">'+(avgNorm>0?fqR(avgNorm):'—')+'</span><span style="'+S.ksub+'">'+fusd(avgNorm)+' · '+normales.length+' meses</span></div>'
         +(()=>{
           const deltaTxt = mesAntHist
@@ -2065,6 +2172,7 @@ function descargarResumen(){
         +'<tr><td style="'+S.td+'">Bantrab (viajes)</td><td style="'+S.td+'">Bantrab</td><td style="'+S.td+'">'+fqR(COLS.bant)+'</td><td style="'+S.td+'">Q30,000</td></tr>'
         +'<tr><td style="'+S.td+'">Buffer operativo</td><td style="'+S.td+'">Monetaria BI</td><td style="'+S.td+'">'+fqR(COLS.buf)+'</td><td style="'+S.td+'">Q3,000</td></tr>'
         +(COLS.reimb>0?'<tr><td style="'+S.td+'">Reembolsos</td><td style="'+S.td+'">USD cash</td><td style="'+S.td+'">'+'$'+COLS.reimb.toFixed(0)+' ('+fqR(COLS.reimb*tc)+')</td><td style="'+S.td+'">—</td></tr>':'')
+        +('<tr><td style="'+S.td+'color:#059669">Ahorro BI · USD (superávit)</td><td style="'+S.td+'">Ahorro BI dólares</td><td style="'+S.td+'color:#059669;font-weight:600">'+'$'+(COLS.abiUsd||0).toFixed(0)+' ('+fqR((COLS.abiUsd||0)*tc)+')</td><td style="'+S.td+'">—</td></tr>')
         +(btcQty>0?'<tr><td style="'+S.td+'color:#f7931a">₿ BTC reserva</td><td style="'+S.td+'">SeedSigner</td><td style="'+S.td+'color:#f7931a;font-weight:600">₿'+btcQty.toFixed(4)+' · '+fqR(btcQ)+'</td><td style="'+S.td+'color:#888">$'+btcUsd.toLocaleString('en-US',{maximumFractionDigits:0})+'</td></tr>':'')
         +'<tr><td style="'+S.td+'font-weight:700" colspan="2">Total reservas</td><td style="'+S.td+'font-weight:700;color:#4c1d95" colspan="2">'+fqR(totalRes)+'</td></tr>'
       +'</tbody></table>'
@@ -2243,67 +2351,15 @@ function descargarResumen(){
         +'<tr><td style="'+S.td+'color:#888">Saldo estimado</td><td style="'+S.td+'color:#dc2626;font-weight:600">'+fqR(salHip)+' ('+fusd(salHip)+')</td></tr>'
         +'<tr><td style="'+S.td+'color:#888">Capital pagado</td><td style="'+S.td+'color:#059669;font-weight:600">'+fqR(1480000-salHip)+' ('+((1480000-salHip)/1480000*100).toFixed(1)+'%)</td></tr>'
       +'</tbody></table>'
-
-      // Proyeccion de saldo con bonos del plan
-      +'<div style="margin-top:14px;padding-top:10px;border-top:1px solid #e5e7eb">'
-        +'<div style="font-size:11px;font-weight:700;color:#4c1d95;margin-bottom:8px">Proyección saldo (cuotas + bonos plan)</div>'
-        +'<table style="'+S.tbl+'"><thead><tr>'
-          +'<th style="'+S.th+'">Horizonte</th><th style="'+S.th+'">Saldo estimado</th><th style="'+S.th+'">Reducción</th>'
-        +'</tr></thead><tbody>'
-        +(function(){
-          const horizontes = [{m:12,lbl:'12 meses'},{m:24,lbl:'24 meses (mes 26 plan)'},{m:30,lbl:'30 meses (mes 32 fallback)'}];
-          return horizontes.map(function(h){
-            const saldoH = proyHipoteca[h.m];
-            const reduccion = salHip - saldoH;
-            const pctRed = (reduccion/salHip*100).toFixed(1);
-            return '<tr>'
-              +'<td style="'+S.td+'">'+h.lbl+'</td>'
-              +'<td style="'+S.td+'font-family:monospace;color:#4c1d95;font-weight:600">'+fqR(saldoH)+'</td>'
-              +'<td style="'+S.td+'font-family:monospace;color:#059669;font-size:10px">-'+fqR(reduccion)+' ('+pctRed+'%)</td>'
-            +'</tr>';
-          }).join('');
-        })()
-        +'</tbody></table>'
-        +'<div style="font-size:9px;color:#a0aec0;margin-top:6px;line-height:1.5">Asume cuotas regulares + bonos jul (40%) y dic (35%) sobre sueldo promedio Q'+sueldoBase.toLocaleString('es-GT',{maximumFractionDigits:0})+'. Excepción: bono dic 2026 → Italia.</div>'
-      +'</div>'
     +'</div>'
 
-    // ── PROYECCIÓN FLUJO 12 MESES (solo bonos por contrato, estimados desde promedio) ──
-    +(avgNorm>0?('<div style="'+S.sec+'">'
-      +'<span style="'+S.sectl+'">Proyeccion de flujo · proximos 12 meses</span>'
-      +'<table style="'+S.tbl+'"><thead><tr>'
-        +'<th style="'+S.th+'">Mes</th><th style="'+S.th+'">Ingreso esperado</th><th style="'+S.th+'">Evento</th><th style="'+S.th+'">Acum. total</th>'
-        +'</tr></thead><tbody>'
-        +(function(){
-          const hoy = new Date();
-          const mesActual = hoy.getMonth();
-          const anioActual = hoy.getFullYear();
-          const mesesNom = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-          let acum = 0;
-          const filas = [];
-          // Bono estimado = promedio mensual (Bono 14 julio y Aguinaldo diciembre cada uno = 1 salario)
-          const bonoEst = Math.round(avgNorm);
-          for(let i=0;i<12;i++){
-            const mIdx = (mesActual + i) % 12;
-            const anio = anioActual + Math.floor((mesActual + i) / 12);
-            const nombre = mesesNom[mIdx] + ' ' + anio;
-            let ing = avgNorm;
-            let evento = '—';
-            if(mIdx === 6){ ing = avgNorm + bonoEst; evento = 'Bono 14 (est. '+fqR(bonoEst)+')'; }
-            if(mIdx === 11){ ing = avgNorm + bonoEst; evento = 'Aguinaldo (est. '+fqR(bonoEst)+')'; }
-            acum += ing;
-            filas.push('<tr>'
-              +'<td style="'+S.td+'font-weight:600">'+nombre+'</td>'
-              +'<td style="'+S.td+'color:#059669">'+fqR(ing)+'</td>'
-              +'<td style="'+S.td+'font-size:10px;color:#666">'+evento+'</td>'
-              +'<td style="'+S.td+'font-weight:700;color:#4c1d95">'+fqR(acum)+'</td>'
-            +'</tr>');
-          }
-          return filas.join('');
-        })()
-      +'</tbody></table>'
-      +'<div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:10px 14px;margin-top:10px;font-size:11px;color:#065f46;line-height:1.5">'
-        +'<strong>Supuestos:</strong> ingreso mensual = promedio historico · Bono 14 y Aguinaldo estimados como 1 salario promedio cada uno (valores legales GT) · proyeccion antes de deducciones.'
+    // ── REGISTRO DE BONO (histórico, solo marca si se recibió este mes) ──
+    +((ST.mes===7||ST.mes===12)?('<div style="'+S.sec+'">'
+      +'<span style="'+S.sectl+'">'+(ST.mes===7?'Bono 14':'Aguinaldo')+' · registro</span>'
+      +'<div style="background:#f5f3ff;border:1px solid #ddd6fe;border-radius:8px;padding:12px 14px;font-size:12px;color:#4c1d95;line-height:1.6">'
+        +'<strong>'+(ST.mes===7?'Bono 14':'Aguinaldo')+' de '+(ST.anio||2026)+'</strong> — prestación recibida este mes.<br>'
+        +'<span style="font-size:11px;color:#666">Distribución definida: 45% Ahorro BI · 15% Bantrab · 15% personal · 25% inversión. '
+        +'Registro para historial; el monto ya está reflejado en el ingreso del mes y en las reservas.</span>'
       +'</div>'
     +'</div>'):'')
 
@@ -3056,6 +3112,7 @@ renderSubsEnt();
 renderReimb();
 autoSnapshotIfNewMonth();
 renderSnap();
+renderPatrimonio();
 initTabs();
 
 // ── GOOGLE DRIVE SYNC ─────────────────────────────────────────────

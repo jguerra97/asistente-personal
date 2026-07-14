@@ -934,23 +934,22 @@ function renderPatrimonio(){
   const patNetoU = totalActivosU - hipU;
   const patNetoQ = patNetoU*tc;
 
-  // ── TRES NIVELES DE LIQUIDEZ (en Q) ──
+  // ── LIQUIDEZ: real = todo movible sin casa, con capas de inmediatez ──
   // Componentes base
-  const ahorroBiQ = (COLS.emer||0);                    // Ahorro BI = dinero de fijos (destino intocable)
+  const ahorroBiQ = (COLS.emer||0);                    // Ahorro BI = dinero de fijos
   const bantrabQ  = (COLS.bant||0);                    // Bantrab = ahorro total
   const monetariaQ= (COLS.buf||0);                     // Monetaria BI
   const reembQ    = (COLS.reimb||0)*tc;                // Reembolsos (movibles)
   const abiUsdQ   = (COLS.abiUsd||0)*tc;               // Superávit viáticos
   const criptoQ   = portSinBtcU*tc + btcQ;             // Portafolio completo (resto + BTC)
 
-  // NIVEL 1 — LIQUIDEZ OPERABLE: lo que uso hoy sin comprometer nada (excluye Ahorro BI de fijos y cripto)
+  // CAPA 1 — OPERABLE: lo que uso hoy sin comprometer nada (sin Ahorro BI, sin cripto)
   const liqOperableQ = luluQ + bantrabQ + monetariaQ + reembQ + abiUsdQ;
-  // NIVEL 2 — LIQUIDEZ REAL: todo el cash sin casa, incluye Ahorro BI (sin vender cripto)
-  const liqRealQ = liqOperableQ + ahorroBiQ;
-  // NIVEL 3 — SUPERVIVENCIA: todo movible incluido el cripto (emergencia máxima)
-  const supervivenciaQ = liqRealQ + criptoQ;
-  // Sub-dato: cuánto de tu dinero movible está invertido
-  const invertidaQ = criptoQ;
+  // CAPA 2 — INMEDIATA: todo el cash sin vender cripto (operable + Ahorro BI)
+  const liqInmediataQ = liqOperableQ + ahorroBiQ;
+  // CAPA 3 — REAL TOTAL: todo lo movible incluido cripto (sin casa)
+  const liqRealQ = liqInmediataQ + criptoQ;
+  const invertidaQ = criptoQ;                          // parte que requiere vender
 
   // ── SEMÁFOROS DE SALUD FINANCIERA ──
   const fijosMes = FIJOS_TOTAL;
@@ -964,13 +963,13 @@ function renderPatrimonio(){
   // 3. Liquidez operable (en Q absolutos)
   const s3 = liqOperableQ;
   const s3c = s3<5000?'rd':(s3<15000?'go':'gr');
-  // 4. Liquidez real (cash sin casa / fijos)
-  const s4 = liqRealQ/fijosMes;
+  // 4. Liquidez inmediata (cash total / fijos)
+  const s4 = liqInmediataQ/fijosMes;
   const s4c = s4<2?'rd':(s4<4?'go':'gr');
-  // 5. Supervivencia (todo + cripto / fijos)
-  const s5 = supervivenciaQ/fijosMes;
+  // 5. Liquidez real total (todo incl. cripto / fijos)
+  const s5 = liqRealQ/fijosMes;
   const s5c = s5<5?'rd':(s5<12?'go':'gr');
-  // 6. Tasa de ahorro (excedente / ingreso)
+  // 6. Excedente disponible (ingreso − fijos / ingreso) — lo que queda libre tras fijos
   const s6 = Math.max(ingresoMes-fijosMes,0)/ingresoMes*100;
   const s6c = s6<15?'rd':(s6<30?'go':'gr');
   const dot=c=>({rd:'🔴',go:'🟡',gr:'🟢'}[c]);
@@ -999,12 +998,12 @@ function renderPatrimonio(){
       <div class="col-ttl">🚦 Indicadores de salud · decisión a tiempo</div>
       ${semaforo(s1c,'Colchón operativo',s1.toFixed(1)+' m','Ahorro BI ÷ fijos · meta >4 meses')}
       ${semaforo(s2c,'Peso hipoteca',s2.toFixed(0)+'%','cuota ÷ ingreso · 🟢<40 🟡40-48 🔴>48')}
-      ${semaforo(s3c,'Liquidez operable',fqR(s3),'Lulubit+Bantrab+Monetaria+Reemb+USD · 🟢>Q15K')}
-      ${semaforo(s4c,'Liquidez real',s4.toFixed(1)+' m','todo el cash sin casa ÷ fijos · meta >4m')}
-      ${semaforo(s5c,'Supervivencia',s5.toFixed(1)+' m','todo + cripto ÷ fijos · meta >12m')}
-      ${semaforo(s6c,'Tasa de ahorro',s6.toFixed(0)+'%','excedente ÷ ingreso · meta >30%')}
+      ${semaforo(s3c,'Liquidez operable',fqR(s3),'lo que usas hoy sin comprometer · 🟢>Q15K')}
+      ${semaforo(s4c,'Liquidez inmediata',s4.toFixed(1)+' m','cash total sin vender cripto ÷ fijos · >4m')}
+      ${semaforo(s5c,'Liquidez real total',s5.toFixed(1)+' m','todo movible incl. cripto ÷ fijos · >12m')}
+      ${semaforo(s6c,'Excedente disponible',s6.toFixed(0)+'%','ingreso − fijos ÷ ingreso · lo que queda libre · >30%')}
       <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu2);margin-top:8px;line-height:1.5">
-        Verde = sano · Amarillo = vigilar · Rojo = actúa. Operable = lo que usas hoy · Real = tu cash total · Supervivencia = liquidando todo.</div>
+        Verde = sano · Amarillo = vigilar · Rojo = actúa. Operable = hoy · Inmediata = todo tu cash · Real = todo incl. cripto.</div>
     </div>
 
     <!-- KPI patrimonio neto -->
@@ -1013,17 +1012,14 @@ function renderPatrimonio(){
       <div style="font-family:'DM Mono',monospace;font-size:28px;font-weight:800;color:var(--go);letter-spacing:-1px;margin:6px 0 2px">${fusdR(patNetoU)}</div>
       <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--mu)">${fqR(patNetoQ)}</div>
       <div style="border-top:1px solid var(--bd);margin-top:8px;padding-top:8px;font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);line-height:1.7">
-        <div style="margin-bottom:6px">
-          🔓 <b style="color:var(--gr)">Liquidez operable</b>: <b style="color:var(--tx)">${fqR(liqOperableQ)}</b>
-          <div style="font-size:8px;color:var(--mu);padding-left:14px">Lulubit + Bantrab + Monetaria + Reembolsos + USD · lo que usas hoy</div>
+        <div style="margin-bottom:8px">
+          🛟 <b style="color:var(--pu)">Liquidez real</b> (todo movible, sin casa): <b style="color:var(--tx);font-size:11px">${fqR(liqRealQ)}</b>
         </div>
-        <div style="margin-bottom:6px">
-          💵 <b style="color:var(--ac)">Liquidez real</b>: <b style="color:var(--tx)">${fqR(liqRealQ)}</b>
-          <div style="font-size:8px;color:var(--mu);padding-left:14px">+ Ahorro BI (fijos) · tu cash total sin vender cripto · de la cual invertida: <b style="color:var(--go)">${fqR(invertidaQ)}</b></div>
-        </div>
-        <div>
-          🛟 <b style="color:var(--pu)">Supervivencia</b>: <b style="color:var(--tx)">${fqR(supervivenciaQ)}</b>
-          <div style="font-size:8px;color:var(--mu);padding-left:14px">+ cripto completo · todo lo que liquidas en emergencia mayor (sin casa)</div>
+        <div style="font-size:8px;color:var(--mu);padding-left:10px;border-left:2px solid var(--pu);line-height:1.9">
+          <span style="color:var(--mu2)">por qué tan rápido accedes:</span><br>
+          🔓 Operable <b style="color:var(--gr)">${fqR(liqOperableQ)}</b> <span style="color:var(--mu2)">· hoy, sin comprometer</span><br>
+          💵 Inmediata <b style="color:var(--ac)">${fqR(liqInmediataQ)}</b> <span style="color:var(--mu2)">· + Ahorro BI, sin vender cripto</span><br>
+          📈 Invertida <b style="color:var(--go)">${fqR(invertidaQ)}</b> <span style="color:var(--mu2)">· requiere vender</span>
         </div>
       </div>
     </div>
@@ -2143,8 +2139,9 @@ function descargarResumen(){
           const portTotalU=parseFloat(ST.portafolioUsd)||0;
           const portSinBtcU=Math.max(portTotalU-btcUsd,0);
           const reservasU=totalRes/tc;
+          const luluU=(parseFloat(ST.reservaLulu)||0)/tc;
           const hipU=salHip/tc;
-          const patNetoU=casaU+portSinBtcU+reservasU-hipU;
+          const patNetoU=casaU+portSinBtcU+reservasU+luluU-hipU;
           return '<div style="'+S.kpi+';background:rgba(245,166,35,.14)"><span style="'+S.klbl+'">🏛️ Patrimonio neto</span><span style="'+S.kval+'">$'+patNetoU.toLocaleString('en-US',{maximumFractionDigits:0})+'</span><span style="'+S.ksub+'">'+fqR(patNetoU*tc)+'</span></div>';
         })()
         +'<div style="'+S.kpi+'"><span style="'+S.klbl+'">Ingreso promedio</span><span style="'+S.kval+'">'+(avgNorm>0?fqR(avgNorm):'—')+'</span><span style="'+S.ksub+'">'+fusd(avgNorm)+' · '+normales.length+' meses</span></div>'
@@ -2166,8 +2163,9 @@ function descargarResumen(){
       const portTotalU=parseFloat(ST.portafolioUsd)||0;
       const portSinBtcU=Math.max(portTotalU-btcUsd,0);
       const reservasU=totalRes/tc;
+      const luluU=(parseFloat(ST.reservaLulu)||0)/tc;
       const hipU=salHip/tc;
-      const totalActU=casaU+portSinBtcU+reservasU;
+      const totalActU=casaU+portSinBtcU+reservasU+luluU;
       const patNetoU=totalActU-hipU;
       const fu=n=>'$'+n.toLocaleString('en-US',{maximumFractionDigits:0});
       const pctA=n=>totalActU>0?(n/totalActU*100).toFixed(0)+'%':'—';
@@ -2180,12 +2178,70 @@ function descargarResumen(){
           +'<tr><td style="'+S.td+'">🏠 Casa</td><td style="'+S.td+'color:#888">valor mercado · '+pctA(casaU)+' de activos</td><td style="'+S.td+'color:#059669;font-weight:600">'+fu(casaU)+'</td><td style="'+S.td+'color:#888">'+fqR(casaU*tc)+'</td></tr>'
           +'<tr><td style="'+S.td+'">📊 Portafolio (sin BTC)</td><td style="'+S.td+'color:#888">total '+fu(portTotalU)+' − BTC '+fu(btcUsd)+' · '+pctA(portSinBtcU)+'</td><td style="'+S.td+'color:#059669;font-weight:600">'+fu(portSinBtcU)+'</td><td style="'+S.td+'color:#888">'+fqR(portSinBtcU*tc)+'</td></tr>'
           +'<tr><td style="'+S.td+'">💰 Reservas líquidas</td><td style="'+S.td+'color:#888">todas · incluye BTC colchón · '+pctA(reservasU)+'</td><td style="'+S.td+'color:#059669;font-weight:600">'+fu(reservasU)+'</td><td style="'+S.td+'color:#888">'+fqR(totalRes)+'</td></tr>'
+          +(luluU>0?'<tr><td style="'+S.td+'">👤 Cash personal</td><td style="'+S.td+'color:#888">Lulubit · disponible · '+pctA(luluU)+'</td><td style="'+S.td+'color:#059669;font-weight:600">'+fu(luluU)+'</td><td style="'+S.td+'color:#888">'+fqR(luluU*tc)+'</td></tr>':'')
           +'<tr><td style="'+S.td+'font-weight:700" colspan="2">Total activos</td><td style="'+S.td+'font-weight:700;color:#059669">'+fu(totalActU)+'</td><td style="'+S.td+'font-weight:700;color:#059669">'+fqR(totalActU*tc)+'</td></tr>'
           +'<tr><td style="'+S.td+'font-weight:700;color:#4c1d95" colspan="4">Pasivos</td></tr>'
           +'<tr><td style="'+S.td+'">🏦 Hipoteca BI</td><td style="'+S.td+'color:#888">saldo estimado · '+pctA(hipU)+' de activos</td><td style="'+S.td+'color:#dc2626;font-weight:600">-'+fu(hipU)+'</td><td style="'+S.td+'color:#888">'+fqR(salHip)+'</td></tr>'
           +'<tr style="background:#f5f3ff"><td style="'+S.td+'font-weight:800;color:#4c1d95;font-size:13px" colspan="2">PATRIMONIO NETO</td><td style="'+S.td+'font-weight:800;color:#4c1d95;font-size:13px">'+fu(patNetoU)+'</td><td style="'+S.td+'font-weight:800;color:#4c1d95;font-size:13px">'+fqR(patNetoU*tc)+'</td></tr>'
         +'</tbody></table>'
         +'<div style="font-size:9px;color:#a0aec0;margin-top:8px;line-height:1.5">Portafolio y casa son valores manuales que actualizas en la app. Reservas e hipoteca se calculan automáticamente. El BTC se cuenta una vez (en reservas), por eso el portafolio se muestra sin BTC.</div>'
+      +'</div>';
+    })()
+
+    // ── INDICADORES DE SALUD (semáforos) ──
+    +(()=>{
+      const fijos=tf, ing=ingTotal>0?ingTotal:31568;
+      const lulu=parseFloat(ST.reservaLulu)||0;
+      const ahorroBi=COLS.emer||0, bant=COLS.bant||0, mon=COLS.buf||0;
+      const reemb=(COLS.reimb||0)*tc, abiUsd=(COLS.abiUsd||0)*tc;
+      const portTotalU=parseFloat(ST.portafolioUsd)||0;
+      const cripto=Math.max(portTotalU-btcUsd,0)*tc + btcQ;
+      const operable=lulu+bant+mon+reemb+abiUsd;
+      const inmediata=operable+ahorroBi;
+      const real=inmediata+cripto;
+      // valores y colores
+      const c=(v,r,g)=>v<r?'#dc2626':(v<g?'#e8a020':'#059669'); // rojo/amarillo/verde
+      const s1=ahorroBi/fijos, s1c=c(s1,2,4);
+      const s2=CUOTA/ing*100, s2c=s2>48?'#dc2626':(s2>40?'#e8a020':'#059669');
+      const s3=operable, s3c=c(s3,5000,15000);
+      const s4=inmediata/fijos, s4c=c(s4,2,4);
+      const s5=real/fijos, s5c=c(s5,5,12);
+      const s6=Math.max(ing-fijos,0)/ing*100, s6c=c(s6,15,30);
+      const dotC=col=>col==='#dc2626'?'🔴':(col==='#e8a020'?'🟡':'🟢');
+      const semRow=(col,lbl,val,det)=>'<tr><td style="'+S.td+'text-align:center;width:24px">'+dotC(col)+'</td><td style="'+S.td+'font-weight:600">'+lbl+'</td><td style="'+S.td+'color:#888;font-size:9px">'+det+'</td><td style="'+S.td+'text-align:right;font-weight:700;color:'+col+'">'+val+'</td></tr>';
+      return '<div class="rsec" style="'+S.sec+'">'
+        +'<span style="'+S.sectl+'">Indicadores de salud · ¿cómo estoy?</span>'
+        +'<table style="'+S.tbl+'"><tbody>'
+        +semRow(s1c,'Colchón operativo',s1.toFixed(1)+' m','Ahorro BI ÷ fijos · meta >4m')
+        +semRow(s2c,'Peso hipoteca',s2.toFixed(0)+'%','cuota ÷ ingreso · sano <40%')
+        +semRow(s3c,'Liquidez operable',fqR(operable),'lo que usas hoy · meta >Q15K')
+        +semRow(s4c,'Liquidez inmediata',s4.toFixed(1)+' m','cash total sin vender cripto · >4m')
+        +semRow(s5c,'Liquidez real total',s5.toFixed(1)+' m','todo movible incl. cripto · >12m')
+        +semRow(s6c,'Excedente disponible',s6.toFixed(0)+'%','ingreso − fijos ÷ ingreso · >30%')
+        +'</tbody></table>'
+        +'<div style="font-size:9px;color:#a0aec0;margin-top:8px;line-height:1.5">🟢 sano · 🟡 vigilar · 🔴 actúa. Estos indicadores muestran la salud financiera de un vistazo.</div>'
+      +'</div>';
+    })()
+
+    // ── LIQUIDEZ POR INMEDIATEZ (capas) ──
+    +(()=>{
+      const lulu=parseFloat(ST.reservaLulu)||0;
+      const ahorroBi=COLS.emer||0, bant=COLS.bant||0, mon=COLS.buf||0;
+      const reemb=(COLS.reimb||0)*tc, abiUsd=(COLS.abiUsd||0)*tc;
+      const portTotalU=parseFloat(ST.portafolioUsd)||0;
+      const cripto=Math.max(portTotalU-btcUsd,0)*tc + btcQ;
+      const operable=lulu+bant+mon+reemb+abiUsd;
+      const inmediata=operable+ahorroBi;
+      const real=inmediata+cripto;
+      return '<div class="rsec" style="'+S.sec+'">'
+        +'<span style="'+S.sectl+'">Liquidez real · '+fqR(real)+' (todo movible, sin casa)</span>'
+        +'<table style="'+S.tbl+'"><thead><tr><th style="'+S.th+'">Capa</th><th style="'+S.th+'">Qué incluye</th><th style="'+S.th+'">Acceso</th><th style="'+S.th+'">Monto</th></tr></thead><tbody>'
+        +'<tr><td style="'+S.td+'font-weight:700;color:#059669">🔓 Operable</td><td style="'+S.td+'color:#888;font-size:9px">Lulubit+Bantrab+Monetaria+Reemb+USD</td><td style="'+S.td+'color:#888">hoy</td><td style="'+S.td+'text-align:right;font-weight:700">'+fqR(operable)+'</td></tr>'
+        +'<tr><td style="'+S.td+'font-weight:700;color:#3182ce">💵 Inmediata</td><td style="'+S.td+'color:#888;font-size:9px">+ Ahorro BI (fijos) · sin vender cripto</td><td style="'+S.td+'color:#888">directo</td><td style="'+S.td+'text-align:right;font-weight:700">'+fqR(inmediata)+'</td></tr>'
+        +'<tr><td style="'+S.td+'font-weight:700;color:#e8a020">📈 Invertida</td><td style="'+S.td+'color:#888;font-size:9px">portafolio + BTC</td><td style="'+S.td+'color:#888">requiere vender</td><td style="'+S.td+'text-align:right;font-weight:700">'+fqR(cripto)+'</td></tr>'
+        +'<tr style="background:#f5f3ff"><td style="'+S.td+'font-weight:800;color:#4c1d95" colspan="3">LIQUIDEZ REAL TOTAL</td><td style="'+S.td+'text-align:right;font-weight:800;color:#4c1d95">'+fqR(real)+'</td></tr>'
+        +'</tbody></table>'
+        +'<div style="font-size:9px;color:#a0aec0;margin-top:8px;line-height:1.5">Real es todo tu dinero movible. Las capas muestran qué tan rápido accedes a cada parte: operable hoy, inmediata sin vender, invertida requiere liquidar.</div>'
       +'</div>';
     })()
 

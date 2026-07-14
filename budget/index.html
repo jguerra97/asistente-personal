@@ -934,31 +934,45 @@ function renderPatrimonio(){
   const patNetoU = totalActivosU - hipU;
   const patNetoQ = patNetoU*tc;
 
-  // Patrimonio SIN casa (recordatorio de dependencia)
-  const patSinCasaU = (portSinBtcU + reservasU + luluQ/tc) - hipU;
-  const patSinCasaQ = patSinCasaU*tc;
-  // Liquidez maniobrable (lo que puedes tocar, sin restar hipoteca)
-  const liqManiobrableQ = portSinBtcU*tc + reservasQ + luluQ;
+  // ── TRES NIVELES DE LIQUIDEZ (en Q) ──
+  // Componentes base
+  const ahorroBiQ = (COLS.emer||0);                    // Ahorro BI = dinero de fijos (destino intocable)
+  const bantrabQ  = (COLS.bant||0);                    // Bantrab = ahorro total
+  const monetariaQ= (COLS.buf||0);                     // Monetaria BI
+  const reembQ    = (COLS.reimb||0)*tc;                // Reembolsos (movibles)
+  const abiUsdQ   = (COLS.abiUsd||0)*tc;               // Superávit viáticos
+  const criptoQ   = portSinBtcU*tc + btcQ;             // Portafolio completo (resto + BTC)
+
+  // NIVEL 1 — LIQUIDEZ OPERABLE: lo que uso hoy sin comprometer nada (excluye Ahorro BI de fijos y cripto)
+  const liqOperableQ = luluQ + bantrabQ + monetariaQ + reembQ + abiUsdQ;
+  // NIVEL 2 — LIQUIDEZ REAL: todo el cash sin casa, incluye Ahorro BI (sin vender cripto)
+  const liqRealQ = liqOperableQ + ahorroBiQ;
+  // NIVEL 3 — SUPERVIVENCIA: todo movible incluido el cripto (emergencia máxima)
+  const supervivenciaQ = liqRealQ + criptoQ;
+  // Sub-dato: cuánto de tu dinero movible está invertido
+  const invertidaQ = criptoQ;
 
   // ── SEMÁFOROS DE SALUD FINANCIERA ──
   const fijosMes = FIJOS_TOTAL;
   const ingresoMes = (ST.q1||0)+(ST.q2||0) > 0 ? (ST.q1||0)+(ST.q2||0) : 31568; // usa mes actual o promedio
-  const cashSinBtc = (COLS.emer||0)+(COLS.bant||0)+(COLS.buf||0)+((COLS.reimb||0)*tc)+((COLS.abiUsd||0)*tc)+luluQ; // reservas sin BTC + cash personal
-  // 1. Colchón (Ahorro BI / fijos)
-  const s1 = (COLS.emer||0)/fijosMes;
+  // 1. Colchón operativo (Ahorro BI / fijos)
+  const s1 = ahorroBiQ/fijosMes;
   const s1c = s1<2?'rd':(s1<4?'go':'gr');
   // 2. Peso hipoteca (cuota / ingreso) — ajustado a realidad
   const s2 = CUOTA/ingresoMes*100;
   const s2c = s2>48?'rd':(s2>40?'go':'gr');
-  // 3. Supervivencia sin ingreso (todas reservas + lulu / fijos)
-  const s3 = (reservasQ+luluQ)/fijosMes;
-  const s3c = s3<3?'rd':(s3<6?'go':'gr');
-  // 4. Tasa de ahorro (excedente / ingreso)
-  const s4 = Math.max(ingresoMes-fijosMes,0)/ingresoMes*100;
-  const s4c = s4<15?'rd':(s4<30?'go':'gr');
-  // 5. Liquidez inmediata (cash sin BTC / fijos)
-  const s5 = cashSinBtc/fijosMes;
-  const s5c = s5<1.5?'rd':(s5<3?'go':'gr');
+  // 3. Liquidez operable (en Q absolutos)
+  const s3 = liqOperableQ;
+  const s3c = s3<5000?'rd':(s3<15000?'go':'gr');
+  // 4. Liquidez real (cash sin casa / fijos)
+  const s4 = liqRealQ/fijosMes;
+  const s4c = s4<2?'rd':(s4<4?'go':'gr');
+  // 5. Supervivencia (todo + cripto / fijos)
+  const s5 = supervivenciaQ/fijosMes;
+  const s5c = s5<5?'rd':(s5<12?'go':'gr');
+  // 6. Tasa de ahorro (excedente / ingreso)
+  const s6 = Math.max(ingresoMes-fijosMes,0)/ingresoMes*100;
+  const s6c = s6<15?'rd':(s6<30?'go':'gr');
   const dot=c=>({rd:'🔴',go:'🟡',gr:'🟢'}[c]);
   const cvar=c=>({rd:'var(--rd)',go:'var(--go)',gr:'var(--gr)'}[c]);
   const semaforo=(dotc,lbl,val,detalle)=>`<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--bd)">
@@ -985,11 +999,12 @@ function renderPatrimonio(){
       <div class="col-ttl">🚦 Indicadores de salud · decisión a tiempo</div>
       ${semaforo(s1c,'Colchón operativo',s1.toFixed(1)+' m','Ahorro BI ÷ fijos · meta >4 meses')}
       ${semaforo(s2c,'Peso hipoteca',s2.toFixed(0)+'%','cuota ÷ ingreso · 🟢<40 🟡40-48 🔴>48')}
-      ${semaforo(s3c,'Supervivencia sin ingreso',s3.toFixed(1)+' m','todas reservas ÷ fijos · meta >6 meses')}
-      ${semaforo(s4c,'Tasa de ahorro',s4.toFixed(0)+'%','excedente ÷ ingreso · meta >30%')}
-      ${semaforo(s5c,'Liquidez inmediata',s5.toFixed(1)+' m','cash sin BTC ÷ fijos · meta >3 meses')}
+      ${semaforo(s3c,'Liquidez operable',fqR(s3),'Lulubit+Bantrab+Monetaria+Reemb+USD · 🟢>Q15K')}
+      ${semaforo(s4c,'Liquidez real',s4.toFixed(1)+' m','todo el cash sin casa ÷ fijos · meta >4m')}
+      ${semaforo(s5c,'Supervivencia',s5.toFixed(1)+' m','todo + cripto ÷ fijos · meta >12m')}
+      ${semaforo(s6c,'Tasa de ahorro',s6.toFixed(0)+'%','excedente ÷ ingreso · meta >30%')}
       <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu2);margin-top:8px;line-height:1.5">
-        Verde = sano · Amarillo = vigilar · Rojo = actúa. El de hipoteca mide tu ingreso: sube a Q35K+ y pasa a verde.</div>
+        Verde = sano · Amarillo = vigilar · Rojo = actúa. Operable = lo que usas hoy · Real = tu cash total · Supervivencia = liquidando todo.</div>
     </div>
 
     <!-- KPI patrimonio neto -->
@@ -997,15 +1012,19 @@ function renderPatrimonio(){
       <div class="col-ttl" style="color:var(--go)">🏛️ Patrimonio neto</div>
       <div style="font-family:'DM Mono',monospace;font-size:28px;font-weight:800;color:var(--go);letter-spacing:-1px;margin:6px 0 2px">${fusdR(patNetoU)}</div>
       <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--mu)">${fqR(patNetoQ)}</div>
-      <div style="border-top:1px solid var(--bd);margin-top:8px;padding-top:8px;font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);line-height:1.6">
-        💵 Liquidez maniobrable: <b style="color:var(--ac)">${fusdR(liqManiobrableQ/tc)}</b> (${fqR(liqManiobrableQ)})
-        <div style="font-size:8px;color:var(--mu);margin:4px 0 6px;padding-left:10px;border-left:2px solid var(--ac);line-height:1.7">
-          = Portafolio sin BTC <b style="color:var(--tx)">${fqR(portSinBtcU*tc)}</b><br>
-          + Reservas líquidas <b style="color:var(--tx)">${fqR(reservasQ)}</b> <span style="color:var(--mu)">(incl. BTC)</span><br>
-          + Cash personal Lulubit <b style="color:var(--tx)">${fqR(luluQ)}</b><br>
-          <span style="color:var(--ac)">— lo que puedes mover hoy, sin vender la casa</span>
+      <div style="border-top:1px solid var(--bd);margin-top:8px;padding-top:8px;font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);line-height:1.7">
+        <div style="margin-bottom:6px">
+          🔓 <b style="color:var(--gr)">Liquidez operable</b>: <b style="color:var(--tx)">${fqR(liqOperableQ)}</b>
+          <div style="font-size:8px;color:var(--mu);padding-left:14px">Lulubit + Bantrab + Monetaria + Reembolsos + USD · lo que usas hoy</div>
         </div>
-        📉 Sin casa (neto): <b style="color:${patSinCasaU<0?'var(--rd)':'var(--gr)'}">${fusdR(patSinCasaU)}</b> — tu solvencia depende de la casa
+        <div style="margin-bottom:6px">
+          💵 <b style="color:var(--ac)">Liquidez real</b>: <b style="color:var(--tx)">${fqR(liqRealQ)}</b>
+          <div style="font-size:8px;color:var(--mu);padding-left:14px">+ Ahorro BI (fijos) · tu cash total sin vender cripto · de la cual invertida: <b style="color:var(--go)">${fqR(invertidaQ)}</b></div>
+        </div>
+        <div>
+          🛟 <b style="color:var(--pu)">Supervivencia</b>: <b style="color:var(--tx)">${fqR(supervivenciaQ)}</b>
+          <div style="font-size:8px;color:var(--mu);padding-left:14px">+ cripto completo · todo lo que liquidas en emergencia mayor (sin casa)</div>
+        </div>
       </div>
     </div>
 

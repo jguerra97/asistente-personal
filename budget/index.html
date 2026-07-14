@@ -895,12 +895,12 @@ function renderPatrimonio(){
   if(!wrap) return;
   const tc=ST.tc||7.75;
 
-  // Saldo hipoteca (mismo cálculo que el resumen)
+  // Saldo hipoteca (mismo cálculo que el resumen) — basado en cuotas PAGADAS reales
   const salHip=(()=>{
-    const anio=ST.anio||2026;
-    const mD=Math.max((anio-2026)*12+(ST.mes-1),0);
+    const pagadasObj=getCuotasPagadas();
+    const nCuotas=Object.keys(pagadasObj).filter(k=>pagadasObj[k]).length;
     const tM=0.0726/12;let s=1480000;
-    for(let i=0;i<mD;i++){const int=s*tM;s=s-(CUOTA-int);}
+    for(let i=0;i<nCuotas;i++){const int=s*tM;s=s-(CUOTA-int);}
     return Math.max(s-getAbonosHip().reduce((a,x)=>a+x.amt,0),0);
   })();
 
@@ -1506,23 +1506,26 @@ function recalcHipSaldo(){
   const mesesDesdeInicio=(anio-HIP_INICIO.y)*12+(ST.mes-HIP_INICIO.m);
   const mD=Math.max(mesesDesdeInicio,0);
   const tM=0.0726/12;
+  // Saldo basado en CUOTAS EFECTIVAMENTE PAGADAS (histórico total), no meses transcurridos
+  const pagadasObjSaldo=getCuotasPagadas();
+  const nCuotasPag=Object.keys(pagadasObjSaldo).filter(k=>pagadasObjSaldo[k]).length;
   let sal=1480000;
-  for(let i=0;i<mD;i++){const int=sal*tM;sal=sal-(CUOTA-int);}
+  for(let i=0;i<nCuotasPag;i++){const int=sal*tM;sal=sal-(CUOTA-int);}
   const totalAbonos=getAbonosHip().reduce((s,a)=>s+a.amt,0);
   sal=Math.max(sal-totalAbonos,0);
-  // Cuotas marcadas en el período visible
+  // Cuotas marcadas en el período visible (para el detalle visual)
   const mesesPeriodo=getCuotasMeses();
   const pagadas=getCuotasPagadas();
   const nPag=mesesPeriodo.filter(m=>!!pagadas[m.key]).length;
   const pend=mesesPeriodo.length-nPag;
 
-  // Pagado = cuotas marcadas × cuota + abonos extra
-  const pagadoTotal=nPag*CUOTA+totalAbonos;
+  // Pagado = TODAS las cuotas marcadas (histórico) × cuota + abonos extra
+  const pagadoTotal=nCuotasPag*CUOTA+totalAbonos;
   const pctP=Math.min((pagadoTotal/1480000)*100,100);
 
-  // Meses restantes descontando abonos
+  // Meses restantes = 180 − cuotas pagadas − cuotas ahorradas por abonos
   const cuotasAhorradas=Math.floor(totalAbonos/CUOTA);
-  const mesesRestantes=Math.max(180-mD-cuotasAhorradas,0);
+  const mesesRestantes=Math.max(180-nCuotasPag-cuotasAhorradas,0);
 
   const tc=ST.tc||7.75;
   document.getElementById('hip-saldo').textContent=fq(sal);
@@ -2019,10 +2022,10 @@ function descargarResumen(){
   const btcQ   = btcUsd * tc;
   const totalRes=COLS.emer+COLS.bant+COLS.buf+(COLS.reimb*tc)+((COLS.abiUsd||0)*tc)+btcQ; // imp unificado en emer; BTC y Ahorro BI USD sumados al total
   const salHip=(()=>{
-    const anio=ST.anio||2026;
-    const mD=Math.max((anio-2026)*12+(ST.mes-1),0);
+    const pagadasObj=getCuotasPagadas();
+    const nCuotas=Object.keys(pagadasObj).filter(k=>pagadasObj[k]).length;
     const tM=0.0726/12;let s=1480000;
-    for(let i=0;i<mD;i++){const int=s*tM;s=s-(CUOTA-int);}
+    for(let i=0;i<nCuotas;i++){const int=s*tM;s=s-(CUOTA-int);}
     return Math.max(s-getAbonosHip().reduce((a,x)=>a+x.amt,0),0);
   })();
   const mesesPeriodo=getCuotasMeses();

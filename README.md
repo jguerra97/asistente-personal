@@ -4,4 +4,4 @@ Se crea una pagina web que permite ver los siguientes 3 sistemas:
 2. El budget que permite llevar un tracking web del presupuesto mes a mes para un control real de gastos, ingresos e inversiones
 3. Un portafolio tracker que lleva el rendimiento y distribucion de las inversiones hechas hasta ahora.
 
-Todo en su ultima version al dia de hoy 10/07/2026
+Todo en su ultima version al dia de 14/07/2026

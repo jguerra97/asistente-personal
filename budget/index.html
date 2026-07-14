@@ -953,7 +953,11 @@ function renderPatrimonio(){
 
   // ── SEMÁFOROS DE SALUD FINANCIERA ──
   const fijosMes = FIJOS_TOTAL;
-  const ingresoMes = (ST.q1||0)+(ST.q2||0) > 0 ? (ST.q1||0)+(ST.q2||0) : 31568; // usa mes actual o promedio
+  // Ingreso de referencia: usa la suma solo si AMBAS quincenas están ingresadas.
+  // Si el mes está parcial (solo Q1 o solo Q2), usa el promedio para no inflar los ratios.
+  const PROMEDIO_ING = 31568;
+  const ambasQuincenas = (ST.q1||0) > 0 && (ST.q2||0) > 0;
+  const ingresoMes = ambasQuincenas ? (ST.q1+ST.q2) : PROMEDIO_ING;
   // 1. Colchón operativo (Ahorro BI / fijos)
   const s1 = ahorroBiQ/fijosMes;
   const s1c = s1<2?'rd':(s1<4?'go':'gr');
@@ -2190,7 +2194,7 @@ function descargarResumen(){
 
     // ── INDICADORES DE SALUD (semáforos) ──
     +(()=>{
-      const fijos=tf, ing=ingTotal>0?ingTotal:31568;
+      const fijos=tf, ing=((ST.q1||0)>0&&(ST.q2||0)>0)?(ST.q1+ST.q2):31568;
       const lulu=parseFloat(ST.reservaLulu)||0;
       const ahorroBi=COLS.emer||0, bant=COLS.bant||0, mon=COLS.buf||0;
       const reemb=(COLS.reimb||0)*tc, abiUsd=(COLS.abiUsd||0)*tc;

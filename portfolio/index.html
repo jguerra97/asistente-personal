@@ -517,8 +517,8 @@ const L2=[
   {id:'akash-network',  tick:'AKT',   name:'Akash Network',    col:'#10b981',ico:'A',qty:2046.43, entry:0.4718, target:3.50,  price:0.4632},
   {id:'morpho',         tick:'MORPHO',name:'Morpho Protocol',  col:'#9d7ff0',ico:'M',qty:533.85,  entry:2.26,   target:5.00,  price:1.922,
    contractFallback:{platform:'ethereum',address:'0x58d97b57bb95320f9a05dc918aef65434969c2b2'}},
-  {id:'popcat',tick:'POPCAT',name:'Popcat (POPCAT)',col:'#ff6eb4',ico:'🐱',qty:8929.30, entry:0.0688, target:2.05, price:0.0688,
-   note:'Slot moonshot · Meme Solana · ATH $2.05 · supply 98% circ · KuCoin'},
+  {id:'fetch-ai',tick:'FET',name:'Artificial Superintelligence (FET)',col:'#4a90d9',ico:'🤖',qty:3289, entry:0.161, target:3.15, price:0.161,
+   note:'Slot especulativo · IA descentralizada (ASI Alliance) · reemplazó POPCAT 16jul · riesgo medio-alto · ATH $3.47 mar2024'},
 ];
 const BROKER=[
   {tick:'MSTR',name:'MicroStrategy (Schwab)',col:'#e8a020',ico:'M',qty:18.46, entry:172.10, price:166.43,   strat:'exit', sl:'Hold · triggers documentados',  note:'18.46 acc · prom $172.10 · no compra sin triggers (mNAV >1.2x · breakout $205 · BTC >$90K)'},
@@ -902,7 +902,7 @@ async function load(){
   rb.classList.add('busy');sp.classList.add('go');
   document.getElementById('ts').textContent='Actualizando precios...';
   applyS();
-  const cgIds=['hyperliquid','ondo-finance','akash-network','morpho','popcat'];
+  const cgIds=['hyperliquid','ondo-finance','akash-network','morpho','fetch-ai'];
   const px=await fetchCG(cgIds);
   if(Object.keys(px).length===0){
     document.getElementById('ts').textContent='⚠ Sin conexión a CoinGecko — usando precios guardados';
@@ -1307,19 +1307,36 @@ function verHistorialTx(tick){
 // ── RESUMEN EJECUTIVO PROFESIONAL ───────────────────────────────
 function descargarResumen(){
   const allAssets=[...L1,...L2,...BROKER];
-  let tot=0,cst=0;
   // Capital histórico
   const capHist = getCapitalHistorico();
+
+  // ── SEPARACIÓN BTC: colchón (90%) vs operable (10% vendible) ──
+  const BTC_VENDIBLE = 0.10; // solo 10% del BTC entra en cartera operable/metas
+  let patrimonioTotal=0;   // TODO el cripto (BTC completo) — lo que tienes
+  let operableTot=0;       // cartera realizable (alts + 10% BTC) — lo que venderás
+  let operableCst=0;       // costo base de lo operable
+  let colchonBtc=0;        // 90% del BTC que NO se vende
   allAssets.forEach(a=>{
     const v=(a.price||0)*a.qty;
-    tot+=v; cst+=a.entry*a.qty;
+    patrimonioTotal+=v;
+    if(a.tick==='BTC'){
+      operableTot += v*BTC_VENDIBLE;
+      operableCst += a.entry*a.qty*BTC_VENDIBLE;
+      colchonBtc += v*(1-BTC_VENDIBLE);
+    } else {
+      operableTot += v;
+      operableCst += a.entry*a.qty;
+    }
   });
+  // Totales: 'tot' y 'cst' ahora reflejan la cartera OPERABLE (realizable)
+  const tot=operableTot, cst=operableCst;
   const pnl=tot-cst;
   const pnlPct=cst>0?((pnl/cst)*100).toFixed(1):'0';
   const mult=cst>0?(tot/cst).toFixed(2):'—';
-  const META = 88000; // Meta piso: cripto + MSTR para reducir cuota hipoteca a Q10K
+  const META = 88000; // Meta piso: capital realizable para reducir cuota hipoteca
   const META_ASPIRACIONAL = 150000; // Meta aspiracional: liquidar hipoteca dic 2028
   const META_CAPITAL = 50000; // Capital invertido objetivo
+  // Metas se miden contra REALIZABLE (operable + 10% BTC), NO contra patrimonio completo
   const pct=Math.min((tot/META)*100,100);
   const pctAspiracional=Math.min((tot/META_ASPIRACIONAL)*100,100);
   const pctCapital=Math.min((cst/META_CAPITAL)*100,100);
@@ -1343,12 +1360,12 @@ function descargarResumen(){
   // ── PROYECCIÓN A META — TRANCHES Y TRAILING (calcular primero) ──
   // La proyección define el valor objetivo que cada activo aporta a la meta $88K
   const PROY_TRANCHES = {
-    'HYPE':   { t1:{pct:25,px:100.00}, t2:{pct:30,px:200.00}, t3:{pct:25,px:350.00}, moon:null, trailing:{pct:20,px:500.00} },
-    'ONDO':   { t1:{pct:20,px:0.75},   t2:{pct:25,px:1.20},   t3:{pct:30,px:2.00},   moon:null, trailing:{pct:25,px:3.00}   },
-    'AKT':    { t1:{pct:20,px:1.50},   t2:{pct:25,px:3.00},   t3:{pct:30,px:5.50},   moon:null, trailing:{pct:25,px:8.00}   },
-    'MORPHO': { t1:{pct:20,px:3.50},   t2:{pct:25,px:6.00},   t3:{pct:30,px:10.00},  moon:null, trailing:{pct:25,px:15.00}  },
-    'MSTR':   { t1:{pct:20,px:200.0},  t2:{pct:25,px:350.0},  t3:{pct:30,px:500.0},  moon:null, trailing:{pct:25,px:750.00} },
-    'POPCAT': { t1:{pct:25,px:0.20},   t2:{pct:30,px:0.50},   t3:{pct:25,px:1.00},   moon:null, trailing:{pct:20,px:2.00}   },
+    'HYPE':   { t1:{pct:10,px:85.00},  t2:{pct:15,px:100.00}, t3:{pct:30,px:200.00}, trailing:{pct:25,px:350.00}, moon:{pct:20,px:500.00} },
+    'ONDO':   { t1:{pct:5,px:0.75},    t2:{pct:20,px:1.20},   t3:{pct:35,px:2.00},   trailing:{pct:40,px:3.00},   moon:null   },
+    'AKT':    { t1:{pct:15,px:1.50},   t2:{pct:10,px:3.00},   t3:{pct:40,px:5.50},   trailing:{pct:35,px:8.00},   moon:null   },
+    'MORPHO': { t1:{pct:15,px:3.50},   t2:{pct:10,px:6.00},   t3:{pct:45,px:10.00},  trailing:{pct:30,px:15.00},  moon:null   },
+    'MSTR':   { t1:{pct:20,px:200.0},  t2:{pct:25,px:350.0},  t3:{pct:30,px:500.0},  trailing:{pct:25,px:750.00}, moon:null   },
+    'FET':    { t1:{pct:25,px:0.60},   t2:{pct:25,px:0.90},   t3:{pct:50,px:3.15},   trailing:null, moon:null   },
   };
   const PROY_BTC_PEAK = { pct:10, px:250000 };
   const PROY_META = 88000;
@@ -1386,7 +1403,7 @@ function descargarResumen(){
     'AKT':    {label:'tokens',   color:'#10b981'},
     'MORPHO': {label:'tokens',   color:'#6366f1'},
     'MSTR':   {label:'acciones', color:'#f25c5c'},
-    'POPCAT': {label:'tokens',   color:'#ff6eb4'},
+    'FET':    {label:'tokens',   color:'#4a90d9'},
   };
 
   // Meta operativa por activo: ($88K - aporte BTC peak) / N activos
@@ -1430,38 +1447,52 @@ function descargarResumen(){
   }, 0) / numActivos * 100;
 
   // ── Lista plana de activos (reemplaza L1/L2/BROKER tiers) ──
-  const assetsSorted = [...allAssets].map(a=>({
+  const assetsSorted = [...allAssets].map(a=>{
+    const factor = a.tick==='BTC' ? BTC_VENDIBLE : 1; // BTC entra solo al 10% (operable)
+    return {
     tick: a.tick,
     name: a.name || a.tick,
     qty: a.qty,
     price: a.price||0,
     entry: a.entry,
-    val: (a.price||0)*a.qty,
-    cst: a.entry*a.qty,
-  })).sort((a,b)=>b.val-a.val);
+    isBtc: a.tick==='BTC',
+    val: (a.price||0)*a.qty*factor,
+    cst: a.entry*a.qty*factor,
+    };
+  }).sort((a,b)=>b.val-a.val);
 
+  const PERFIL_RIESGO = {
+    'BTC':{t:'Colchón',c:'#f7931a'}, 'ONDO':{t:'Convicción',c:'#059669'},
+    'HYPE':{t:'Convicción',c:'#059669'}, 'MORPHO':{t:'Hold',c:'#3182ce'},
+    'AKT':{t:'Especulativo',c:'#d97706'}, 'FET':{t:'Especulativo',c:'#d97706'},
+    'MSTR':{t:'Acción',c:'#7c3aed'}
+  };
   const assetRows = assetsSorted.map(a=>{
     const p = a.val - a.cst;
     const pp = a.cst>0 ? (p/a.cst)*100 : 0;
     const pctPortf = tot>0 ? (a.val/tot)*100 : 0;
     const pColor = p>=0 ? '#059669' : '#dc2626';
+    const perfil = PERFIL_RIESGO[a.tick]||{t:'—',c:'#94a3b8'};
+    const tickLabel = a.isBtc ? a.tick+' <span style="font-size:8px;color:#a0aec0">(10% vendible)</span>' : a.tick;
     return `<tr>
-      <td style="padding:8px 10px;border-bottom:1px solid #edf2f7;font-weight:700">${a.tick}</td>
-      <td style="padding:8px 10px;border-bottom:1px solid #edf2f7;text-align:right;color:#718096;font-size:10px">${a.qty.toLocaleString('en-US',{maximumFractionDigits:4})}</td>
+      <td style="padding:8px 10px;border-bottom:1px solid #edf2f7;font-weight:700">${tickLabel}<br><span style="font-size:8px;font-weight:600;color:${perfil.c}">${perfil.t}</span></td>
+      <td style="padding:8px 10px;border-bottom:1px solid #edf2f7;text-align:right;color:#718096;font-size:10px">${a.qty.toLocaleString('en-US',{maximumFractionDigits:4})}${a.isBtc?'<br><span style="font-size:8px;color:#a0aec0">total</span>':''}</td>
       <td style="padding:8px 10px;border-bottom:1px solid #edf2f7;text-align:right">${fm2(a.val)}</td>
       <td style="padding:8px 10px;border-bottom:1px solid #edf2f7;text-align:right;color:${pColor};font-weight:600">${p>=0?'+':''}${fm2(Math.abs(p))}<br><span style="font-size:9px;font-weight:400">${pp>=0?'+':''}${pp.toFixed(1)}%</span></td>
       <td style="padding:8px 10px;border-bottom:1px solid #edf2f7;text-align:right;color:#a0aec0;font-size:10px">${pctPortf.toFixed(1)}%</td>
     </tr>`;
   }).join('');
 
-  // ── Performance y concentracion (calculado) ──
+  // ── Performance y concentracion (calculado sobre cartera OPERABLE, BTC al 10%) ──
   const sortedByVal = assetsSorted.slice(0,3);
   const top3Total = sortedByVal.reduce((s,a)=>s+a.val,0);
   const top3Pct = tot>0?((top3Total/tot)*100).toFixed(1):'0';
   const top3Names = sortedByVal.map(a=>a.tick).join(' + ');
+  const top1 = assetsSorted[0]||{tick:'—',val:0};
+  const top1Pct = tot>0?((top1.val/tot)*100).toFixed(1):'0';
 
-  const herfindahl = allAssets.reduce((s,a)=>{
-    const p = tot>0 ? ((a.price||0)*a.qty/tot) : 0;
+  const herfindahl = assetsSorted.reduce((s,a)=>{
+    const p = tot>0 ? (a.val/tot) : 0;
     return s + p*p;
   }, 0) * 10000;
   const concentrationLabel = herfindahl<1500?'Diversificado':herfindahl<2500?'Moderado':'Alto';
@@ -1557,10 +1588,16 @@ function descargarResumen(){
     <div style="background:rgba(61,184,245,.12);border:1px solid rgba(61,184,245,.25);color:#3db8f5;font-size:9px;padding:4px 10px;border-radius:20px;align-self:flex-start">Informe Personal</div>
   </div>
   <div class="kpis">
-    <div class="kpi"><div class="k-lbl">Valor mercado</div><div class="k-val">${fm2(tot)}</div><div class="k-sub">${pct.toFixed(1)}% del piso · ${pctAspiracional.toFixed(1)}% aspiracional</div></div>
+    <div class="kpi"><div class="k-lbl">Valor realizable</div><div class="k-val">${fm2(tot)}</div><div class="k-sub">operable + 10% BTC · lo que venderás</div></div>
     <div class="kpi"><div class="k-lbl">Capital invertido</div><div class="k-val">${fm2(cst)}</div><div class="k-sub">${pctCapital.toFixed(1)}% del capital meta</div></div>
     <div class="kpi"><div class="k-lbl">P&L no realizado</div><div class="k-val" style="color:${pnl>=0?'#34d07a':'#f25c5c'}">${pnl>=0?'+':''}${fm2(Math.abs(pnl))}</div><div class="k-sub">${pnlPct}%</div></div>
     <div class="kpi"><div class="k-lbl">Multiplo</div><div class="k-val" style="color:${parseFloat(mult)>=1?'#34d07a':'#f25c5c'}">${mult}x</div><div class="k-sub">retorno</div></div>
+  </div>
+  <div style="margin:10px 0;padding:10px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;font-size:10px;color:#475569;line-height:1.7">
+    <div style="display:flex;justify-content:space-between"><span>🪙 <strong>Patrimonio cripto total</strong> (todo lo que tienes)</span><strong style="color:#1e293b">${fm2(patrimonioTotal)}</strong></div>
+    <div style="display:flex;justify-content:space-between;padding-left:14px;color:#64748b"><span>🎯 Cartera realizable (operable + 10% BTC)</span><span>${fm2(tot)}</span></div>
+    <div style="display:flex;justify-content:space-between;padding-left:14px;color:#64748b"><span>🛡️ Colchón BTC (90%, reserva LF · no se vende)</span><span>${fm2(colchonBtc)}</span></div>
+    <div style="font-size:8px;color:#94a3b8;margin-top:5px">Las metas y proyecciones miden la <strong>cartera realizable</strong>, no el patrimonio total — para no dar falsa sensación de meta cumplida por el colchón.</div>
   </div>
   <div class="pbar-wrap">
     <div class="pbar-lbl"><span>Meta piso · ${fm2(META)} <span style="opacity:.6">(reducir cuota · jul 2028)</span></span><span><strong>${pct.toFixed(1)}%</strong></span></div>
@@ -1583,13 +1620,13 @@ function descargarResumen(){
   <div style="margin-top:10px;padding:10px;background:#ecfdf5;border-left:3px solid #059669;border-radius:3px;font-size:10px;color:#065f46;line-height:1.5">
     <strong>+${fm2(cambioValor)}</strong> en valor desde inicio (+${cambioPct}%) · Capital aportado: <strong>+${fm2(cambioCapital)}</strong>
   </div>
-  <div style="margin-top:8px;padding:10px;background:#f5f3ff;border-left:3px solid #7c3aed;border-radius:3px;font-size:10px;color:#4c1d95;line-height:1.6">
-    <strong>Dos metas, un rumbo.</strong> El <strong>piso ($88K, jul 2028)</strong> reduce la cuota de la hipoteca y da libertad para dejar el empleo sin presión — es el objetivo realista y alcanzable. La <strong>aspiracional ($150K, dic 2028)</strong> liquida la hipoteca por completo — es el norte. El piso ancla lo alcanzable; la aspiracional marca la dirección.
+  <div style="margin-top:8px;padding:8px 10px;background:#f5f3ff;border-left:3px solid #7c3aed;border-radius:3px;font-size:9px;color:#4c1d95;line-height:1.5">
+    <strong>Piso $88K</strong> (jul 2028): reduce la cuota, da libertad laboral. <strong>Aspiracional $150K</strong> (dic 2028): liquida la hipoteca. Mide capital realizable, no colchón.
   </div>
 </div>
 
 <div class="sec">
-  <div class="sec-hdr"><div class="sec-t">Composicion del portafolio</div><div class="sec-sub">${allAssets.length} activos</div></div>
+  <div class="sec-hdr"><div class="sec-t">Composicion del portafolio</div><div class="sec-sub">${allAssets.length} activos · BTC al 10% (solo lo vendible)</div></div>
   <table>
     <thead><tr>
       <th>Activo</th>
@@ -1600,34 +1637,54 @@ function descargarResumen(){
     </tr></thead>
     <tbody>${assetRows}</tbody>
   </table>
+  <div style="margin-top:8px;padding:8px 10px;background:#fff7ed;border-left:3px solid #f7931a;border-radius:3px;font-size:9px;color:#78350f;line-height:1.5">
+    BTC aparece solo con su <strong>10% vendible</strong>. El colchón BTC completo vale <strong>${fm2(colchonBtc/0.9)}</strong>: de eso, ${fm2(colchonBtc)} (90%) es reserva de largo plazo intocable. Los % de portafolio se calculan sobre la cartera realizable (operable + 10% BTC).
+  </div>
 </div>
 
 <div class="sec">
   <div class="sec-hdr"><div class="sec-t">Tokens objetivo para meta $88K</div><div class="sec-sub">($88K − BTC peak) ÷ 6 activos ÷ px pond. venta</div></div>
   ${accRows}
   <div style="margin-top:8px;padding:8px 10px;background:#fff7ed;border-left:3px solid #f59e0b;border-radius:3px;font-size:9px;color:#78350f;line-height:1.5">
-    Meta distribuida equitativamente entre 6 activos operativos (incl. POPCAT moonshot). Tokens necesarios = meta por activo ÷ precio promedio ponderado de tranches (T1/T2/T3/T4). Sirve para medir rezago en acumulación de unidades, no peso del portafolio.
+    Meta distribuida equitativamente entre 6 activos operativos (incl. FET especulativo). Tokens necesarios = meta por activo ÷ precio promedio ponderado de tranches (T1/T2/T3). Sirve para medir rezago en acumulación de unidades, no peso del portafolio. Horizonte 2028.
   </div>
 </div>
 
 <div class="sec">
-  <div class="sec-hdr"><div class="sec-t">Performance y concentracion</div><div class="sec-sub">Precios al ${timestamp}</div></div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
-    <div style="background:#f7f9ff;border:1px solid #e2e8f7;border-radius:8px;padding:12px 14px">
-      <div style="font-size:9px;color:#a0aec0;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Top 3 concentracion</div>
-      <div style="font-size:20px;font-weight:800;color:#1a202c;letter-spacing:-.5px">${top3Pct}%</div>
-      <div style="font-size:10px;color:#718096;margin-top:2px">${top3Names}</div>
+  <div class="sec-hdr"><div class="sec-t">Performance y concentracion</div><div class="sec-sub">cartera realizable · BTC al 10%</div></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">
+    <div style="background:#f7f9ff;border:1px solid #e2e8f7;border-radius:8px;padding:11px 12px">
+      <div style="font-size:8px;color:#a0aec0;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Mayor posición</div>
+      <div style="font-size:19px;font-weight:800;color:${parseFloat(top1Pct)>35?'#dc2626':parseFloat(top1Pct)>25?'#d97706':'#1a202c'};letter-spacing:-.5px">${top1Pct}%</div>
+      <div style="font-size:9px;color:#718096;margin-top:2px">${top1.tick}</div>
     </div>
-    <div style="background:#f7f9ff;border:1px solid #e2e8f7;border-radius:8px;padding:12px 14px">
-      <div style="font-size:9px;color:#a0aec0;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Ritmo actual</div>
-      <div style="font-size:20px;font-weight:800;color:#7c3aed;letter-spacing:-.5px">${(()=>{
+    <div style="background:#f7f9ff;border:1px solid #e2e8f7;border-radius:8px;padding:11px 12px">
+      <div style="font-size:8px;color:#a0aec0;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Top 3</div>
+      <div style="font-size:19px;font-weight:800;color:#1a202c;letter-spacing:-.5px">${top3Pct}%</div>
+      <div style="font-size:9px;color:#718096;margin-top:2px">${top3Names}</div>
+    </div>
+    <div style="background:#f7f9ff;border:1px solid #e2e8f7;border-radius:8px;padding:11px 12px">
+      <div style="font-size:8px;color:#a0aec0;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Diversificación</div>
+      <div style="font-size:19px;font-weight:800;color:${concentrationColor};letter-spacing:-.5px">${concentrationLabel}</div>
+      <div style="font-size:9px;color:#718096;margin-top:2px">HHI ${herfindahl.toFixed(0)}</div>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+    <div style="background:#f7f9ff;border:1px solid #e2e8f7;border-radius:8px;padding:11px 12px">
+      <div style="font-size:8px;color:#a0aec0;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Ritmo actual</div>
+      <div style="font-size:18px;font-weight:800;color:#7c3aed;letter-spacing:-.5px">${(()=>{
         const monthly=550,bonus=1703*2,target=88000;
         function mTo(r){let v=tot,m=0;const mr=r/12;while(v<target&&m<120){v=v*(1+mr)+monthly;if(m%12===3||m%12===8)v+=bonus/2;m++;}return m;}
         const mMod=mTo(0.60);
         const d=new Date(2026,3,7);d.setMonth(d.getMonth()+mMod);
         return d.toLocaleDateString('es-GT',{month:'short',year:'numeric'});
       })()}</div>
-      <div style="font-size:10px;color:#6b7280;margin-top:2px">escenario moderado 60%/año</div>
+      <div style="font-size:9px;color:#6b7280;margin-top:2px">llega a meta piso · 60%/año</div>
+    </div>
+    <div style="background:#f7f9ff;border:1px solid #e2e8f7;border-radius:8px;padding:11px 12px">
+      <div style="font-size:8px;color:#a0aec0;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Fuente de precios</div>
+      <div style="font-size:11px;color:#374151;line-height:1.5;margin-top:2px">🔄 <strong>Live</strong> (CoinGecko): HYPE, ONDO, AKT, MORPHO, FET<br>✏️ <strong>Manual</strong>: BTC, MSTR</div>
+      <div style="font-size:8px;color:#9ca3af;margin-top:3px">${timestamp}</div>
     </div>
   </div>
 
@@ -1678,7 +1735,7 @@ function descargarResumen(){
       <tr><td style="font-weight:700;color:#10b981">AKT</td><td>DePIN / cómputo descentralizado. BME mecánico activo (presión compradora). Mayor upside por dólar.</td></tr>
       <tr><td style="font-weight:700;color:#9d7ff0">MORPHO</td><td>Lending DeFi. Apollo comprador estructural (90M tokens, 48 meses). Posición completa.</td></tr>
       <tr><td style="font-weight:700;color:#e8a020">MSTR</td><td>Proxy apalancado de BTC vía balance corporativo. Trigger de recompra: BTC sostenido &gt;$65K.</td></tr>
-      <tr><td style="font-weight:700;color:#ff6eb4">POPCAT</td><td>Moonshot meme Solana. Supply 98% circulante (sin dilución). Hold puro, alta asimetría.</td></tr>
+      <tr><td style="font-weight:700;color:#4a90d9">FET</td><td>Slot especulativo IA descentralizada (ASI Alliance). Reemplazó POPCAT 16jul. Riesgo medio-alto: activo dañado -95% desde ATH, tesis de recuperación sectorial. Hold, no DCA.</td></tr>
     </tbody>
   </table>
 </div>
@@ -1689,12 +1746,12 @@ function descargarResumen(){
     <thead><tr><th>Activo</th><th style="text-align:right">T1</th><th style="text-align:right">T2</th><th style="text-align:right">T3</th><th style="text-align:right">T4</th></tr></thead>
     <tbody>
       <tr><td style="font-weight:700">BTC</td><td style="text-align:right">$130K</td><td style="text-align:right">$160K</td><td style="text-align:right">$200K</td><td style="text-align:right">$250K</td></tr>
-      <tr><td style="font-weight:700">HYPE</td><td style="text-align:right">$100</td><td style="text-align:right">$200</td><td style="text-align:right">$350</td><td style="text-align:right">$500</td></tr>
+      <tr><td style="font-weight:700">HYPE</td><td style="text-align:right">$85</td><td style="text-align:right">$100</td><td style="text-align:right">$200</td><td style="text-align:right">$350/500</td></tr>
       <tr><td style="font-weight:700">ONDO</td><td style="text-align:right">$0.75</td><td style="text-align:right">$1.20</td><td style="text-align:right">$2.00</td><td style="text-align:right">$3.00</td></tr>
       <tr><td style="font-weight:700">AKT</td><td style="text-align:right">$1.50</td><td style="text-align:right">$3.00</td><td style="text-align:right">$5.50</td><td style="text-align:right">$8.00</td></tr>
       <tr><td style="font-weight:700">MORPHO</td><td style="text-align:right">$3.50</td><td style="text-align:right">$6.00</td><td style="text-align:right">$10.0</td><td style="text-align:right">$15.0</td></tr>
       <tr><td style="font-weight:700">MSTR</td><td style="text-align:right">$200</td><td style="text-align:right">$350</td><td style="text-align:right">$500</td><td style="text-align:right">$750</td></tr>
-      <tr><td style="font-weight:700">POPCAT</td><td style="text-align:right">$0.20</td><td style="text-align:right">$0.50</td><td style="text-align:right">$1.00</td><td style="text-align:right">$2.00</td></tr>
+      <tr><td style="font-weight:700">FET</td><td style="text-align:right">$0.60</td><td style="text-align:right">$0.90</td><td style="text-align:right">$3.15</td><td style="text-align:right">—</td></tr>
     </tbody>
   </table>
   <div style="margin-top:10px;padding:10px;background:#f0f9ff;border-left:3px solid #3b82f6;border-radius:3px;font-size:10px;color:#1e40af;line-height:1.5">
@@ -1758,7 +1815,7 @@ const ACC_META_COLORS = {
   'AKT':    {label:'tokens', color:'#10b981'},
   'MORPHO': {label:'tokens', color:'#9d7ff0'},
   'MSTR':   {label:'acciones', color:'#e8a020'},
-  'POPCAT': {label:'tokens', color:'#ff6eb4'},
+  'FET': {label:'tokens', color:'#4a90d9'},
 };
 
 // ── PROYECCIÓN A META — TRANCHES Y TRAILING (HARDCODED v2.1) ───
@@ -1767,12 +1824,12 @@ const ACC_META_COLORS = {
 // Editar solo en sesiones de revisión TA con datos nuevos.
 const META_OBJETIVO = 88000;
 const TRANCHES = {
-  'HYPE':   { t1: {pct:25, px:100.00}, t2: {pct:30, px:200.00}, t3: {pct:25, px:350.00}, moon: null, trailing: {pct:20, px:500.00} },
-  'ONDO':   { t1: {pct:20, px:0.75},   t2: {pct:25, px:1.20},   t3: {pct:30, px:2.00},   moon: null, trailing: {pct:25, px:3.00}   },
-  'AKT':    { t1: {pct:20, px:1.50},   t2: {pct:25, px:3.00},   t3: {pct:30, px:5.50},   moon: null, trailing: {pct:25, px:8.00}   },
-  'MORPHO': { t1: {pct:20, px:3.50},   t2: {pct:25, px:6.00},   t3: {pct:30, px:10.00},  moon: null, trailing: {pct:25, px:15.00}  },
-  'MSTR':   { t1: {pct:20, px:200.0},  t2: {pct:25, px:350.0},  t3: {pct:30, px:500.0},  moon: null, trailing: {pct:25, px:750.00} },
-  'POPCAT': { t1: {pct:25, px:0.20},   t2: {pct:30, px:0.50},   t3: {pct:25, px:1.00},   moon: null, trailing: {pct:20, px:2.00}   },
+  'HYPE':   { t1: {pct:10, px:85.00},  t2: {pct:15, px:100.00}, t3: {pct:30, px:200.00}, trailing: {pct:25, px:350.00}, moon: {pct:20, px:500.00} },
+  'ONDO':   { t1: {pct:5, px:0.75},    t2: {pct:20, px:1.20},   t3: {pct:35, px:2.00},   trailing: {pct:40, px:3.00},   moon: null   },
+  'AKT':    { t1: {pct:15, px:1.50},   t2: {pct:10, px:3.00},   t3: {pct:40, px:5.50},   trailing: {pct:35, px:8.00},   moon: null   },
+  'MORPHO': { t1: {pct:15, px:3.50},   t2: {pct:10, px:6.00},   t3: {pct:45, px:10.00},  trailing: {pct:30, px:15.00},  moon: null   },
+  'MSTR':   { t1: {pct:20, px:200.0},  t2: {pct:25, px:350.0},  t3: {pct:30, px:500.0},  trailing: {pct:25, px:750.00}, moon: null   },
+  'FET': { t1: {pct:25, px:0.60},   t2: {pct:25, px:0.90},   t3: {pct:50, px:3.15},   trailing: null, moon: null   },
 };
 // BTC se calcula aparte: solo 10% del holding actual en cycle peak
 const BTC_PEAK = { pct: 10, px: 250000 };
@@ -1931,25 +1988,25 @@ const STRAT = {
   'HYPE': {
     color:'#3db8f5', ico:'H', name:'Hyperliquid',
     tag:'VENTA ESCALONADA', tagColor:'#3db8f5',
-    plan:'Venta: T1 25% @ $100 · T2 30% @ $200 · T3 25% @ $350 · T4 20% @ $500.',
+    plan:'Venta: 10% @ $85 · 15% @ $100 · 30% @ $200 · 25% @ $350 · 20% @ $500. Horizonte 2028.',
     updated:'8 jul 2026'
   },
   'ONDO': {
     color:'#818cf8', ico:'O', name:'Ondo Finance',
     tag:'VENTA ESCALONADA', tagColor:'#818cf8',
-    plan:'Venta: T1 20% @ $0.75 · T2 25% @ $1.20 · T3 30% @ $2.00 · T4 25% @ $3.00.',
+    plan:'Venta: 5% @ $0.75 · 20% @ $1.20 · 35% @ $2.00 · 40% @ $3.00. Horizonte 2028.',
     updated:'8 jul 2026'
   },
   'AKT': {
     color:'#10b981', ico:'A', name:'Akash Network',
     tag:'VENTA ESCALONADA', tagColor:'#10b981',
-    plan:'Venta: T1 20% @ $1.50 · T2 25% @ $3.00 · T3 30% @ $5.50 · T4 25% @ $8.00.',
+    plan:'Venta: 15% @ $1.50 · 10% @ $3.00 · 40% @ $5.50 · 35% @ $8.00. Horizonte 2028.',
     updated:'8 jul 2026'
   },
   'MORPHO': {
     color:'#9d7ff0', ico:'M', name:'Morpho Protocol',
     tag:'VENTA ESCALONADA', tagColor:'#9d7ff0',
-    plan:'Venta: T1 20% @ $3.50 · T2 25% @ $6.00 · T3 30% @ $10.00 · T4 25% @ $15.00.',
+    plan:'Venta: 15% @ $3.50 · 10% @ $6.00 · 45% @ $10.00 · 30% @ $15.00. Horizonte 2028.',
     updated:'8 jul 2026'
   },
   'MSTR': {
@@ -1958,11 +2015,11 @@ const STRAT = {
     plan:'Venta: T1 20% @ $200 · T2 25% @ $350 · T3 30% @ $500 · T4 25% @ $750.',
     updated:'8 jul 2026'
   },
-  'POPCAT': {
-    color:'#ff6eb4', ico:'🐱', name:'Popcat (POPCAT)',
-    tag:'MOONSHOT · MEME SOLANA', tagColor:'#ff6eb4',
-    plan:'Venta: T1 25% @ $0.20 · T2 30% @ $0.50 · T3 25% @ $1.00 · T4 20% @ $2.00.',
-    updated:'8 jul 2026'
+  'FET': {
+    color:'#4a90d9', ico:'🤖', name:'Artificial Superintelligence (FET)',
+    tag:'ESPECULATIVO · IA DESCENTRALIZADA', tagColor:'#4a90d9',
+    plan:'Venta: 25% @ $0.60 · 25% @ $0.90 · 50% @ $3.15. Riesgo medio-alto, horizonte 2028.',
+    updated:'16 jul 2026'
   },
 };
 
@@ -1985,7 +2042,7 @@ function toggleStrat(){
 function renderStrat(){
   const list = document.getElementById('strat-list');
   if(!list) return;
-  const orden = ['BTC','HYPE','ONDO','AKT','MORPHO','MSTR','POPCAT'];
+  const orden = ['BTC','HYPE','ONDO','AKT','MORPHO','MSTR','FET'];
   const rows = orden.map(tick => {
     const s = STRAT[tick];
     if(!s) return '';

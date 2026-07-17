@@ -327,6 +327,7 @@ body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--tx);min-heig
   <button class="tabbtn"        data-tab="reservas" onclick="showTab('reservas')">💰 Reservas</button>
   <button class="tabbtn"        data-tab="deudas"   onclick="showTab('deudas')">📉 Deudas/Personal</button>
   <button class="tabbtn"        data-tab="inv"      onclick="showTab('inv')">📈 Inversión</button>
+  <button class="tabbtn"        data-tab="metaabono" onclick="showTab('metaabono')">🎯 Meta Abono</button>
 </div>
 
 <!-- PATRIMONIO -->
@@ -722,6 +723,32 @@ body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--tx);min-heig
   </div>
 </div>
 
+<!-- META DE ABONO — progreso hacia el abono anual y liquidación -->
+<div class="sec"><div class="ld" style="background:#7c3aed;box-shadow:0 0 5px #7c3aed"></div>
+  <div class="lt">Meta de Abono <span>progreso real hacia el abono anual y liquidación</span></div>
+</div>
+<div class="card">
+  <div class="card-body">
+    <div style="background:var(--s2);border-radius:7px;padding:10px;margin-bottom:12px">
+      <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">
+        🎯 Meta anual de abono
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--mu)">Q</span>
+        <input type="number" id="meta-abono-inp" step="1000" min="0" placeholder="72132"
+          style="background:var(--s3);border:1px solid rgba(124,58,237,.3);color:#a78bfa;
+          font-family:'DM Mono',monospace;font-size:12px;font-weight:700;
+          padding:4px 8px;border-radius:6px;flex:1;text-align:right"
+          onchange="saveMetaAbono(this.value)">
+      </div>
+      <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu2);margin-top:5px">
+        Balance 65% = Q72,132 · Conservador 45% = Q49,937 · Agresivo 90% = Q99,875
+      </div>
+    </div>
+    <div id="meta-abono-render"></div>
+  </div>
+</div>
+
 <div class="foot">Budget Tracker GT · Guardado automático · Exporta para sincronizar entre dispositivos</div>
 </div>
 
@@ -738,6 +765,7 @@ const TAB_MAP = {
   'Reservas':'reservas',
   'Lulubit':'deudas', 'Gastos fijos':'deudas', 'Hipoteca':'deudas',
   'Capital invertido':'inv',
+  'Meta de Abono':'metaabono',
 };
 function assignTabs(){
   const wrap=document.querySelector('.wrap');
@@ -792,6 +820,7 @@ function svS(d){try{localStorage.setItem(LS,JSON.stringify(d));}catch(e){}}
 // ── ESTADO ────────────────────────────────────────────────────────
 let ST={tc:7.75,mes:3,anio:2026,q1:0,q2:0,sprev:30052.58,reservaLulu:0,bacDeuda:0,bacDeudaUsd:0,bamDeuda:0,portafolioUsd:0,casaUsd:210000};
 var COLS={emer:54275,bant:14204,imp:0,buf:119,reimb:0,abiUsd:0,btcQty:0,btcPx:0};
+var salHipGlobal=1449508;
 const CUOTA=13959.61;
 const MESES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const MNOMBRES=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
@@ -904,6 +933,7 @@ function renderPatrimonio(){
     for(let i=0;i<nCuotas;i++){const int=s*tM;s=s-(CUOTA-int);}
     return Math.max(s-getAbonosHip().reduce((a,x)=>a+x.amt,0),0);
   })();
+  salHipGlobal = salHip; // exponer para renderMetaAbono
 
   // Reservas líquidas (TODAS, en Q) — incluye BTC reserva
   const btcQty=parseFloat(COLS.btcQty)||0;
@@ -1898,6 +1928,7 @@ function recalc(){
     }
     renderStats();
   }
+  try{ renderMetaAbono(); }catch(e){}
 }
 
 // ── HISTORIAL DE INGRESOS ────────────────────────────────────────
@@ -2571,6 +2602,84 @@ function saveDCABase(v){
   const val=parseFloat(v)||0;
   const d=ldS(); d.dcaBase=val; svS(d);
   renderDCA();
+}
+
+function saveMetaAbono(v){
+  const val=parseFloat(v)||0;
+  const d=ldS(); d.metaAbono=val; svS(d);
+  renderMetaAbono();
+}
+
+function renderMetaAbono(){
+  const wrap=document.getElementById('meta-abono-render');
+  if(!wrap) return;
+  const tc = ST.tc||7.65;
+  const d = ldS();
+  const metaAnual = parseFloat(d.metaAbono)||72132;
+
+  const ahorroBiQ = (COLS.emer||0);
+  const viaticosUsd = (COLS.abiUsd||0);
+  const viaticosQ = viaticosUsd * tc;
+  const portTotalUsd = parseFloat(ST.portafolioUsd)||0;
+  const btcQty = parseFloat(COLS.btcQty)||0;
+  const btcPx = parseFloat(COLS.btcPx)||0;
+  const btcUsd = btcQty * btcPx;
+  const altsUsd = Math.max(portTotalUsd - btcUsd, 0);
+  const btcVendibleUsd = btcUsd * 0.10;
+  const criptoRealizableUsd = altsUsd + btcVendibleUsd;
+  const criptoRealizableQ = criptoRealizableUsd * tc;
+
+  const saldoHip = (typeof salHipGlobal!=='undefined' && salHipGlobal>0) ? salHipGlobal : 1449508;
+
+  const acumuladoAnual = ahorroBiQ + viaticosQ;
+  const pctAnual = metaAnual>0 ? Math.min(acumuladoAnual/metaAnual*100, 100) : 0;
+  const faltaAnual = Math.max(metaAnual - acumuladoAnual, 0);
+  const cumplida = acumuladoAnual >= metaAnual;
+  const barColorAnual = cumplida ? '#059669' : '#7c3aed';
+
+  const poderTotalQ = ahorroBiQ + viaticosQ + criptoRealizableQ;
+  const pctLiquidar = saldoHip>0 ? Math.min(poderTotalQ/saldoHip*100, 100) : 0;
+
+  const fq = n => 'Q'+Math.round(n).toLocaleString('en-US');
+  const fu = n => '$'+Math.round(n).toLocaleString('en-US');
+  const bar = (pct, color) => '<div style="background:#e9e5f5;border-radius:4px;height:10px;overflow:hidden;margin:6px 0"><div style="height:100%;width:'+pct.toFixed(1)+'%;background:'+color+';border-radius:4px;transition:width .3s"></div></div>';
+  const fuenteRow = (icon,lbl,valQ,detalle) => '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--bd)"><div><span style="font-size:11px">'+icon+'</span> <span style="font-family:\'DM Mono\',monospace;font-size:10px;color:var(--tx)">'+lbl+'</span>'+(detalle?'<div style="font-family:\'DM Mono\',monospace;font-size:8px;color:var(--mu2);margin-left:16px">'+detalle+'</div>':'')+'</div><span style="font-family:\'DM Mono\',monospace;font-size:11px;font-weight:700;color:var(--tx)">'+fq(valQ)+'</span></div>';
+
+  wrap.innerHTML =
+    '<div style="background:var(--s2);border-radius:8px;padding:14px;margin-bottom:12px;border:1px solid '+(cumplida?'#05966944':'rgba(124,58,237,.25)')+'">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">'
+        +'<span style="font-family:\'DM Mono\',monospace;font-size:11px;font-weight:700;color:#a78bfa">🎯 Meta anual (garantizado)</span>'
+        +'<span style="font-family:\'DM Mono\',monospace;font-size:14px;font-weight:800;color:'+barColorAnual+'">'+pctAnual.toFixed(0)+'%</span>'
+      +'</div>'
+      +'<div style="font-family:\'DM Mono\',monospace;font-size:8px;color:var(--mu2);margin-bottom:6px">Ahorro BI + superávit viáticos · vs meta '+fq(metaAnual)+'</div>'
+      +bar(pctAnual, barColorAnual)
+      +'<div style="display:flex;justify-content:space-between;font-family:\'DM Mono\',monospace;font-size:10px;margin-top:4px">'
+        +'<span style="color:var(--tx);font-weight:700">'+fq(acumuladoAnual)+'</span>'
+        +'<span style="color:var(--mu)">'+(cumplida?'✅ Meta cumplida':'faltan '+fq(faltaAnual))+'</span>'
+      +'</div>'
+      +'<div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--bd)">'
+        +fuenteRow('🏦','Ahorro BI', ahorroBiQ, 'excedente juntado')
+        +fuenteRow('✈️','Superávit viáticos', viaticosQ, fu(viaticosUsd)+' USD')
+      +'</div>'
+    +'</div>'
+    +'<div style="background:var(--s2);border-radius:8px;padding:14px;border:1px solid rgba(61,184,245,.25)">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">'
+        +'<span style="font-family:\'DM Mono\',monospace;font-size:11px;font-weight:700;color:#3db8f5">📊 General (todo + cripto)</span>'
+        +'<span style="font-family:\'DM Mono\',monospace;font-size:14px;font-weight:800;color:#3db8f5">'+pctLiquidar.toFixed(1)+'%</span>'
+      +'</div>'
+      +'<div style="font-family:\'DM Mono\',monospace;font-size:8px;color:var(--mu2);margin-bottom:6px">Poder de fuego total · vs saldo hipoteca '+fq(saldoHip)+'</div>'
+      +bar(pctLiquidar, '#3db8f5')
+      +'<div style="display:flex;justify-content:space-between;font-family:\'DM Mono\',monospace;font-size:10px;margin-top:4px">'
+        +'<span style="color:var(--tx);font-weight:700">'+fq(poderTotalQ)+'</span>'
+        +'<span style="color:var(--mu)">podrías liquidar '+pctLiquidar.toFixed(1)+'% de la casa hoy</span>'
+      +'</div>'
+      +'<div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--bd)">'
+        +fuenteRow('🏦','Ahorro BI', ahorroBiQ, '')
+        +fuenteRow('✈️','Superávit viáticos', viaticosQ, fu(viaticosUsd)+' USD')
+        +fuenteRow('🪙','Cripto realizable', criptoRealizableQ, 'alts 100% + BTC 10% · '+fu(criptoRealizableUsd))
+      +'</div>'
+      +'<div style="font-family:\'DM Mono\',monospace;font-size:8px;color:var(--mu2);margin-top:8px;line-height:1.5">Cripto realizable = todas las alts + solo 10% del BTC (regla de venta). El 90% del BTC es colchón que no se vende.</div>'
+    +'</div>';
 }
 
 function saveDCAMes(){
@@ -3300,6 +3409,11 @@ renderReimb();
 autoSnapshotIfNewMonth();
 renderSnap();
 renderPatrimonio();
+(function(){
+  const mi=document.getElementById('meta-abono-inp');
+  if(mi){ const d=ldS(); if(d.metaAbono) mi.value=d.metaAbono; }
+  try{ renderMetaAbono(); }catch(e){}
+})();
 initTabs();
 
 // ── GOOGLE DRIVE SYNC ─────────────────────────────────────────────

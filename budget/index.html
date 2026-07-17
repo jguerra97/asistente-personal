@@ -796,14 +796,14 @@ const CUOTA=13959.61;
 const MESES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const MNOMBRES=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 const COBROS_BANCARIOS = 25;     // salen primero desde Monetaria BI
-const FIJOS_TOTAL = 13959.61+1355+969+900+510+1150+400+50; // Q19,293.61 (modelo julio 2026) — incluye gasolina Q400
+const FIJOS_TOTAL = 13959.61+1355+969+900+510+700+400+50; // Q18,843.61 (buffer fijos ajustado a Q700 · antes Q1,150)
 const FIJOS_RUBROS=[
   {ico:'🏠',nom:'Hipoteca BI',        amt:13959.61, cat:'vivienda'},
   {ico:'🔧',nom:'Mantenimiento+agua', amt:1355.00,  cat:'vivienda'},
   {ico:'🤖',nom:'Claude AI Max',      amt:969.00,   cat:'digital'},
   {ico:'🏛️',nom:'IUSI (provisión)',   amt:900.00,   cat:'vivienda'},
   {ico:'📡',nom:'Internet (Starlink)', amt:510.00,   cat:'servicios'},
-  {ico:'🔒',nom:'Buffer fijos',        amt:1150.00,  cat:'reserva'},
+  {ico:'🔒',nom:'Buffer fijos',        amt:700.00,  cat:'reserva'},
   {ico:'⛽',nom:'Gasolina',            amt:400.00,   cat:'transporte'},
   {ico:'💡',nom:'Luz',                 amt:50.00,    cat:'servicios'},
   // Cobros bancarios Q25 salen desde Monetaria BI antes de los fijos — ver COBROS_BANCARIOS

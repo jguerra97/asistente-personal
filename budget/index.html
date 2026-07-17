@@ -825,19 +825,18 @@ const CUOTA=13959.61;
 const MESES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const MNOMBRES=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 const COBROS_BANCARIOS = 25;     // salen primero desde Monetaria BI
-const FIJOS_TOTAL = 13959.61+1355+969+900+510+700+400+50+25; // Q18,868.61 (buffer Q700 + Q25 cobros bancarios incluidos)
+const FIJOS_TOTAL = 13959.61+1355+969+970+545+300+400+450+25; // Q18,973.61 (IUSI 970, internet 545, luz 450 est, buffer 300)
 const FIJOS_RUBROS=[
   {ico:'🏠',nom:'Hipoteca BI',        amt:13959.61, cat:'vivienda'},
   {ico:'🔧',nom:'Mantenimiento+agua', amt:1355.00,  cat:'vivienda'},
   {ico:'🤖',nom:'Claude AI Max',      amt:969.00,   cat:'digital'},
-  {ico:'🏛️',nom:'IUSI (provisión)',   amt:900.00,   cat:'vivienda'},
-  {ico:'📡',nom:'Internet (Starlink)', amt:510.00,   cat:'servicios'},
-  {ico:'🔒',nom:'Buffer fijos',        amt:700.00,  cat:'reserva'},
+  {ico:'🏛️',nom:'IUSI (provisión)',   amt:970.00,   cat:'vivienda'},
+  {ico:'📡',nom:'Internet (Starlink)', amt:545.00,   cat:'servicios'},
+  {ico:'🔒',nom:'Buffer fijos',        amt:300.00,  cat:'reserva'},
   {ico:'⛽',nom:'Gasolina',            amt:400.00,   cat:'transporte'},
-  {ico:'💡',nom:'Luz',                 amt:50.00,    cat:'servicios'},
+  {ico:'💡',nom:'Luz',                 amt:450.00,   cat:'servicios'},
   {ico:'🏦',nom:'Cobros bancarios',    amt:25.00,    cat:'servicios'},
-  // Cobros bancarios Q25 salen desde Monetaria BI antes de los fijos — ver COBROS_BANCARIOS
-  // Fi/Airalo Q430.12 fusionado en Buffer fijos
+  // Luz Q450 estimada (aún sin dato real de consumo · rango 350-600) · Buffer bajo porque hay colchón aparte
 ];
 const SUBS_ENT=[
   {nom:'Spotify',      usd:6.49,  freq:'mensual'},
@@ -848,10 +847,11 @@ const SUBS_ENT=[
 
 // Personal — distribución estimada (referencia visual, no afecta cálculos)
 const LULU_CATS=[
-  {ico:'🍽️',nom:'Salidas',        amt:1000, col:'#3db8f5'},
-  {ico:'🛡️',nom:'Buffer personal', amt:1250, col:'#a78bfa'},
-  {ico:'📱',nom:'Subs streaming',  amt:268,  col:'#10b981'},
-]; // Total Q2,518 — Lulubit eliminado, fusionado en Salidas+Buffer
+  {ico:'🍽️',nom:'Salidas (3×350)',  amt:1050, col:'#3db8f5'},
+  {ico:'🎁',nom:'Regalos/flores',   amt:600,  col:'#f472b6'},
+  {ico:'📱',nom:'Suscripciones',    amt:268,  col:'#10b981'},
+  {ico:'🛡️',nom:'Buffer personal',  amt:82,   col:'#a78bfa'},
+]; // Total Q2,000 — buffer reducido Q582→Q82 (colchón cubierto por bono)
 const LULU_EST_TOTAL=LULU_CATS.reduce((s,c)=>s+c.amt,0); // Q2,518
 
 // ── FORMATO ───────────────────────────────────────────────────────
@@ -1123,15 +1123,15 @@ function onBamDeuda(v){ST.bamDeuda=parseFloat(v)||0;saveState();recalc();}
 // Personal:   9.39%  → Q2,518 (salidas Q1,000 + buffer Q1,250 + subs Q268)
 // Ahorro:     4.10%  → Q1,100 (Bantrab fijo)
 // Inversión: 14.54%  → Q3,900 (~$503)
-const PCT_FIJOS     = 0.70308;  // 70.308% — buffer Q700 + Q25 cobros
-const PCT_PERSONAL  = 0.09383;  // 9.3826%
-const PCT_AHORRO    = 0.05777;  // 5.777% — incluye Q450 liberado del buffer
-const PCT_INVERSION = 0.14532;  // 14.5324%
+const PCT_FIJOS     = 0.72769;  // 72.769% — personal reducido a Q2,000
+const PCT_PERSONAL  = 0.07671;  // 7.671%
+const PCT_AHORRO    = 0.04602;  // 4.602% — ahorro mínimo Q1,200
+const PCT_INVERSION = 0.14958;  // 14.958% — inversión mínimo Q3,900
 
 // Metas mensuales absolutas (fijos incluyen Q25 cobros bancarios)
-const META_FIJOS     = 18868.61;  // Q18,843.61 fijos (buffer Q700) + Q25 cobros bancarios
-const META_PERSONAL  = 2518.00;
-const META_AHORRO    = 1100.00;
+const META_FIJOS     = 18973.61;  // fijos ajustados jul 2026 (IUSI 970, internet 545, luz 450, buffer 300, cobros 25)
+const META_PERSONAL  = 2000.00;
+const META_AHORRO    = 1200.00;
 const META_INVERSION = 3900.00;
 
 // Legacy (mantenido para compatibilidad con renderQ antiguo)

@@ -796,7 +796,7 @@ const CUOTA=13959.61;
 const MESES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const MNOMBRES=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 const COBROS_BANCARIOS = 25;     // salen primero desde Monetaria BI
-const FIJOS_TOTAL = 13959.61+1355+969+900+510+700+400+50; // Q18,843.61 (buffer fijos ajustado a Q700 · antes Q1,150)
+const FIJOS_TOTAL = 13959.61+1355+969+900+510+700+400+50+25; // Q18,868.61 (buffer Q700 + Q25 cobros bancarios incluidos)
 const FIJOS_RUBROS=[
   {ico:'🏠',nom:'Hipoteca BI',        amt:13959.61, cat:'vivienda'},
   {ico:'🔧',nom:'Mantenimiento+agua', amt:1355.00,  cat:'vivienda'},
@@ -806,6 +806,7 @@ const FIJOS_RUBROS=[
   {ico:'🔒',nom:'Buffer fijos',        amt:700.00,  cat:'reserva'},
   {ico:'⛽',nom:'Gasolina',            amt:400.00,   cat:'transporte'},
   {ico:'💡',nom:'Luz',                 amt:50.00,    cat:'servicios'},
+  {ico:'🏦',nom:'Cobros bancarios',    amt:25.00,    cat:'servicios'},
   // Cobros bancarios Q25 salen desde Monetaria BI antes de los fijos — ver COBROS_BANCARIOS
   // Fi/Airalo Q430.12 fusionado en Buffer fijos
 ];
@@ -1089,13 +1090,13 @@ function onBamDeuda(v){ST.bamDeuda=parseFloat(v)||0;saveState();recalc();}
 // Personal:   9.39%  → Q2,518 (salidas Q1,000 + buffer Q1,250 + subs Q268)
 // Ahorro:     4.10%  → Q1,100 (Bantrab fijo)
 // Inversión: 14.54%  → Q3,900 (~$503)
-const PCT_FIJOS     = 0.71986;  // 71.9860% — incluye cobros Q25
-const PCT_PERSONAL  = 0.09383;  // 9.3827%
-const PCT_AHORRO    = 0.04099;  // 4.0989%
+const PCT_FIJOS     = 0.70308;  // 70.308% — buffer Q700 + Q25 cobros
+const PCT_PERSONAL  = 0.09383;  // 9.3826%
+const PCT_AHORRO    = 0.05777;  // 5.777% — incluye Q450 liberado del buffer
 const PCT_INVERSION = 0.14532;  // 14.5324%
 
 // Metas mensuales absolutas (fijos incluyen Q25 cobros bancarios)
-const META_FIJOS     = 19318.61;  // Q19,293.61 fijos + Q25 cobros bancarios
+const META_FIJOS     = 18868.61;  // Q18,843.61 fijos (buffer Q700) + Q25 cobros bancarios
 const META_PERSONAL  = 2518.00;
 const META_AHORRO    = 1100.00;
 const META_INVERSION = 3900.00;

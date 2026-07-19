@@ -1441,7 +1441,7 @@ function renderCols(){
 
   // Total reservas (incluye BTC y Ahorro BI USD convertidos a Q)
   const abiUsdVal = COLS.abiUsd || 0;
-  const total=COLS.emer+COLS.bant+COLS.buf+(COLS.reimb*tc)+(abiUsdVal*tc)+btcQ;
+  const total=COLS.emer+COLS.bant+COLS.buf+(COLS.reimb*tc)+(abiUsdVal*tc)+btcQ+(parseFloat(ST.reservaLulu)||0);
   const reimbUSD = COLS.reimb || 0;
   const usdTotal = reimbUSD + abiUsdVal;
   const breakdown = btcUsd > 0
@@ -2055,7 +2055,7 @@ function descargarResumen(){
   const btcPx  = +(COLS.btcPx||0);
   const btcUsd = btcQty * btcPx;
   const btcQ   = btcUsd * tc;
-  const totalRes=COLS.emer+COLS.bant+COLS.buf+(COLS.reimb*tc)+((COLS.abiUsd||0)*tc)+btcQ; // imp unificado en emer; BTC y Ahorro BI USD sumados al total
+  const totalRes=COLS.emer+COLS.bant+COLS.buf+(COLS.reimb*tc)+((COLS.abiUsd||0)*tc)+btcQ+(parseFloat(ST.reservaLulu)||0); // imp unificado en emer; BTC, Ahorro BI USD y Lulubit sumados al total
   const salHip=(()=>{
     const pagadasObj=getCuotasPagadas();
     const nCuotas=Object.keys(pagadasObj).filter(k=>pagadasObj[k]).length;
@@ -2393,6 +2393,7 @@ function descargarResumen(){
         +'<tr><td style="'+S.td+'">Bantrab (viajes)</td><td style="'+S.td+'">Bantrab</td><td style="'+S.td+'">'+fqR(COLS.bant)+'</td><td style="'+S.td+'">Q30,000</td></tr>'
         +'<tr><td style="'+S.td+'">Buffer operativo</td><td style="'+S.td+'">Monetaria BI</td><td style="'+S.td+'">'+fqR(COLS.buf)+'</td><td style="'+S.td+'">Q3,000</td></tr>'
         +(COLS.reimb>0?'<tr><td style="'+S.td+'">Reembolsos</td><td style="'+S.td+'">USD cash</td><td style="'+S.td+'">'+'$'+COLS.reimb.toFixed(0)+' ('+fqR(COLS.reimb*tc)+')</td><td style="'+S.td+'">—</td></tr>':'')
+        +((parseFloat(ST.reservaLulu)||0)>0?'<tr><td style="'+S.td+'">Cash personal</td><td style="'+S.td+'">Lulubit</td><td style="'+S.td+'">'+fqR(parseFloat(ST.reservaLulu)||0)+'</td><td style="'+S.td+'">—</td></tr>':'')
         +('<tr><td style="'+S.td+'color:#059669">Ahorro BI · USD (superávit)</td><td style="'+S.td+'">Ahorro BI dólares</td><td style="'+S.td+'color:#059669;font-weight:600">'+'$'+(COLS.abiUsd||0).toFixed(0)+' ('+fqR((COLS.abiUsd||0)*tc)+')</td><td style="'+S.td+'">—</td></tr>')
         +(btcQty>0?'<tr><td style="'+S.td+'color:#f7931a">₿ BTC reserva</td><td style="'+S.td+'">SeedSigner</td><td style="'+S.td+'color:#f7931a;font-weight:600">₿'+btcQty.toFixed(4)+' · '+fqR(btcQ)+'</td><td style="'+S.td+'color:#888">$'+btcUsd.toLocaleString('en-US',{maximumFractionDigits:0})+'</td></tr>':'')
         +'<tr><td style="'+S.td+'font-weight:700" colspan="2">Total reservas</td><td style="'+S.td+'font-weight:700;color:#4c1d95" colspan="2">'+fqR(totalRes)+'</td></tr>'
@@ -3296,15 +3297,17 @@ function takeSnapshot(){
   var bant  = +(COLS.bant||0);
   var buf   = +(COLS.buf||0);
   var reimb = +(COLS.reimb||0); // USD
+  var abiUsd = +(COLS.abiUsd||0); // USD viáticos
+  var lulu  = +(parseFloat(ST.reservaLulu)||0); // Q cash personal Lulubit
   var btcQty = +(COLS.btcQty||0);
   var btcPx  = +(COLS.btcPx||0);
   var tc    = ST.tc || 7.75;
   var btcQ  = btcQty * btcPx * tc;
-  var total = emer + bant + buf + (reimb * tc) + btcQ;
+  var total = emer + bant + buf + (reimb * tc) + (abiUsd * tc) + btcQ + lulu;
 
   // Si ya hay snapshot del mismo dia, sobrescribe (rate-limit por dia)
   var existing = SNAPSHOTS.findIndex(s => s.date === iso);
-  var snap = {date: iso, emer: emer, bant: bant, buf: buf, reimb: reimb,
+  var snap = {date: iso, emer: emer, bant: bant, buf: buf, reimb: reimb, abiUsd: abiUsd, lulu: lulu,
               btcQty: btcQty, btcPx: btcPx, btcQ: btcQ, total: total};
   if(existing >= 0){
     SNAPSHOTS[existing] = snap;

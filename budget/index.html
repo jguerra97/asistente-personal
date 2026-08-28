@@ -2622,9 +2622,23 @@ function renderMetaAbono(){
   const d = ldS();
   const metaAnual = parseFloat(d.metaAbono)||72132;
 
+  // ── FUENTES DISPONIBLES PARA ABONO ──
+  // Full: Lulubit, Monetaria BI, Ahorro BI USD (superávit)
+  // Parcial: 40% max de Bantrab
+  // Excluido: Ahorro BI Q (colchón de fijos operativos)
+  const PCT_BANTRAB = 0.40;
+  const bantrabQ      = (COLS.bant||0);
+  const bantrabAbonoQ = bantrabQ * PCT_BANTRAB;
+  const lulubitQ      = parseFloat(ST.reservaLulu)||0;
+  const monetariaQ    = (COLS.buf||0);
+
+  // Ahorro BI Q: colchón de fijos — NO se usa para el abono
   const ahorroBiQ = (COLS.emer||0);
-  const viaticosUsd = (COLS.abiUsd||0);
-  const viaticosQ = viaticosUsd * tc;
+
+  // Ahorro BI USD (superávit) — se usa completo
+  const abiUsd = (COLS.abiUsd||0);
+  const abiQ   = abiUsd * tc;
+
   const portTotalUsd = parseFloat(ST.portafolioUsd)||0;
   const btcQty = parseFloat(COLS.btcQty)||0;
   const btcPx = parseFloat(COLS.btcPx)||0;
@@ -2636,13 +2650,16 @@ function renderMetaAbono(){
 
   const saldoHip = (typeof salHipGlobal!=='undefined' && salHipGlobal>0) ? salHipGlobal : 1449508;
 
-  const acumuladoAnual = ahorroBiQ + viaticosQ;
+  // Meta anual garantizada: efectivo disponible (sin cripto)
+  const efectivoAbonoQ = lulubitQ + monetariaQ + abiQ + bantrabAbonoQ;
+  const acumuladoAnual = efectivoAbonoQ;
   const pctAnual = metaAnual>0 ? Math.min(acumuladoAnual/metaAnual*100, 100) : 0;
   const faltaAnual = Math.max(metaAnual - acumuladoAnual, 0);
   const cumplida = acumuladoAnual >= metaAnual;
   const barColorAnual = cumplida ? '#059669' : '#7c3aed';
 
-  const poderTotalQ = ahorroBiQ + viaticosQ + criptoRealizableQ;
+  // Poder total: efectivo disponible + cripto realizable
+  const poderTotalQ = efectivoAbonoQ + criptoRealizableQ;
   const pctLiquidar = saldoHip>0 ? Math.min(poderTotalQ/saldoHip*100, 100) : 0;
 
   const fq = n => 'Q'+Math.round(n).toLocaleString('en-US');
@@ -2656,15 +2673,22 @@ function renderMetaAbono(){
         +'<span style="font-family:\'DM Mono\',monospace;font-size:11px;font-weight:700;color:#a78bfa">🎯 Meta anual (garantizado)</span>'
         +'<span style="font-family:\'DM Mono\',monospace;font-size:14px;font-weight:800;color:'+barColorAnual+'">'+pctAnual.toFixed(0)+'%</span>'
       +'</div>'
-      +'<div style="font-family:\'DM Mono\',monospace;font-size:8px;color:var(--mu2);margin-bottom:6px">Ahorro BI + superávit viáticos · vs meta '+fq(metaAnual)+'</div>'
+      +'<div style="font-family:\'DM Mono\',monospace;font-size:8px;color:var(--mu2);margin-bottom:6px">Efectivo disponible para abono · vs meta '+fq(metaAnual)+'</div>'
       +bar(pctAnual, barColorAnual)
       +'<div style="display:flex;justify-content:space-between;font-family:\'DM Mono\',monospace;font-size:10px;margin-top:4px">'
         +'<span style="color:var(--tx);font-weight:700">'+fq(acumuladoAnual)+'</span>'
         +'<span style="color:var(--mu)">'+(cumplida?'✅ Meta cumplida':'faltan '+fq(faltaAnual))+'</span>'
       +'</div>'
       +'<div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--bd)">'
-        +fuenteRow('🏦','Ahorro BI', ahorroBiQ, 'excedente juntado')
-        +fuenteRow('✈️','Superávit viáticos', viaticosQ, fu(viaticosUsd)+' USD')
+        +fuenteRow('🪙','Lulubit', lulubitQ, '100% disponible')
+        +fuenteRow('🏛️','Monetaria BI', monetariaQ, '100% disponible')
+        +fuenteRow('💵','Ahorro BI USD', abiQ, '100% · '+fu(abiUsd)+' USD')
+        +fuenteRow('🏦','Bantrab · 40% max', bantrabAbonoQ, 'de '+fq(bantrabQ)+' total')
+      +'</div>'
+      +'<div style="margin-top:8px;padding:8px;background:rgba(242,92,92,.08);border-radius:6px;border-left:2px solid rgba(242,92,92,.4)">'
+        +'<div style="font-family:\'DM Mono\',monospace;font-size:8px;color:#f25c5c;line-height:1.5">'
+        +'🔒 Ahorro BI Q '+fq(ahorroBiQ)+' EXCLUIDO · colchón de fijos operativos'
+        +'</div>'
       +'</div>'
     +'</div>'
     +'<div style="background:var(--s2);border-radius:8px;padding:14px;border:1px solid rgba(61,184,245,.25)">'
@@ -2679,11 +2703,14 @@ function renderMetaAbono(){
         +'<span style="color:var(--mu)">podrías liquidar '+pctLiquidar.toFixed(1)+'% de la casa hoy</span>'
       +'</div>'
       +'<div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--bd)">'
-        +fuenteRow('🏦','Ahorro BI', ahorroBiQ, '')
-        +fuenteRow('✈️','Superávit viáticos', viaticosQ, fu(viaticosUsd)+' USD')
+        +fuenteRow('💰','Efectivo disponible', efectivoAbonoQ, 'Lulubit+Monetaria+BI USD+40% Bantrab')
         +fuenteRow('🪙','Cripto realizable', criptoRealizableQ, 'alts 100% + BTC 10% · '+fu(criptoRealizableUsd))
       +'</div>'
-      +'<div style="font-family:\'DM Mono\',monospace;font-size:8px;color:var(--mu2);margin-top:8px;line-height:1.5">Cripto realizable = todas las alts + solo 10% del BTC (regla de venta). El 90% del BTC es colchón que no se vende.</div>'
+      +'<div style="font-family:\'DM Mono\',monospace;font-size:8px;color:var(--mu2);margin-top:8px;line-height:1.5">'
+      +'Efectivo = Lulubit 100% + Monetaria BI 100% + Ahorro BI USD 100% + Bantrab 40% max. '
+      +'Ahorro BI Q ('+fq(ahorroBiQ)+') queda fuera: colchón de fijos operativos. '
+      +'Cripto = alts 100% + solo 10% del BTC.'
+      +'</div>'
     +'</div>';
 }
 

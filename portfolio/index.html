@@ -437,6 +437,30 @@ td:first-child{text-align:left;}
 </div>
 <div id="strat-list" style="display:none;margin-bottom:10px"></div>
 
+<!-- COBERTURA DEL PRÉSTAMO -->
+<div class="lbl" style="margin-top:16px;margin-bottom:8px">
+  <span class="dot" style="background:#f59e0b"></span>
+  <div class="lt">Cobertura del préstamo <span>la meta real · editable cada mes</span></div>
+</div>
+<div style="background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:12px 14px;margin-bottom:10px">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px">
+    <div>
+      <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--mu);letter-spacing:.06em;text-transform:uppercase">Saldo hipoteca hoy</div>
+      <div style="font-size:9px;color:var(--mu2);margin-top:2px">actualízalo al cerrar el mes</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px">
+      <span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--mu)">Q</span>
+      <input id="hip-saldo" type="number" step="any" min="0" value="1444318"
+        onchange="onHipChange(this.value)"
+        style="width:120px;background:var(--s2);border:1px solid var(--bd);border-radius:6px;
+        padding:7px 9px;color:var(--tx);font-family:'DM Mono',monospace;font-size:13px;
+        font-weight:700;text-align:right">
+    </div>
+  </div>
+  <div id="hip-cobertura"></div>
+</div>
+
+
 <!-- PROYECCIÓN A META (TRANCHES + MOONSHOT) -->
 <div class="lbl" style="margin-top:16px;margin-bottom:8px">
   <span class="dot" style="background:#10b981"></span>
@@ -973,7 +997,67 @@ async function load(){
   await saveSnapshot(tot);
   renderTrendChart();
   if(_proyOpen) renderProy();
+  renderHipoteca();
 }
+
+// ── COBERTURA DEL PRÉSTAMO ─────────────────────────────────
+const HIP_KEY='pf_hipoteca';
+function getHipSaldo(){
+  const v=parseFloat(localStorage.getItem(HIP_KEY));
+  return (!isNaN(v)&&v>0)?v:1444318;
+}
+function onHipChange(val){
+  const v=parseFloat(val);
+  if(isNaN(v)||v<0) return;
+  try{ localStorage.setItem(HIP_KEY,String(v)); }catch(e){}
+  renderHipoteca();
+}
+function renderHipoteca(){
+  const box=document.getElementById('hip-cobertura');
+  if(!box) return;
+  const inp=document.getElementById('hip-saldo');
+  const saldoQ=getHipSaldo();
+  if(inp && document.activeElement!==inp) inp.value=saldoQ;
+
+  const tc=7.75;
+  const saldoUsd=saldoQ/tc;
+
+  // realizable hoy = mismo criterio del KPI de portada
+  let realizable=0;
+  realizable = (typeof window.__realizable==="number") ? window.__realizable : 0;
+
+  // proyectado si se ejecutan todos los tranches
+  let proyectado=0;
+  try{ proyectado=calcProyeccion().total; }catch(e){ proyectado=0; }
+
+  const pctHoy=saldoUsd>0?(realizable/saldoUsd*100):0;
+  const pctProy=saldoUsd>0?(proyectado/saldoUsd*100):0;
+  const faltaHoy=Math.max(saldoUsd-realizable,0);
+  const faltaProy=Math.max(saldoUsd-proyectado,0);
+  const fu=n=>'$'+Math.round(n).toLocaleString('en-US');
+  const bar=(pct,col)=>'<div style="height:8px;background:var(--s2);border-radius:4px;overflow:hidden;margin-top:4px">'
+    +'<div style="height:100%;width:'+Math.min(pct,100).toFixed(1)+'%;background:'+col+';border-radius:4px"></div></div>';
+
+  box.innerHTML=
+     '<div style="font-family:\'DM Mono\',monospace;font-size:9px;color:var(--mu2);margin-bottom:8px">'
+    +fu(saldoUsd)+' pendientes · TC Q'+tc+'</div>'
+    +'<div style="margin-bottom:9px">'
+      +'<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--tx)">'
+        +'<span>Cubierto hoy</span>'
+        +'<span style="font-family:\'DM Mono\',monospace;font-weight:700">'+pctHoy.toFixed(1)+'%</span></div>'
+      +bar(pctHoy,'#3db8f5')
+      +'<div style="font-size:9px;color:var(--mu2);margin-top:3px">'+fu(realizable)+' realizable · faltan '+fu(faltaHoy)+'</div>'
+    +'</div>'
+    +'<div>'
+      +'<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--tx)">'
+        +'<span>Si ejecutas todos los tranches</span>'
+        +'<span style="font-family:\'DM Mono\',monospace;font-weight:700">'+pctProy.toFixed(1)+'%</span></div>'
+      +bar(pctProy,'#059669')
+      +'<div style="font-size:9px;color:var(--mu2);margin-top:3px">'+fu(proyectado)+' proyectado · '
+      +(faltaProy>0?('brecha '+fu(faltaProy)):'cubre el saldo completo ✅')+'</div>'
+    +'</div>';
+}
+
 function onQC(tick,val){const v=parseFloat(val);if(isNaN(v)||v<0)return;const a=[...L1,...L2].find(x=>x.tick===tick);if(a){a.qty=v;svS(tick,'qty',v);load();}}
 function onEC(tick,val){const v=parseFloat(val);if(isNaN(v)||v<=0)return;const a=[...L1,...L2].find(x=>x.tick===tick);if(a){a.entry=v;svS(tick,'entry',v);load();}}
 function onBQ(tick,val){const v=parseFloat(val);if(isNaN(v)||v<0)return;const a=BROKER.find(x=>x.tick===tick);if(a){a.qty=v;svS(tick,'qty',v);load();}}
@@ -1330,6 +1414,7 @@ function descargarResumen(){
   });
   // Totales: 'tot' y 'cst' ahora reflejan la cartera OPERABLE (realizable)
   const tot=operableTot, cst=operableCst;
+  window.__realizable = operableTot;
   const pnl=tot-cst;
   const pnlPct=cst>0?((pnl/cst)*100).toFixed(1):'0';
   const mult=cst>0?(tot/cst).toFixed(2):'—';
@@ -1360,8 +1445,8 @@ function descargarResumen(){
   // ── PROYECCIÓN A META — TRANCHES Y TRAILING (calcular primero) ──
   // La proyección define el valor objetivo que cada activo aporta a la meta $88K
   const PROY_TRANCHES = {
-    'HYPE':   { t1:{pct:10,px:85.00},  t2:{pct:15,px:100.00}, t3:{pct:30,px:200.00}, trailing:{pct:25,px:350.00}, moon:{pct:20,px:500.00} },
-    'ONDO':   { t1:{pct:5,px:0.75},    t2:{pct:20,px:1.20},   t3:{pct:35,px:2.00},   trailing:{pct:40,px:3.00},   moon:null   },
+    'HYPE':   { t1:{pct:10,px:150.00},  t2:{pct:25,px:200.00}, t3:{pct:30,px:350.00}, trailing:{pct:35,px:500.00}, moon:null   },
+    'ONDO':   { t1:{pct:5,px:0.75},    t2:{pct:20,px:1.20},   t3:{pct:35,px:2.00},   trailing:{pct:40,px:5.00},   moon:null   },
     'AKT':    { t1:{pct:15,px:1.50},   t2:{pct:10,px:3.00},   t3:{pct:40,px:5.50},   trailing:{pct:35,px:8.00},   moon:null   },
     'MORPHO': { t1:{pct:15,px:3.50},   t2:{pct:10,px:6.00},   t3:{pct:45,px:10.00},  trailing:{pct:30,px:15.00},  moon:null   },
     'MSTR':   { t1:{pct:20,px:200.0},  t2:{pct:25,px:350.0},  t3:{pct:30,px:500.0},  trailing:{pct:25,px:750.00}, moon:null   },
@@ -1746,8 +1831,8 @@ function descargarResumen(){
     <thead><tr><th>Activo</th><th style="text-align:right">T1</th><th style="text-align:right">T2</th><th style="text-align:right">T3</th><th style="text-align:right">T4</th></tr></thead>
     <tbody>
       <tr><td style="font-weight:700">BTC</td><td style="text-align:right">$130K</td><td style="text-align:right">$160K</td><td style="text-align:right">$200K</td><td style="text-align:right">$250K</td></tr>
-      <tr><td style="font-weight:700">HYPE</td><td style="text-align:right">$85</td><td style="text-align:right">$100</td><td style="text-align:right">$200</td><td style="text-align:right">$350/500</td></tr>
-      <tr><td style="font-weight:700">ONDO</td><td style="text-align:right">$0.75</td><td style="text-align:right">$1.20</td><td style="text-align:right">$2.00</td><td style="text-align:right">$3.00</td></tr>
+      <tr><td style="font-weight:700">HYPE</td><td style="text-align:right">$150</td><td style="text-align:right">$200</td><td style="text-align:right">$350</td><td style="text-align:right">$500</td></tr>
+      <tr><td style="font-weight:700">ONDO</td><td style="text-align:right">$0.75</td><td style="text-align:right">$1.20</td><td style="text-align:right">$2.00</td><td style="text-align:right">$5.00</td></tr>
       <tr><td style="font-weight:700">AKT</td><td style="text-align:right">$1.50</td><td style="text-align:right">$3.00</td><td style="text-align:right">$5.50</td><td style="text-align:right">$8.00</td></tr>
       <tr><td style="font-weight:700">MORPHO</td><td style="text-align:right">$3.50</td><td style="text-align:right">$6.00</td><td style="text-align:right">$10.0</td><td style="text-align:right">$15.0</td></tr>
       <tr><td style="font-weight:700">MSTR</td><td style="text-align:right">$200</td><td style="text-align:right">$350</td><td style="text-align:right">$500</td><td style="text-align:right">$750</td></tr>
@@ -1824,8 +1909,8 @@ const ACC_META_COLORS = {
 // Editar solo en sesiones de revisión TA con datos nuevos.
 const META_OBJETIVO = 88000;
 const TRANCHES = {
-  'HYPE':   { t1: {pct:10, px:85.00},  t2: {pct:15, px:100.00}, t3: {pct:30, px:200.00}, trailing: {pct:25, px:350.00}, moon: {pct:20, px:500.00} },
-  'ONDO':   { t1: {pct:5, px:0.75},    t2: {pct:20, px:1.20},   t3: {pct:35, px:2.00},   trailing: {pct:40, px:3.00},   moon: null   },
+  'HYPE':   { t1:{pct:10,px:150.00},  t2:{pct:25,px:200.00}, t3:{pct:30,px:350.00}, trailing:{pct:35,px:500.00}, moon:null   },
+  'ONDO':   { t1:{pct:5,px:0.75},    t2:{pct:20,px:1.20},   t3:{pct:35,px:2.00},   trailing:{pct:40,px:5.00},   moon:null   },
   'AKT':    { t1: {pct:15, px:1.50},   t2: {pct:10, px:3.00},   t3: {pct:40, px:5.50},   trailing: {pct:35, px:8.00},   moon: null   },
   'MORPHO': { t1: {pct:15, px:3.50},   t2: {pct:10, px:6.00},   t3: {pct:45, px:10.00},  trailing: {pct:30, px:15.00},  moon: null   },
   'MSTR':   { t1: {pct:20, px:200.0},  t2: {pct:25, px:350.0},  t3: {pct:30, px:500.0},  trailing: {pct:25, px:750.00}, moon: null   },

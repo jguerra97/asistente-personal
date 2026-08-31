@@ -2108,14 +2108,32 @@ function descargarResumen(){
   const mesActualIdx = hist.findIndex(h => h.mes === mesActualKey);
   const mesAntHist = mesActualIdx > 0 ? hist[mesActualIdx-1] : null;
   const ingActual = ingTotal;
-  const ingAnterior = mesAntHist ? (mesAntHist.ingreso || 0) : 0;
+  const ingAnterior = mesAntHist ? (mesAntHist.total || mesAntHist.ingreso || 0) : 0;
   const deltaIng = ingAnterior > 0 ? ((ingActual - ingAnterior) / ingAnterior * 100) : 0;
   const excActual = excMes;
-  const excAnterior = mesAntHist ? Math.max((mesAntHist.ingreso||0) - tf, 0) : 0;
+  const excAnterior = mesAntHist ? Math.max((mesAntHist.exc!=null?mesAntHist.exc:(mesAntHist.total||0)-tf), 0) : 0;
   const deltaExc = excAnterior > 0 ? ((excActual - excAnterior) / excAnterior * 100) : 0;
 
   // helpers — sin clases, todo inline
   const fqR=n=>'Q'+n.toLocaleString('es-GT',{maximumFractionDigits:0});
+  // ── DELTA vs cierre anterior ──
+  const snapPrevR = (typeof SNAPSHOTS!=='undefined' && SNAPSHOTS && SNAPSHOTS.length>1)
+    ? SNAPSHOTS[SNAPSHOTS.length-2] : null;
+  const _dtd='padding:7px 10px;border-bottom:1px solid #f0f0f0;';
+  function dCell(key,actual){
+    if(!snapPrevR || snapPrevR[key]==null) return '<td style="'+_dtd+'color:#c0c0c0">—</td>';
+    const d=actual-(+snapPrevR[key]||0);
+    if(Math.abs(d)<1) return '<td style="'+_dtd+'color:#a0aec0;font-size:10px">sin cambio</td>';
+    return '<td style="'+_dtd+'color:'+(d>=0?'#059669':'#dc2626')+';font-weight:600;font-size:11px">'
+      +(d>=0?'+':'\u2212')+'Q'+Math.abs(Math.round(d)).toLocaleString('es-GT')+'</td>';
+  }
+  function dCellUsd(key,actual){
+    if(!snapPrevR || snapPrevR[key]==null) return '<td style="'+_dtd+'color:#c0c0c0">—</td>';
+    const d=actual-(+snapPrevR[key]||0);
+    if(Math.abs(d)<1) return '<td style="'+_dtd+'color:#a0aec0;font-size:10px">sin cambio</td>';
+    return '<td style="'+_dtd+'color:'+(d>=0?'#059669':'#dc2626')+';font-weight:600;font-size:11px">'
+      +(d>=0?'+':'\u2212')+'$'+Math.abs(Math.round(d)).toLocaleString('en-US')+'</td>';
+  }
   const fusd=n=>'$'+(n/tc).toLocaleString('en-US',{maximumFractionDigits:0});
 
   // Estilos base reutilizables como strings
@@ -2373,9 +2391,9 @@ function descargarResumen(){
               +'<div style="'+S.card+'"><span style="'+S.clbl+'">Promedio mensual</span>'
                 +'<span style="'+S.cval+'color:#4c1d95">'+fqR(avgNorm)+'</span>'
                 +'<span style="'+S.csub+'">sin bonos · '+normales.length+' meses</span></div>'
-              +'<div style="'+S.card+'"><span style="'+S.clbl+'">Tendencia</span>'
-                +'<span style="'+S.cval+(slope>=0?'color:#059669':'color:#dc2626')+'">'+(slope>=0?'+':'')+fqR(Math.abs(slope))+'/mes</span>'
-                +'<span style="'+S.csub+'">'+(slope>=0?'crecimiento':'decrecimiento')+'</span></div>'
+              +'<div style="'+S.card+'"><span style="'+S.clbl+'">Este mes vs promedio</span>'
+                +'<span style="'+S.cval+(ingTotal>=avgNorm?'color:#059669':'color:#d97706')+'">'+(ingTotal>=avgNorm?'+':'\u2212')+(avgNorm>0?Math.abs((ingTotal/avgNorm-1)*100).toFixed(1):'0')+'%</span>'
+                +'<span style="'+S.csub+'">'+fqR(ingTotal)+' vs '+fqR(avgNorm)+'</span></div>'
             +'</div>';
         })()
       )
@@ -2388,26 +2406,38 @@ function descargarResumen(){
       +'<span style="'+S.sectl+'">Reservas y patrimonio liquido</span>'
       +'<table style="'+S.tbl+'"><thead><tr>'
         +'<th style="'+S.th+'">Reserva</th><th style="'+S.th+'">Institucion</th>'
-        +'<th style="'+S.th+'">Saldo</th><th style="'+S.th+'">Meta</th>'
+        +'<th style="'+S.th+'">Saldo</th><th style="'+S.th+'">&Delta; mes</th><th style="'+S.th+'">Meta</th>'
         +'</tr></thead><tbody>'
-        +'<tr><td style="'+S.td+'">Ahorro BI</td><td style="'+S.td+'">Ahorro BI</td><td style="'+S.td+'color:#059669;font-weight:600">'+fqR(COLS.emer)+'</td><td style="'+S.td+'">'+fqR(tf*3+15000)+'</td></tr>'
-        +'<tr><td style="'+S.td+'">Bantrab (viajes)</td><td style="'+S.td+'">Bantrab</td><td style="'+S.td+'">'+fqR(COLS.bant)+'</td><td style="'+S.td+'">Q30,000</td></tr>'
-        +'<tr><td style="'+S.td+'">Buffer operativo</td><td style="'+S.td+'">Monetaria BI</td><td style="'+S.td+'">'+fqR(COLS.buf)+'</td><td style="'+S.td+'">Q3,000</td></tr>'
-        +(COLS.reimb>0?'<tr><td style="'+S.td+'">Reembolsos</td><td style="'+S.td+'">USD cash</td><td style="'+S.td+'">'+'$'+COLS.reimb.toFixed(0)+' ('+fqR(COLS.reimb*tc)+')</td><td style="'+S.td+'">—</td></tr>':'')
-        +((parseFloat(ST.reservaLulu)||0)>0?'<tr><td style="'+S.td+'">Cash personal</td><td style="'+S.td+'">Lulubit</td><td style="'+S.td+'">'+fqR(parseFloat(ST.reservaLulu)||0)+'</td><td style="'+S.td+'">—</td></tr>':'')
-        +('<tr><td style="'+S.td+'color:#059669">Ahorro BI · USD (superávit)</td><td style="'+S.td+'">Ahorro BI dólares</td><td style="'+S.td+'color:#059669;font-weight:600">'+'$'+(COLS.abiUsd||0).toFixed(0)+' ('+fqR((COLS.abiUsd||0)*tc)+')</td><td style="'+S.td+'">—</td></tr>')
-        +(btcQty>0?'<tr><td style="'+S.td+'color:#f7931a">₿ BTC reserva</td><td style="'+S.td+'">SeedSigner</td><td style="'+S.td+'color:#f7931a;font-weight:600">₿'+btcQty.toFixed(4)+' · '+fqR(btcQ)+'</td><td style="'+S.td+'color:#888">$'+btcUsd.toLocaleString('en-US',{maximumFractionDigits:0})+'</td></tr>':'')
-        +'<tr><td style="'+S.td+'font-weight:700" colspan="2">Total reservas</td><td style="'+S.td+'font-weight:700;color:#4c1d95" colspan="2">'+fqR(totalRes)+'</td></tr>'
+        +'<tr><td style="'+S.td+'">Ahorro BI</td><td style="'+S.td+'">Ahorro BI</td><td style="'+S.td+'color:#059669;font-weight:600">'+fqR(COLS.emer)+'</td>'+dCell('emer',COLS.emer)+'<td style="'+S.td+'">'+fqR(tf*3+15000)+'</td></tr>'
+        +'<tr><td style="'+S.td+'">Bantrab (viajes)</td><td style="'+S.td+'">Bantrab</td><td style="'+S.td+'">'+fqR(COLS.bant)+'</td>'+dCell('bant',COLS.bant)+'<td style="'+S.td+'">Q30,000</td></tr>'
+        +'<tr><td style="'+S.td+'">Buffer operativo</td><td style="'+S.td+'">Monetaria BI</td><td style="'+S.td+'">'+fqR(COLS.buf)+'</td>'+dCell('buf',COLS.buf)+'<td style="'+S.td+'">Q3,000</td></tr>'
+        +(COLS.reimb>0?'<tr><td style="'+S.td+'">Reembolsos</td><td style="'+S.td+'">USD cash</td><td style="'+S.td+'">$'+COLS.reimb.toFixed(0)+' ('+fqR(COLS.reimb*tc)+')</td>'+dCellUsd('reimb',COLS.reimb)+'<td style="'+S.td+'color:#92400e;font-size:10px">no es ahorro</td></tr>':'')
+        +((parseFloat(ST.reservaLulu)||0)>0?'<tr><td style="'+S.td+'">Cash personal</td><td style="'+S.td+'">Lulubit</td><td style="'+S.td+'">'+fqR(parseFloat(ST.reservaLulu)||0)+'</td>'+dCell('lulu',parseFloat(ST.reservaLulu)||0)+'<td style="'+S.td+'">—</td></tr>':'')
+        +('<tr><td style="'+S.td+'color:#059669">Ahorro BI · USD (superávit)</td><td style="'+S.td+'">Ahorro BI dólares</td><td style="'+S.td+'color:#059669;font-weight:600">$'+(COLS.abiUsd||0).toFixed(0)+' ('+fqR((COLS.abiUsd||0)*tc)+')</td>'+dCellUsd('abiUsd',COLS.abiUsd||0)+'<td style="'+S.td+'">—</td></tr>')
+        +(btcQty>0?'<tr><td style="'+S.td+'color:#f7931a">₿ BTC reserva</td><td style="'+S.td+'">SeedSigner</td><td style="'+S.td+'color:#f7931a;font-weight:600">₿'+btcQty.toFixed(4)+' · '+fqR(btcQ)+'</td><td style="'+S.td+'color:#a0aec0;font-size:10px">intocable</td><td style="'+S.td+'color:#888">$'+btcUsd.toLocaleString('en-US',{maximumFractionDigits:0})+'</td></tr>':'')
+        +'<tr><td style="'+S.td+'font-weight:700" colspan="2">Total reservas</td><td style="'+S.td+'font-weight:700;color:#4c1d95">'+fqR(totalRes)+'</td><td style="'+S.td+'font-weight:700;color:#4c1d95" colspan="2">$'+(totalRes/tc).toLocaleString('en-US',{maximumFractionDigits:0})+'</td></tr>'
       +'</tbody></table>'
+      +(snapPrevR?'<div style="font-size:10px;color:#888;margin-top:6px">&Delta; comparado con el cierre anterior'+(snapPrevR.fecha?' ('+snapPrevR.fecha+')':'')+'</div>':'<div style="font-size:10px;color:#888;margin-top:6px">Sin cierre previo guardado para comparar</div>')
     +'</div>'
 
     // ── EVOLUCION DE RESERVAS (snapshots historicos) ──
     +(SNAPSHOTS && SNAPSHOTS.length >= 1 ? ('<div class="rsec" style="'+S.sec+'">'
       +'<span style="'+S.sectl+'">Evolucion de reservas en el tiempo</span>'
       +(function(){
+        // ── un cierre por mes: se queda el ultimo snapshot de cada mes ──
+        const _bm={};
+        (SNAPSHOTS||[]).forEach(function(s){
+          var d=new Date(s.date||s.ts||s.fecha||0);
+          var k=isNaN(d.getTime())
+            ? String(s.fecha||'').split('/').slice(1).join('/')
+            : d.getFullYear()+'-'+(d.getMonth()+1);
+          _bm[k]=s;
+        });
+        const SNAP_M=Object.keys(_bm).map(function(k){return _bm[k];});
+        if(!SNAP_M.length) return '';
         // Si solo hay 1 snapshot, mostrar mensaje suave
-        if(SNAPSHOTS.length === 1){
-          var s = SNAPSHOTS[0];
+        if(SNAP_M.length === 1){
+          var s = SNAP_M[0];
           return '<div style="background:#f5f3ff;border:1px solid #ddd6fe;border-radius:8px;padding:14px;text-align:center">'
             +'<div style="font-size:11px;color:#666;line-height:1.6">Primer snapshot capturado el '+fmtDateShort(s.date)+'.<br>La grafica de tendencia aparecera con mas snapshots.</div>'
             +'<div style="margin-top:8px;font-size:18px;font-weight:700;color:#4c1d95">Q'+s.total.toLocaleString('es-GT',{maximumFractionDigits:0})+'</div>'
@@ -2420,7 +2450,7 @@ function descargarResumen(){
         const innerW = chartW - padL - padR;
         const innerH = chartH - padT - padB;
 
-        const totals = SNAPSHOTS.map(s => s.total);
+        const totals = SNAP_M.map(s => s.total);
         const minVal = Math.min.apply(null, totals);
         const maxVal = Math.max.apply(null, totals);
         // Padding visual del eje Y
@@ -2430,20 +2460,20 @@ function descargarResumen(){
         const yRange = yMax - yMin;
 
         // X positions (lineales, no por fecha real)
-        const stepX = SNAPSHOTS.length > 1 ? innerW / (SNAPSHOTS.length - 1) : 0;
+        const stepX = SNAP_M.length > 1 ? innerW / (SNAP_M.length - 1) : 0;
 
         // Build path
         let pathD = '';
         let pointsHtml = '';
         let labelsHtml = '';
-        const showLabels = SNAPSHOTS.length <= 12;
+        const showLabels = SNAP_M.length <= 12;
 
-        SNAPSHOTS.forEach(function(s, i){
+        SNAP_M.forEach(function(s, i){
           const x = padL + i * stepX;
           const y = padT + innerH - ((s.total - yMin) / yRange) * innerH;
           pathD += (i === 0 ? 'M' : 'L') + x.toFixed(1) + ',' + y.toFixed(1) + ' ';
           pointsHtml += '<circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="3" fill="#7c3aed" stroke="#fff" stroke-width="1.5"/>';
-          if(showLabels || i === 0 || i === SNAPSHOTS.length - 1 || i % Math.ceil(SNAPSHOTS.length/8) === 0){
+          if(showLabels || i === 0 || i === SNAP_M.length - 1 || i % Math.ceil(SNAP_M.length/8) === 0){
             labelsHtml += '<text x="'+x.toFixed(1)+'" y="'+(chartH - padB + 14).toFixed(1)+'" text-anchor="middle" font-family="monospace" font-size="8" fill="#718096">'+fmtDateShort(s.date)+'</text>';
           }
         });
@@ -2458,7 +2488,7 @@ function descargarResumen(){
         });
 
         // Area path (relleno bajo la linea)
-        let areaPath = pathD + 'L'+(padL + (SNAPSHOTS.length-1)*stepX).toFixed(1)+','+(padT+innerH).toFixed(1)+' L'+padL+','+(padT+innerH).toFixed(1)+' Z';
+        let areaPath = pathD + 'L'+(padL + (SNAP_M.length-1)*stepX).toFixed(1)+','+(padT+innerH).toFixed(1)+' L'+padL+','+(padT+innerH).toFixed(1)+' Z';
 
         const svg = '<svg viewBox="0 0 '+chartW+' '+chartH+'" style="width:100%;max-width:100%;height:auto;display:block;margin-bottom:6px" preserveAspectRatio="xMidYMid meet">'
           +'<defs><linearGradient id="snapgrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#7c3aed" stop-opacity=".22"/><stop offset="100%" stop-color="#7c3aed" stop-opacity="0"/></linearGradient></defs>'
@@ -2470,8 +2500,8 @@ function descargarResumen(){
           +'</svg>';
 
         // KPIs cambio
-        const first = SNAPSHOTS[0];
-        const last = SNAPSHOTS[SNAPSHOTS.length-1];
+        const first = SNAP_M[0];
+        const last = SNAP_M[SNAP_M.length-1];
         const delta = last.total - first.total;
         const deltaPct = first.total > 0 ? (delta/first.total)*100 : 0;
         const deltaColor = delta >= 0 ? '#059669' : '#dc2626';
@@ -2496,7 +2526,7 @@ function descargarResumen(){
         +'</div>';
 
         // Tabla con desglose por reserva (ultimos 12 snapshots para no saturar)
-        const recentSnaps = SNAPSHOTS.slice(-12);
+        const recentSnaps = SNAP_M.slice(-12);
         const tableRows = recentSnaps.map(function(s, idx){
           const prev = idx > 0 ? recentSnaps[idx-1] : null;
           const reimbQ = (s.reimb || 0) * (ST.tc || 7.75);
@@ -2517,8 +2547,8 @@ function descargarResumen(){
           +'</tr>';
         }).join('');
 
-        const tableNote = SNAPSHOTS.length > 12
-          ? '<div style="font-size:9px;color:#a0aec0;margin-top:6px;text-align:center;font-style:italic">Mostrando ultimos 12 snapshots de '+SNAPSHOTS.length+' totales</div>'
+        const tableNote = SNAP_M.length > 12
+          ? '<div style="font-size:9px;color:#a0aec0;margin-top:6px;text-align:center;font-style:italic">Mostrando ultimos 12 snapshots de '+SNAP_M.length+' totales</div>'
           : '';
 
         return svg
@@ -2556,24 +2586,59 @@ function descargarResumen(){
 
     // ── HIPOTECA ──
     +'<div class="rsec" style="'+S.sec+'">'
-      +'<span style="'+S.sectl+'">Credito hipotecario</span>'
+      +'<span style="'+S.sectl+'">Credito hipotecario · 7.26% anual · cuota Q13,959.61 · 180 meses</span>'
       +'<div style="'+S.cards+'">'
         +'<div style="'+S.card+'"><span style="'+S.clbl+'">Saldo pendiente</span>'
           +'<span style="'+S.cval+'color:#dc2626">'+fqR(salHip)+'</span>'
           +'<span style="'+S.csub+'">'+fusd(salHip)+'</span></div>'
-        +'<div style="'+S.card+'"><span style="'+S.clbl+'">Al corriente</span>'
-          +'<span style="'+S.cval+(nPag===nTot?'color:#059669':'color:#d97706')+'">'+( nPag===nTot?'Si':nPag+'/'+nTot)+'</span>'
-          +'<span style="'+S.csub+'">cuotas marcadas</span></div>'
+        +'<div style="'+S.card+'"><span style="'+S.clbl+'">Capital pagado</span>'
+          +'<span style="'+S.cval+'color:#059669">'+fqR(1480000-salHip)+'</span>'
+          +'<span style="'+S.csub+'">'+((1480000-salHip)/1480000*100).toFixed(1)+'% · '+nPag+' de '+nTot+' cuotas</span></div>'
+        +'<div style="'+S.card+'"><span style="'+S.clbl+'">De la cuota de este mes</span>'
+          +'<span style="'+S.cval+'color:#2563eb">'+fqR(Math.max(CUOTA-salHip*(0.0726/12),0))+'</span>'
+          +'<span style="'+S.csub+'">a capital · '+((Math.max(CUOTA-salHip*(0.0726/12),0)/CUOTA)*100).toFixed(0)+'% de la cuota</span></div>'
       +'</div>'
-      +'<table style="'+S.tbl+'"><thead><tr>'
-        +'<th style="'+S.th+'">Concepto</th><th style="'+S.th+'">Detalle</th>'
-        +'</tr></thead><tbody>'
-        +'<tr><td style="'+S.td+'color:#888">Monto original</td><td style="'+S.td+'">Q1,480,000</td></tr>'
-        +'<tr><td style="'+S.td+'color:#888">Tasa</td><td style="'+S.td+'">7.26% anual</td></tr>'
-        +'<tr><td style="'+S.td+'color:#888">Cuota mensual</td><td style="'+S.td+'">Q13,959.61</td></tr>'
-        +'<tr><td style="'+S.td+'color:#888">Saldo estimado</td><td style="'+S.td+'color:#dc2626;font-weight:600">'+fqR(salHip)+' ('+fusd(salHip)+')</td></tr>'
-        +'<tr><td style="'+S.td+'color:#888">Capital pagado</td><td style="'+S.td+'color:#059669;font-weight:600">'+fqR(1480000-salHip)+' ('+((1480000-salHip)/1480000*100).toFixed(1)+'%)</td></tr>'
-      +'</tbody></table>'
+      +'<div style="font-size:10px;color:#6b7280;margin-bottom:4px">Amortizacion del principal · '+((1480000-salHip)/1480000*100).toFixed(1)+'%</div>'
+      +'<div style="height:9px;background:#e5e7eb;border-radius:5px;overflow:hidden"><div style="height:100%;width:'+((1480000-salHip)/1480000*100).toFixed(2)+'%;background:#059669;border-radius:5px"></div></div>'
+      +'<div style="margin-top:9px;padding:9px 11px;background:#eff6ff;border-left:3px solid #3b82f6;border-radius:4px;font-size:10px;color:#1e40af;line-height:1.6">'
+        +'De la cuota de '+fqR(CUOTA)+' de este mes, <b>'+fqR(Math.max(CUOTA-salHip*(0.0726/12),0))+' bajan el capital</b> y '+fqR(salHip*(0.0726/12))+' son intereses. '
+        +'Esa proporcion mejora lentamente cada mes, y es la razon por la que un abono extraordinario pesa tanto: va 100% a capital.'
+      +'</div>'
+
+    // ── PODER DE ABONO (criterio: Ahorro BI Q excluido) ──
+    +(()=>{
+      const PCT_BANT=0.40;
+      const altsU=Math.max((parseFloat(ST.portafolioUsd)||0)-btcUsd,0);
+      const criptoQ=(altsU+btcUsd*0.10)*tc;
+      const fuentes=[
+        {n:'Cripto realizable', v:criptoQ,             c:'alts 100% + BTC 10%'},
+        {n:'Bantrab',           v:COLS.bant*PCT_BANT,  c:'40% maximo'},
+        {n:'Ahorro BI · USD',   v:(COLS.abiUsd||0)*tc, c:'100% · superavit'},
+        {n:'Monetaria BI',      v:COLS.buf,            c:'100%'},
+        {n:'Lulubit',           v:parseFloat(ST.reservaLulu)||0, c:'100%'}
+      ].filter(f=>f.v>0);
+      const tot=fuentes.reduce((s,f)=>s+f.v,0);
+      return '<div class="rsec" style="'+S.sec+'">'
+        +'<span style="'+S.sectl+'">Poder de abono · '+(salHip>0?(tot/salHip*100).toFixed(1):'0')+'% del saldo</span>'
+        +'<table style="'+S.tbl+'"><thead><tr>'
+          +'<th style="'+S.th+'">Fuente</th><th style="'+S.th+'">Disponible</th><th style="'+S.th+'">Criterio</th>'
+          +'</tr></thead><tbody>'
+          +fuentes.map(f=>'<tr><td style="'+S.td+'">'+f.n+'</td>'
+            +'<td style="'+S.td+'font-weight:600">'+fqR(f.v)+'</td>'
+            +'<td style="'+S.td+'color:#6b7280;font-size:10px">'+f.c+'</td></tr>').join('')
+          +'<tr><td style="'+S.td+'font-weight:700">Poder total</td>'
+            +'<td style="'+S.td+'font-weight:700;color:#4c1d95">'+fqR(tot)+'</td>'
+            +'<td style="'+S.td+'color:#6b7280;font-size:10px">'+fusd(tot)+'</td></tr>'
+          +'<tr><td style="'+S.td+'color:#dc2626">🔒 Ahorro BI en quetzales</td>'
+            +'<td style="'+S.td+'color:#a0aec0">'+fqR(COLS.emer)+'</td>'
+            +'<td style="'+S.td+'color:#dc2626;font-size:10px">excluido · colchon de fijos</td></tr>'
+        +'</tbody></table>'
+        +'<div style="margin-top:8px;padding:9px 11px;background:#fef2f2;border-left:3px solid #dc2626;border-radius:4px;font-size:10px;color:#991b1b;line-height:1.6">'
+          +'El Ahorro BI en quetzales queda fuera del abono: es el colchon que cubre los fijos si el ingreso falla. '
+          +'Usarlo para la hipoteca dejaria descubierta la operacion mensual.'
+        +'</div>'
+      +'</div>';
+    })()
     +'</div>'
 
     // ── REGISTRO DE BONO (histórico, solo marca si se recibió este mes) ──
@@ -2581,7 +2646,7 @@ function descargarResumen(){
       +'<span style="'+S.sectl+'">'+(ST.mes===7?'Bono 14':'Aguinaldo')+' · registro</span>'
       +'<div style="background:#f5f3ff;border:1px solid #ddd6fe;border-radius:8px;padding:12px 14px;font-size:12px;color:#4c1d95;line-height:1.6">'
         +'<strong>'+(ST.mes===7?'Bono 14':'Aguinaldo')+' de '+(ST.anio||2026)+'</strong> — prestación recibida este mes.<br>'
-        +'<span style="font-size:11px;color:#666">Distribución definida: 45% Ahorro BI · 15% Bantrab · 15% personal · 25% inversión. '
+        +'<span style="font-size:11px;color:#666">Distribución definida: 50% Ahorro BI · 30% inversión · 10% Bantrab · 10% personal. '
         +'Registro para historial; el monto ya está reflejado en el ingreso del mes y en las reservas.</span>'
       +'</div>'
     +'</div>'):'')
@@ -2622,23 +2687,9 @@ function renderMetaAbono(){
   const d = ldS();
   const metaAnual = parseFloat(d.metaAbono)||72132;
 
-  // ── FUENTES DISPONIBLES PARA ABONO ──
-  // Full: Lulubit, Monetaria BI, Ahorro BI USD (superávit)
-  // Parcial: 40% max de Bantrab
-  // Excluido: Ahorro BI Q (colchón de fijos operativos)
-  const PCT_BANTRAB = 0.40;
-  const bantrabQ      = (COLS.bant||0);
-  const bantrabAbonoQ = bantrabQ * PCT_BANTRAB;
-  const lulubitQ      = parseFloat(ST.reservaLulu)||0;
-  const monetariaQ    = (COLS.buf||0);
-
-  // Ahorro BI Q: colchón de fijos — NO se usa para el abono
   const ahorroBiQ = (COLS.emer||0);
-
-  // Ahorro BI USD (superávit) — se usa completo
-  const abiUsd = (COLS.abiUsd||0);
-  const abiQ   = abiUsd * tc;
-
+  const viaticosUsd = (COLS.abiUsd||0);
+  const viaticosQ = viaticosUsd * tc;
   const portTotalUsd = parseFloat(ST.portafolioUsd)||0;
   const btcQty = parseFloat(COLS.btcQty)||0;
   const btcPx = parseFloat(COLS.btcPx)||0;
@@ -2650,16 +2701,13 @@ function renderMetaAbono(){
 
   const saldoHip = (typeof salHipGlobal!=='undefined' && salHipGlobal>0) ? salHipGlobal : 1449508;
 
-  // Meta anual garantizada: efectivo disponible (sin cripto)
-  const efectivoAbonoQ = lulubitQ + monetariaQ + abiQ + bantrabAbonoQ;
-  const acumuladoAnual = efectivoAbonoQ;
+  const acumuladoAnual = ahorroBiQ + viaticosQ;
   const pctAnual = metaAnual>0 ? Math.min(acumuladoAnual/metaAnual*100, 100) : 0;
   const faltaAnual = Math.max(metaAnual - acumuladoAnual, 0);
   const cumplida = acumuladoAnual >= metaAnual;
   const barColorAnual = cumplida ? '#059669' : '#7c3aed';
 
-  // Poder total: efectivo disponible + cripto realizable
-  const poderTotalQ = efectivoAbonoQ + criptoRealizableQ;
+  const poderTotalQ = ahorroBiQ + viaticosQ + criptoRealizableQ;
   const pctLiquidar = saldoHip>0 ? Math.min(poderTotalQ/saldoHip*100, 100) : 0;
 
   const fq = n => 'Q'+Math.round(n).toLocaleString('en-US');
@@ -2673,22 +2721,15 @@ function renderMetaAbono(){
         +'<span style="font-family:\'DM Mono\',monospace;font-size:11px;font-weight:700;color:#a78bfa">🎯 Meta anual (garantizado)</span>'
         +'<span style="font-family:\'DM Mono\',monospace;font-size:14px;font-weight:800;color:'+barColorAnual+'">'+pctAnual.toFixed(0)+'%</span>'
       +'</div>'
-      +'<div style="font-family:\'DM Mono\',monospace;font-size:8px;color:var(--mu2);margin-bottom:6px">Efectivo disponible para abono · vs meta '+fq(metaAnual)+'</div>'
+      +'<div style="font-family:\'DM Mono\',monospace;font-size:8px;color:var(--mu2);margin-bottom:6px">Ahorro BI + superávit viáticos · vs meta '+fq(metaAnual)+'</div>'
       +bar(pctAnual, barColorAnual)
       +'<div style="display:flex;justify-content:space-between;font-family:\'DM Mono\',monospace;font-size:10px;margin-top:4px">'
         +'<span style="color:var(--tx);font-weight:700">'+fq(acumuladoAnual)+'</span>'
         +'<span style="color:var(--mu)">'+(cumplida?'✅ Meta cumplida':'faltan '+fq(faltaAnual))+'</span>'
       +'</div>'
       +'<div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--bd)">'
-        +fuenteRow('🪙','Lulubit', lulubitQ, '100% disponible')
-        +fuenteRow('🏛️','Monetaria BI', monetariaQ, '100% disponible')
-        +fuenteRow('💵','Ahorro BI USD', abiQ, '100% · '+fu(abiUsd)+' USD')
-        +fuenteRow('🏦','Bantrab · 40% max', bantrabAbonoQ, 'de '+fq(bantrabQ)+' total')
-      +'</div>'
-      +'<div style="margin-top:8px;padding:8px;background:rgba(242,92,92,.08);border-radius:6px;border-left:2px solid rgba(242,92,92,.4)">'
-        +'<div style="font-family:\'DM Mono\',monospace;font-size:8px;color:#f25c5c;line-height:1.5">'
-        +'🔒 Ahorro BI Q '+fq(ahorroBiQ)+' EXCLUIDO · colchón de fijos operativos'
-        +'</div>'
+        +fuenteRow('🏦','Ahorro BI', ahorroBiQ, 'excedente juntado')
+        +fuenteRow('✈️','Superávit viáticos', viaticosQ, fu(viaticosUsd)+' USD')
       +'</div>'
     +'</div>'
     +'<div style="background:var(--s2);border-radius:8px;padding:14px;border:1px solid rgba(61,184,245,.25)">'
@@ -2703,14 +2744,11 @@ function renderMetaAbono(){
         +'<span style="color:var(--mu)">podrías liquidar '+pctLiquidar.toFixed(1)+'% de la casa hoy</span>'
       +'</div>'
       +'<div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--bd)">'
-        +fuenteRow('💰','Efectivo disponible', efectivoAbonoQ, 'Lulubit+Monetaria+BI USD+40% Bantrab')
+        +fuenteRow('🏦','Ahorro BI', ahorroBiQ, '')
+        +fuenteRow('✈️','Superávit viáticos', viaticosQ, fu(viaticosUsd)+' USD')
         +fuenteRow('🪙','Cripto realizable', criptoRealizableQ, 'alts 100% + BTC 10% · '+fu(criptoRealizableUsd))
       +'</div>'
-      +'<div style="font-family:\'DM Mono\',monospace;font-size:8px;color:var(--mu2);margin-top:8px;line-height:1.5">'
-      +'Efectivo = Lulubit 100% + Monetaria BI 100% + Ahorro BI USD 100% + Bantrab 40% max. '
-      +'Ahorro BI Q ('+fq(ahorroBiQ)+') queda fuera: colchón de fijos operativos. '
-      +'Cripto = alts 100% + solo 10% del BTC.'
-      +'</div>'
+      +'<div style="font-family:\'DM Mono\',monospace;font-size:8px;color:var(--mu2);margin-top:8px;line-height:1.5">Cripto realizable = todas las alts + solo 10% del BTC (regla de venta). El 90% del BTC es colchón que no se vende.</div>'
     +'</div>';
 }
 

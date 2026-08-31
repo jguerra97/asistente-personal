@@ -2139,7 +2139,7 @@ function descargarResumen(){
   // Estilos base reutilizables como strings
   const S={
     page:'max-width:680px;margin:0 auto;padding:24px 16px 48px;font-family:Helvetica,Arial,sans-serif;color:#1a1a2e;background:#f5f6fa;',
-    cover:'background:#1e1b4b;color:#fff;border-radius:12px;padding:24px 28px;margin-bottom:18px;',
+    cover:'background:linear-gradient(135deg,#0c4a6e,#075985);color:#fff;border-radius:12px;padding:24px 28px;margin-bottom:18px;',
     h1:'font-size:22px;font-weight:800;margin:0 0 4px;letter-spacing:-.5px;',
     sub:'font-size:12px;opacity:.55;margin:0 0 18px;',
     kpis:'display:flex;gap:10px;flex-wrap:wrap;',
@@ -2148,14 +2148,14 @@ function descargarResumen(){
     kval:'font-size:18px;font-weight:800;letter-spacing:-1px;display:block;',
     ksub:'font-size:10px;opacity:.45;display:block;margin-top:2px;',
     sec:'background:#fff;border-radius:10px;padding:18px 20px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,.07);',
-    sectl:'font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#4c1d95;border-bottom:2px solid #ede9fe;padding-bottom:6px;margin-bottom:12px;display:block;',
+    sectl:'font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#0c4a6e;border-bottom:2px solid #e0f2fe;padding-bottom:6px;margin-bottom:12px;display:block;',
     cards:'display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;',
-    card:'background:#f5f3ff;border:1px solid #ddd6fe;border-radius:8px;padding:12px;flex:1;min-width:130px;',
+    card:'background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:12px;flex:1;min-width:130px;',
     clbl:'font-size:9px;text-transform:uppercase;letter-spacing:.5px;color:#888;display:block;margin-bottom:3px;',
     cval:'font-size:17px;font-weight:800;display:block;',
     csub:'font-size:11px;color:#888;display:block;margin-top:2px;',
     tbl:'width:100%;border-collapse:collapse;font-size:12px;',
-    th:'background:#ede9fe;color:#4c1d95;font-weight:600;font-size:10px;text-transform:uppercase;padding:7px 10px;text-align:left;',
+    th:'background:#e0f2fe;color:#0c4a6e;font-weight:600;font-size:10px;text-transform:uppercase;padding:7px 10px;text-align:left;',
     td:'padding:7px 10px;border-bottom:1px solid #f0f0f0;',
     foot:'text-align:center;margin-top:20px;padding-top:12px;border-top:1px solid #e5e7eb;font-size:10px;color:#9ca3af;',
   };
@@ -2235,15 +2235,15 @@ function descargarResumen(){
         +'<table style="'+S.tbl+'"><thead><tr>'
           +'<th style="'+S.th+'">Concepto</th><th style="'+S.th+'">Detalle</th><th style="'+S.th+'">USD</th><th style="'+S.th+'">Q</th>'
         +'</tr></thead><tbody>'
-          +'<tr><td style="'+S.td+'font-weight:700;color:#4c1d95" colspan="4">Activos</td></tr>'
+          +'<tr><td style="'+S.td+'font-weight:700;color:#0c4a6e" colspan="4">Activos</td></tr>'
           +'<tr><td style="'+S.td+'">🏠 Casa</td><td style="'+S.td+'color:#888">valor mercado · '+pctA(casaU)+' de activos</td><td style="'+S.td+'color:#059669;font-weight:600">'+fu(casaU)+'</td><td style="'+S.td+'color:#888">'+fqR(casaU*tc)+'</td></tr>'
           +'<tr><td style="'+S.td+'">📊 Portafolio (sin BTC)</td><td style="'+S.td+'color:#888">total '+fu(portTotalU)+' − BTC '+fu(btcUsd)+' · '+pctA(portSinBtcU)+'</td><td style="'+S.td+'color:#059669;font-weight:600">'+fu(portSinBtcU)+'</td><td style="'+S.td+'color:#888">'+fqR(portSinBtcU*tc)+'</td></tr>'
           +'<tr><td style="'+S.td+'">💰 Reservas líquidas</td><td style="'+S.td+'color:#888">todas · incluye BTC colchón · '+pctA(reservasU)+'</td><td style="'+S.td+'color:#059669;font-weight:600">'+fu(reservasU)+'</td><td style="'+S.td+'color:#888">'+fqR(totalRes)+'</td></tr>'
           +(luluU>0?'<tr><td style="'+S.td+'">👤 Cash personal</td><td style="'+S.td+'color:#888">Lulubit · disponible · '+pctA(luluU)+'</td><td style="'+S.td+'color:#059669;font-weight:600">'+fu(luluU)+'</td><td style="'+S.td+'color:#888">'+fqR(luluU*tc)+'</td></tr>':'')
           +'<tr><td style="'+S.td+'font-weight:700" colspan="2">Total activos</td><td style="'+S.td+'font-weight:700;color:#059669">'+fu(totalActU)+'</td><td style="'+S.td+'font-weight:700;color:#059669">'+fqR(totalActU*tc)+'</td></tr>'
-          +'<tr><td style="'+S.td+'font-weight:700;color:#4c1d95" colspan="4">Pasivos</td></tr>'
+          +'<tr><td style="'+S.td+'font-weight:700;color:#0c4a6e" colspan="4">Pasivos</td></tr>'
           +'<tr><td style="'+S.td+'">🏦 Hipoteca BI</td><td style="'+S.td+'color:#888">saldo estimado · '+pctA(hipU)+' de activos</td><td style="'+S.td+'color:#dc2626;font-weight:600">-'+fu(hipU)+'</td><td style="'+S.td+'color:#888">'+fqR(salHip)+'</td></tr>'
-          +'<tr style="background:#f5f3ff"><td style="'+S.td+'font-weight:800;color:#4c1d95;font-size:13px" colspan="2">PATRIMONIO NETO</td><td style="'+S.td+'font-weight:800;color:#4c1d95;font-size:13px">'+fu(patNetoU)+'</td><td style="'+S.td+'font-weight:800;color:#4c1d95;font-size:13px">'+fqR(patNetoU*tc)+'</td></tr>'
+          +'<tr style="background:#f0f9ff"><td style="'+S.td+'font-weight:800;color:#0c4a6e;font-size:13px" colspan="2">PATRIMONIO NETO</td><td style="'+S.td+'font-weight:800;color:#0c4a6e;font-size:13px">'+fu(patNetoU)+'</td><td style="'+S.td+'font-weight:800;color:#0c4a6e;font-size:13px">'+fqR(patNetoU*tc)+'</td></tr>'
         +'</tbody></table>'
         +'<div style="font-size:9px;color:#a0aec0;margin-top:8px;line-height:1.5">Portafolio y casa son valores manuales que actualizas en la app. Reservas e hipoteca se calculan automáticamente. El BTC se cuenta una vez (en reservas), por eso el portafolio se muestra sin BTC.</div>'
       +'</div>';
@@ -2300,7 +2300,7 @@ function descargarResumen(){
         +'<tr><td style="'+S.td+'font-weight:700;color:#059669">🔓 Operable</td><td style="'+S.td+'color:#888;font-size:9px">Lulubit+Bantrab+Monetaria+Reemb+USD</td><td style="'+S.td+'color:#888">hoy</td><td style="'+S.td+'text-align:right;font-weight:700">'+fqR(operable)+'</td></tr>'
         +'<tr><td style="'+S.td+'font-weight:700;color:#3182ce">💵 Inmediata</td><td style="'+S.td+'color:#888;font-size:9px">+ Ahorro BI (fijos) · sin vender cripto</td><td style="'+S.td+'color:#888">directo</td><td style="'+S.td+'text-align:right;font-weight:700">'+fqR(inmediata)+'</td></tr>'
         +'<tr><td style="'+S.td+'font-weight:700;color:#e8a020">📈 Invertida</td><td style="'+S.td+'color:#888;font-size:9px">portafolio + BTC</td><td style="'+S.td+'color:#888">requiere vender</td><td style="'+S.td+'text-align:right;font-weight:700">'+fqR(cripto)+'</td></tr>'
-        +'<tr style="background:#f5f3ff"><td style="'+S.td+'font-weight:800;color:#4c1d95" colspan="3">LIQUIDEZ REAL TOTAL</td><td style="'+S.td+'text-align:right;font-weight:800;color:#4c1d95">'+fqR(real)+'</td></tr>'
+        +'<tr style="background:#f0f9ff"><td style="'+S.td+'font-weight:800;color:#0c4a6e" colspan="3">LIQUIDEZ REAL TOTAL</td><td style="'+S.td+'text-align:right;font-weight:800;color:#0c4a6e">'+fqR(real)+'</td></tr>'
         +'</tbody></table>'
         +'<div style="font-size:9px;color:#a0aec0;margin-top:8px;line-height:1.5">Real es todo tu dinero movible. Las capas muestran qué tan rápido accedes a cada parte: operable hoy, inmediata sin vender, invertida requiere liquidar.</div>'
       +'</div>';
@@ -2336,7 +2336,7 @@ function descargarResumen(){
             // Color: verde si >= promedio, rojo si muy abajo, naranja en medio
             let barColor;
             if(diffFromAvg >= 0.1) barColor = '#059669';       // >10% arriba
-            else if(diffFromAvg >= -0.05) barColor = '#7c3aed'; // cerca del promedio
+            else if(diffFromAvg >= -0.05) barColor = '#0284c7'; // cerca del promedio
             else if(diffFromAvg >= -0.2) barColor = '#d97706';  // algo bajo
             else barColor = '#dc2626';                          // muy bajo
             barsHtml += '<rect x="'+x+'" y="'+y+'" width="'+barW+'" height="'+barH+'" fill="'+barColor+'" rx="2"/>';
@@ -2363,8 +2363,8 @@ function descargarResumen(){
           let avgLine = '';
           if(avgNorm > 0 && yMax > 0){
             const yAvg = padT + innerH - (avgNorm/yMax)*innerH;
-            avgLine = '<line x1="'+padL+'" y1="'+yAvg+'" x2="'+(chartW-padR)+'" y2="'+yAvg+'" stroke="#7c3aed" stroke-width="1" stroke-dasharray="4,3" opacity="0.6"/>'
-              +'<text x="'+(chartW-padR-4)+'" y="'+(yAvg-3)+'" text-anchor="end" font-family="monospace" font-size="8" fill="#7c3aed">prom '+fqR(avgNorm)+'</text>';
+            avgLine = '<line x1="'+padL+'" y1="'+yAvg+'" x2="'+(chartW-padR)+'" y2="'+yAvg+'" stroke="#0284c7" stroke-width="1" stroke-dasharray="4,3" opacity="0.6"/>'
+              +'<text x="'+(chartW-padR-4)+'" y="'+(yAvg-3)+'" text-anchor="end" font-family="monospace" font-size="8" fill="#0284c7">prom '+fqR(avgNorm)+'</text>';
           }
 
           const svg = '<svg viewBox="0 0 '+chartW+' '+chartH+'" style="width:100%;max-width:100%;height:auto;display:block;margin-bottom:10px" preserveAspectRatio="xMidYMid meet">'
@@ -2377,7 +2377,7 @@ function descargarResumen(){
           // Leyenda colores
           const legend = '<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;font-size:9px;color:#666;margin-bottom:10px">'
             +'<span><span style="display:inline-block;width:10px;height:10px;background:#059669;border-radius:2px;vertical-align:middle;margin-right:4px"></span>arriba del promedio (>10%)</span>'
-            +'<span><span style="display:inline-block;width:10px;height:10px;background:#7c3aed;border-radius:2px;vertical-align:middle;margin-right:4px"></span>cerca del promedio</span>'
+            +'<span><span style="display:inline-block;width:10px;height:10px;background:#0284c7;border-radius:2px;vertical-align:middle;margin-right:4px"></span>cerca del promedio</span>'
             +'<span><span style="display:inline-block;width:10px;height:10px;background:#d97706;border-radius:2px;vertical-align:middle;margin-right:4px"></span>algo bajo</span>'
             +'<span><span style="display:inline-block;width:10px;height:10px;background:#dc2626;border-radius:2px;vertical-align:middle;margin-right:4px"></span>muy bajo (>20%)</span>'
             +'</div>';
@@ -2389,7 +2389,7 @@ function descargarResumen(){
             +'</tr></thead><tbody>'+histRows+'</tbody></table>'
             +'<div style="'+S.cards+'margin-top:12px">'
               +'<div style="'+S.card+'"><span style="'+S.clbl+'">Promedio mensual</span>'
-                +'<span style="'+S.cval+'color:#4c1d95">'+fqR(avgNorm)+'</span>'
+                +'<span style="'+S.cval+'color:#0c4a6e">'+fqR(avgNorm)+'</span>'
                 +'<span style="'+S.csub+'">sin bonos · '+normales.length+' meses</span></div>'
               +'<div style="'+S.card+'"><span style="'+S.clbl+'">Este mes vs promedio</span>'
                 +'<span style="'+S.cval+(ingTotal>=avgNorm?'color:#059669':'color:#d97706')+'">'+(ingTotal>=avgNorm?'+':'\u2212')+(avgNorm>0?Math.abs((ingTotal/avgNorm-1)*100).toFixed(1):'0')+'%</span>'
@@ -2400,7 +2400,7 @@ function descargarResumen(){
     +'</div>'
 
     // ── INVERSIÓN ──
-    +'<div class="rsec" style="'+S.sec+'">'      +'<span style="'+S.sectl+'">Inversión en portafolio · costo base</span>'      +'<div style="'+S.cards+'">'        +'<div style="'+S.card+'"><span style="'+S.clbl+'">Capital inicial</span>'          +'<span style="'+S.cval+'color:#2563eb">$'+dcaBase.toLocaleString('en-US',{maximumFractionDigits:0})+'</span>'          +'<span style="'+S.csub+'">ene–abr 2026</span></div>'        +'<div style="'+S.card+'"><span style="'+S.clbl+'">Capital actual ('+dcaUltimoMes+')</span>'          +'<span style="'+S.cval+'color:#059669">$'+dcaUltimoVal.toLocaleString('en-US',{maximumFractionDigits:0})+'</span>'          +'<span style="'+S.csub+'">último mes registrado</span></div>'        +'<div style="'+S.card+'"><span style="'+S.clbl+'">Has aportado</span>'          +'<span style="'+S.cval+'color:#7c3aed">$'+dcaAcum.toLocaleString('en-US',{maximumFractionDigits:0})+'</span>'          +'<span style="'+S.csub+'">actual − inicial</span></div>'      +'</div>'      +((()=>{          if(usarAportes){            if(!dcaAportesKeys.length) return '';            let acum=dcaBase;            const rows3=dcaAportesKeys.map(m=>{              const a=dcaAportesObj[m]||{};              const usd=parseFloat(a.usd)||0;              const q=parseFloat(a.q)||0;              acum+=usd;              return '<tr><td style="'+S.td+'">'+m+'</td><td style="'+S.td+'color:#059669;font-weight:600">+$'+usd.toLocaleString('en-US',{maximumFractionDigits:2})+'</td><td style="'+S.td+'color:#6b7280;font-size:10px">Q'+q.toLocaleString('es-GT')+'</td><td style="'+S.td+'font-weight:700">$'+acum.toLocaleString('en-US',{maximumFractionDigits:0})+'</td></tr>';            }).join('');            return '<table style="'+S.tbl+'"><thead><tr>'              +'<th style="'+S.th+'">Mes</th><th style="'+S.th+'">Aporte USD</th><th style="'+S.th+'">En Q</th><th style="'+S.th+'">Acumulado</th>'              +'</tr></thead><tbody>'+rows3+'</tbody></table>';          } else {            const mOP3=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];            const ks3=Object.keys(dcaMesesObj).sort((a,b)=>{              const ya=parseInt(a.slice(-4))||2026,ma=mOP3.indexOf(a.slice(0,3));              const yb=parseInt(b.slice(-4))||2026,mb=mOP3.indexOf(b.slice(0,3));              return ya!==yb?ya-yb:ma-mb;            });            if(!ks3.length) return '';            let prev3=dcaBase;            const rows3=ks3.map(m=>{              const v=parseFloat(dcaMesesObj[m])||0;              const d3=v-prev3;              const ds3=(d3>=0?'+$':'-$')+Math.abs(d3).toLocaleString('en-US',{maximumFractionDigits:0});              const dc3=d3>=0?'#059669':'#dc2626';              prev3=v;              return '<tr><td style="'+S.td+'">'+m+'</td><td style="'+S.td+'color:'+dc3+';font-weight:600">'+ds3+'</td><td style="'+S.td+'font-weight:700">$'+v.toLocaleString('en-US',{maximumFractionDigits:0})+'</td></tr>';            }).join('');            return '<table style="'+S.tbl+'"><thead><tr>'              +'<th style="'+S.th+'">Mes</th><th style="'+S.th+'">Aportado</th><th style="'+S.th+'">Total</th>'              +'</tr></thead><tbody>'+rows3+'</tbody></table>';          }        })())    +'</div>'
+    +'<div class="rsec" style="'+S.sec+'">'      +'<span style="'+S.sectl+'">Inversión en portafolio · costo base</span>'      +'<div style="'+S.cards+'">'        +'<div style="'+S.card+'"><span style="'+S.clbl+'">Capital inicial</span>'          +'<span style="'+S.cval+'color:#0284c7">$'+dcaBase.toLocaleString('en-US',{maximumFractionDigits:0})+'</span>'          +'<span style="'+S.csub+'">ene–abr 2026</span></div>'        +'<div style="'+S.card+'"><span style="'+S.clbl+'">Capital actual ('+dcaUltimoMes+')</span>'          +'<span style="'+S.cval+'color:#059669">$'+dcaUltimoVal.toLocaleString('en-US',{maximumFractionDigits:0})+'</span>'          +'<span style="'+S.csub+'">último mes registrado</span></div>'        +'<div style="'+S.card+'"><span style="'+S.clbl+'">Has aportado</span>'          +'<span style="'+S.cval+'color:#0284c7">$'+dcaAcum.toLocaleString('en-US',{maximumFractionDigits:0})+'</span>'          +'<span style="'+S.csub+'">actual − inicial</span></div>'      +'</div>'      +((()=>{          if(usarAportes){            if(!dcaAportesKeys.length) return '';            let acum=dcaBase;            const rows3=dcaAportesKeys.map(m=>{              const a=dcaAportesObj[m]||{};              const usd=parseFloat(a.usd)||0;              const q=parseFloat(a.q)||0;              acum+=usd;              return '<tr><td style="'+S.td+'">'+m+'</td><td style="'+S.td+'color:#059669;font-weight:600">+$'+usd.toLocaleString('en-US',{maximumFractionDigits:2})+'</td><td style="'+S.td+'color:#6b7280;font-size:10px">Q'+q.toLocaleString('es-GT')+'</td><td style="'+S.td+'font-weight:700">$'+acum.toLocaleString('en-US',{maximumFractionDigits:0})+'</td></tr>';            }).join('');            return '<table style="'+S.tbl+'"><thead><tr>'              +'<th style="'+S.th+'">Mes</th><th style="'+S.th+'">Aporte USD</th><th style="'+S.th+'">En Q</th><th style="'+S.th+'">Acumulado</th>'              +'</tr></thead><tbody>'+rows3+'</tbody></table>';          } else {            const mOP3=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];            const ks3=Object.keys(dcaMesesObj).sort((a,b)=>{              const ya=parseInt(a.slice(-4))||2026,ma=mOP3.indexOf(a.slice(0,3));              const yb=parseInt(b.slice(-4))||2026,mb=mOP3.indexOf(b.slice(0,3));              return ya!==yb?ya-yb:ma-mb;            });            if(!ks3.length) return '';            let prev3=dcaBase;            const rows3=ks3.map(m=>{              const v=parseFloat(dcaMesesObj[m])||0;              const d3=v-prev3;              const ds3=(d3>=0?'+$':'-$')+Math.abs(d3).toLocaleString('en-US',{maximumFractionDigits:0});              const dc3=d3>=0?'#059669':'#dc2626';              prev3=v;              return '<tr><td style="'+S.td+'">'+m+'</td><td style="'+S.td+'color:'+dc3+';font-weight:600">'+ds3+'</td><td style="'+S.td+'font-weight:700">$'+v.toLocaleString('en-US',{maximumFractionDigits:0})+'</td></tr>';            }).join('');            return '<table style="'+S.tbl+'"><thead><tr>'              +'<th style="'+S.th+'">Mes</th><th style="'+S.th+'">Aportado</th><th style="'+S.th+'">Total</th>'              +'</tr></thead><tbody>'+rows3+'</tbody></table>';          }        })())    +'</div>'
     // ── RESERVAS ──
     +'<div class="rsec" style="'+S.sec+'">'
       +'<span style="'+S.sectl+'">Reservas y patrimonio liquido</span>'
@@ -2415,7 +2415,7 @@ function descargarResumen(){
         +((parseFloat(ST.reservaLulu)||0)>0?'<tr><td style="'+S.td+'">Cash personal</td><td style="'+S.td+'">Lulubit</td><td style="'+S.td+'">'+fqR(parseFloat(ST.reservaLulu)||0)+'</td>'+dCell('lulu',parseFloat(ST.reservaLulu)||0)+'<td style="'+S.td+'">—</td></tr>':'')
         +('<tr><td style="'+S.td+'color:#059669">Ahorro BI · USD (superávit)</td><td style="'+S.td+'">Ahorro BI dólares</td><td style="'+S.td+'color:#059669;font-weight:600">$'+(COLS.abiUsd||0).toFixed(0)+' ('+fqR((COLS.abiUsd||0)*tc)+')</td>'+dCellUsd('abiUsd',COLS.abiUsd||0)+'<td style="'+S.td+'">—</td></tr>')
         +(btcQty>0?'<tr><td style="'+S.td+'color:#f7931a">₿ BTC reserva</td><td style="'+S.td+'">SeedSigner</td><td style="'+S.td+'color:#f7931a;font-weight:600">₿'+btcQty.toFixed(4)+' · '+fqR(btcQ)+'</td><td style="'+S.td+'color:#a0aec0;font-size:10px">intocable</td><td style="'+S.td+'color:#888">$'+btcUsd.toLocaleString('en-US',{maximumFractionDigits:0})+'</td></tr>':'')
-        +'<tr><td style="'+S.td+'font-weight:700" colspan="2">Total reservas</td><td style="'+S.td+'font-weight:700;color:#4c1d95">'+fqR(totalRes)+'</td><td style="'+S.td+'font-weight:700;color:#4c1d95" colspan="2">$'+(totalRes/tc).toLocaleString('en-US',{maximumFractionDigits:0})+'</td></tr>'
+        +'<tr><td style="'+S.td+'font-weight:700" colspan="2">Total reservas</td><td style="'+S.td+'font-weight:700;color:#0c4a6e">'+fqR(totalRes)+'</td><td style="'+S.td+'font-weight:700;color:#0c4a6e" colspan="2">$'+(totalRes/tc).toLocaleString('en-US',{maximumFractionDigits:0})+'</td></tr>'
       +'</tbody></table>'
       +(snapPrevR?'<div style="font-size:10px;color:#888;margin-top:6px">&Delta; comparado con el cierre anterior'+(snapPrevR.fecha?' ('+snapPrevR.fecha+')':'')+'</div>':'<div style="font-size:10px;color:#888;margin-top:6px">Sin cierre previo guardado para comparar</div>')
     +'</div>'
@@ -2438,9 +2438,9 @@ function descargarResumen(){
         // Si solo hay 1 snapshot, mostrar mensaje suave
         if(SNAP_M.length === 1){
           var s = SNAP_M[0];
-          return '<div style="background:#f5f3ff;border:1px solid #ddd6fe;border-radius:8px;padding:14px;text-align:center">'
+          return '<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:14px;text-align:center">'
             +'<div style="font-size:11px;color:#666;line-height:1.6">Primer snapshot capturado el '+fmtDateShort(s.date)+'.<br>La grafica de tendencia aparecera con mas snapshots.</div>'
-            +'<div style="margin-top:8px;font-size:18px;font-weight:700;color:#4c1d95">Q'+s.total.toLocaleString('es-GT',{maximumFractionDigits:0})+'</div>'
+            +'<div style="margin-top:8px;font-size:18px;font-weight:700;color:#0c4a6e">Q'+s.total.toLocaleString('es-GT',{maximumFractionDigits:0})+'</div>'
             +'</div>';
         }
 
@@ -2472,7 +2472,7 @@ function descargarResumen(){
           const x = padL + i * stepX;
           const y = padT + innerH - ((s.total - yMin) / yRange) * innerH;
           pathD += (i === 0 ? 'M' : 'L') + x.toFixed(1) + ',' + y.toFixed(1) + ' ';
-          pointsHtml += '<circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="3" fill="#7c3aed" stroke="#fff" stroke-width="1.5"/>';
+          pointsHtml += '<circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="3" fill="#0284c7" stroke="#fff" stroke-width="1.5"/>';
           if(showLabels || i === 0 || i === SNAP_M.length - 1 || i % Math.ceil(SNAP_M.length/8) === 0){
             labelsHtml += '<text x="'+x.toFixed(1)+'" y="'+(chartH - padB + 14).toFixed(1)+'" text-anchor="middle" font-family="monospace" font-size="8" fill="#718096">'+fmtDateShort(s.date)+'</text>';
           }
@@ -2491,10 +2491,10 @@ function descargarResumen(){
         let areaPath = pathD + 'L'+(padL + (SNAP_M.length-1)*stepX).toFixed(1)+','+(padT+innerH).toFixed(1)+' L'+padL+','+(padT+innerH).toFixed(1)+' Z';
 
         const svg = '<svg viewBox="0 0 '+chartW+' '+chartH+'" style="width:100%;max-width:100%;height:auto;display:block;margin-bottom:6px" preserveAspectRatio="xMidYMid meet">'
-          +'<defs><linearGradient id="snapgrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#7c3aed" stop-opacity=".22"/><stop offset="100%" stop-color="#7c3aed" stop-opacity="0"/></linearGradient></defs>'
+          +'<defs><linearGradient id="snapgrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0284c7" stop-opacity=".22"/><stop offset="100%" stop-color="#0284c7" stop-opacity="0"/></linearGradient></defs>'
           +yAxisHtml
           +'<path d="'+areaPath+'" fill="url(#snapgrad)"/>'
-          +'<path d="'+pathD+'" stroke="#7c3aed" stroke-width="2" fill="none" stroke-linejoin="round" stroke-linecap="round"/>'
+          +'<path d="'+pathD+'" stroke="#0284c7" stroke-width="2" fill="none" stroke-linejoin="round" stroke-linecap="round"/>'
           +pointsHtml
           +labelsHtml
           +'</svg>';
@@ -2513,9 +2513,9 @@ function descargarResumen(){
             +'<div style="font-size:13px;font-weight:700;color:#4a5568">Q'+(first.total/1000).toFixed(1)+'K</div>'
             +'<div style="font-size:8px;color:#a0aec0">'+fmtDateShort(first.date)+'</div>'
           +'</div>'
-          +'<div style="background:#f5f3ff;border:1px solid #ddd6fe;border-radius:6px;padding:8px 10px;text-align:center">'
+          +'<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:6px;padding:8px 10px;text-align:center">'
             +'<div style="font-size:8px;color:#a0aec0;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">Actual</div>'
-            +'<div style="font-size:13px;font-weight:800;color:#4c1d95">Q'+(last.total/1000).toFixed(1)+'K</div>'
+            +'<div style="font-size:13px;font-weight:800;color:#0c4a6e">Q'+(last.total/1000).toFixed(1)+'K</div>'
             +'<div style="font-size:8px;color:#a0aec0">'+fmtDateShort(last.date)+'</div>'
           +'</div>'
           +'<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:8px 10px;text-align:center">'
@@ -2543,7 +2543,7 @@ function descargarResumen(){
             +'<td style="'+S.td+'">Q'+(s.bant/1000).toFixed(1)+'K'+arr(s.bant, prev?prev.bant:null)+'</td>'
             +'<td style="'+S.td+'">Q'+s.buf.toFixed(0)+arr(s.buf, prev?prev.buf:null)+'</td>'
             +'<td style="'+S.td+'">$'+(s.reimb||0).toFixed(0)+arr(s.reimb||0, prev?(prev.reimb||0):null)+'</td>'
-            +'<td style="'+S.td+'font-weight:700;color:#4c1d95">Q'+(s.total/1000).toFixed(1)+'K</td>'
+            +'<td style="'+S.td+'font-weight:700;color:#0c4a6e">Q'+(s.total/1000).toFixed(1)+'K</td>'
           +'</tr>';
         }).join('');
 
@@ -2595,7 +2595,7 @@ function descargarResumen(){
           +'<span style="'+S.cval+'color:#059669">'+fqR(1480000-salHip)+'</span>'
           +'<span style="'+S.csub+'">'+((1480000-salHip)/1480000*100).toFixed(1)+'% · '+nPag+' de '+nTot+' cuotas</span></div>'
         +'<div style="'+S.card+'"><span style="'+S.clbl+'">De la cuota de este mes</span>'
-          +'<span style="'+S.cval+'color:#2563eb">'+fqR(Math.max(CUOTA-salHip*(0.0726/12),0))+'</span>'
+          +'<span style="'+S.cval+'color:#0284c7">'+fqR(Math.max(CUOTA-salHip*(0.0726/12),0))+'</span>'
           +'<span style="'+S.csub+'">a capital · '+((Math.max(CUOTA-salHip*(0.0726/12),0)/CUOTA)*100).toFixed(0)+'% de la cuota</span></div>'
       +'</div>'
       +'<div style="font-size:10px;color:#6b7280;margin-bottom:4px">Amortizacion del principal · '+((1480000-salHip)/1480000*100).toFixed(1)+'%</div>'
@@ -2627,7 +2627,7 @@ function descargarResumen(){
             +'<td style="'+S.td+'font-weight:600">'+fqR(f.v)+'</td>'
             +'<td style="'+S.td+'color:#6b7280;font-size:10px">'+f.c+'</td></tr>').join('')
           +'<tr><td style="'+S.td+'font-weight:700">Poder total</td>'
-            +'<td style="'+S.td+'font-weight:700;color:#4c1d95">'+fqR(tot)+'</td>'
+            +'<td style="'+S.td+'font-weight:700;color:#0c4a6e">'+fqR(tot)+'</td>'
             +'<td style="'+S.td+'color:#6b7280;font-size:10px">'+fusd(tot)+'</td></tr>'
           +'<tr><td style="'+S.td+'color:#dc2626">🔒 Ahorro BI en quetzales</td>'
             +'<td style="'+S.td+'color:#a0aec0">'+fqR(COLS.emer)+'</td>'
@@ -2644,7 +2644,7 @@ function descargarResumen(){
     // ── REGISTRO DE BONO (histórico, solo marca si se recibió este mes) ──
     +((ST.mes===7||ST.mes===12)?('<div class="rsec" style="'+S.sec+'">'
       +'<span style="'+S.sectl+'">'+(ST.mes===7?'Bono 14':'Aguinaldo')+' · registro</span>'
-      +'<div style="background:#f5f3ff;border:1px solid #ddd6fe;border-radius:8px;padding:12px 14px;font-size:12px;color:#4c1d95;line-height:1.6">'
+      +'<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:12px 14px;font-size:12px;color:#0c4a6e;line-height:1.6">'
         +'<strong>'+(ST.mes===7?'Bono 14':'Aguinaldo')+' de '+(ST.anio||2026)+'</strong> — prestación recibida este mes.<br>'
         +'<span style="font-size:11px;color:#666">Distribución definida: 50% Ahorro BI · 30% inversión · 10% Bantrab · 10% personal. '
         +'Registro para historial; el monto ya está reflejado en el ingreso del mes y en las reservas.</span>'

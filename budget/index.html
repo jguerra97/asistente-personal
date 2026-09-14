@@ -311,7 +311,7 @@ body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--tx);min-heig
   <div class="rc"><label>Ingreso del mes</label><div class="rv g" id="r-ing">—</div><div class="rs" id="r-ing-usd">—</div></div>
   <div class="rc"><label>Ahorro BI total</label><div class="rv r" id="r-fij">—</div><div class="rs" id="r-fij-pct">—</div></div>
   <div class="rc"><label>Excedente</label><div class="rv p" id="r-exc">—</div><div class="rs" id="r-exc-usd">—</div></div>
-  <div class="rc"><label>Inversión cripto</label><div class="rv o" id="r-inv">—</div><div class="rs" id="r-inv-sub">Q1,100 Bantrab fijo · 60% resto inversión</div></div>
+  <div class="rc"><label>Inversión cripto</label><div class="rv o" id="r-inv">—</div><div class="rs" id="r-inv-sub">DCA BTC $200 · Q1,492/mes · buffer sale del excedente</div></div>
 </div>
 
 <!-- STATS INGRESOS -->
@@ -826,19 +826,17 @@ const CUOTA=13959.61;
 const MESES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const MNOMBRES=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 const COBROS_BANCARIOS = 25;     // salen primero desde Monetaria BI
-const FIJOS_TOTAL = 13959.61+1355+969+970+545+300+400+450+25; // Q18,973.61 (IUSI 970, internet 545, luz 450 est, buffer 300)
 const FIJOS_RUBROS=[
   {ico:'🏠',nom:'Hipoteca BI',        amt:13959.61, cat:'vivienda'},
   {ico:'🔧',nom:'Mantenimiento+agua', amt:1355.00,  cat:'vivienda'},
-  {ico:'🤖',nom:'Claude AI Max',      amt:969.00,   cat:'digital'},
   {ico:'🏛️',nom:'IUSI (provisión)',   amt:970.00,   cat:'vivienda'},
-  {ico:'📡',nom:'Internet (Starlink)', amt:545.00,   cat:'servicios'},
-  {ico:'🔒',nom:'Buffer fijos',        amt:300.00,  cat:'reserva'},
-  {ico:'⛽',nom:'Gasolina',            amt:400.00,   cat:'transporte'},
+  {ico:'🤖',nom:'Claude AI Max',      amt:972.50,   cat:'digital'},
+  {ico:'📡',nom:'Internet (Starlink)', amt:545.00,  cat:'servicios'},
+  {ico:'⛽',nom:'Gasolina',            amt:500.00,   cat:'transporte'},
   {ico:'💡',nom:'Luz',                 amt:450.00,   cat:'servicios'},
-  {ico:'🏦',nom:'Cobros bancarios',    amt:25.00,    cat:'servicios'},
-  // Luz Q450 estimada (aún sin dato real de consumo · rango 350-600) · Buffer bajo porque hay colchón aparte
+  {ico:'🏦',nom:'Cobros bancarios',    amt:25.00,    cat:'servicios'}
 ];
+const FIJOS_TOTAL = FIJOS_RUBROS.reduce((s,r)=>s+r.amt,0); // Q18,777.11 · derivado
 const SUBS_ENT=[
   {nom:'Spotify',      usd:6.49,  freq:'mensual'},
   {nom:'Disney+',      usd:11.49, freq:'mensual'},
@@ -1119,21 +1117,21 @@ function onBamDeuda(v){ST.bamDeuda=parseFloat(v)||0;saveState();recalc();}
 
 // ── DISTRIBUCIÓN (v3 — lógica Q1/Q2 por casos · PDF 5 mayo 2026) ──
 // ── MODELO NUEVO (julio 2026) — porcentajes fijos sobre ingreso real ──
-// Presupuesto base: Q26,815
+// Presupuesto base: Q25,769.11
 // Fijos:      71.95% → Q19,294
 // Personal:   9.39%  → Q2,518 (salidas Q1,000 + buffer Q1,250 + subs Q268)
 // Ahorro:     4.10%  → Q1,100 (Bantrab fijo)
 // Inversión: 14.54%  → Q3,900 (~$503)
-const PCT_FIJOS     = 0.72769;  // 72.769% — personal reducido a Q2,000
-const PCT_PERSONAL  = 0.07671;  // 7.671%
-const PCT_AHORRO    = 0.04602;  // 4.602% — ahorro mínimo Q1,200
-const PCT_INVERSION = 0.14958;  // 14.958% — inversión mínimo Q3,900
+const PCT_FIJOS     = 0.72867;  // 72.769% — personal reducido a Q2,000
+const PCT_PERSONAL  = 0.13582;  // 7.671%
+const PCT_AHORRO    = 0.07761;  // 4.602% — ahorro mínimo Q1,200
+const PCT_INVERSION = 0.05790;  // 14.958% — inversión mínimo Q3,900
 
 // Metas mensuales absolutas (fijos incluyen Q25 cobros bancarios)
-const META_FIJOS     = 18973.61;  // fijos ajustados jul 2026 (IUSI 970, internet 545, luz 450, buffer 300, cobros 25)
-const META_PERSONAL  = 2000.00;
-const META_AHORRO    = 1200.00;
-const META_INVERSION = 3900.00;
+const META_FIJOS     = 18777.11;  // fijos ajustados jul 2026 (IUSI 970, internet 545, luz 450, buffer 300, cobros 25)
+const META_PERSONAL  = 3500.00;
+const META_AHORRO    = 2000.00;
+const META_INVERSION = 1492.00;
 
 // Legacy (mantenido para compatibilidad con renderQ antiguo)
 const BANTRAB_FIJO = 550;
@@ -2424,13 +2422,12 @@ function descargarResumen(){
     +(SNAPSHOTS && SNAPSHOTS.length >= 1 ? ('<div class="rsec" style="'+S.sec+'">'
       +'<span style="'+S.sectl+'">Evolucion de reservas en el tiempo</span>'
       +(function(){
-        // ── un cierre por mes: se queda el ultimo snapshot de cada mes ──
+        // ── un cierre por mes ──
         const _bm={};
         (SNAPSHOTS||[]).forEach(function(s){
           var d=new Date(s.date||s.ts||s.fecha||0);
-          var k=isNaN(d.getTime())
-            ? String(s.fecha||'').split('/').slice(1).join('/')
-            : d.getFullYear()+'-'+(d.getMonth()+1);
+          var k=isNaN(d.getTime())?String(s.fecha||'').split('/').slice(1).join('/')
+            :d.getFullYear()+'-'+(d.getMonth()+1);
           _bm[k]=s;
         });
         const SNAP_M=Object.keys(_bm).map(function(k){return _bm[k];});
@@ -2548,7 +2545,7 @@ function descargarResumen(){
         }).join('');
 
         const tableNote = SNAP_M.length > 12
-          ? '<div style="font-size:9px;color:#a0aec0;margin-top:6px;text-align:center;font-style:italic">Mostrando ultimos 12 snapshots de '+SNAP_M.length+' totales</div>'
+          ? '<div style="font-size:9px;color:#a0aec0;margin-top:6px;text-align:center;font-style:italic">Mostrando ultimos 12 snapshots de '+SNAPSHOTS.length+' totales</div>'
           : '';
 
         return svg
@@ -2605,7 +2602,7 @@ function descargarResumen(){
         +'Esa proporcion mejora lentamente cada mes, y es la razon por la que un abono extraordinario pesa tanto: va 100% a capital.'
       +'</div>'
 
-    // ── PODER DE ABONO (criterio: Ahorro BI Q excluido) ──
+    // ── PODER DE ABONO ──
     +(()=>{
       const PCT_BANT=0.40;
       const altsU=Math.max((parseFloat(ST.portafolioUsd)||0)-btcUsd,0);
@@ -2614,6 +2611,7 @@ function descargarResumen(){
         {n:'Cripto realizable', v:criptoQ,             c:'alts 100% + BTC 10%'},
         {n:'Bantrab',           v:COLS.bant*PCT_BANT,  c:'40% maximo'},
         {n:'Ahorro BI · USD',   v:(COLS.abiUsd||0)*tc, c:'100% · superavit'},
+        {n:'Reembolsos',        v:(COLS.reimb||0)*tc,  c:'100%'},
         {n:'Monetaria BI',      v:COLS.buf,            c:'100%'},
         {n:'Lulubit',           v:parseFloat(ST.reservaLulu)||0, c:'100%'}
       ].filter(f=>f.v>0);
@@ -2634,8 +2632,7 @@ function descargarResumen(){
             +'<td style="'+S.td+'color:#dc2626;font-size:10px">excluido · colchon de fijos</td></tr>'
         +'</tbody></table>'
         +'<div style="margin-top:8px;padding:9px 11px;background:#fef2f2;border-left:3px solid #dc2626;border-radius:4px;font-size:10px;color:#991b1b;line-height:1.6">'
-          +'El Ahorro BI en quetzales queda fuera del abono: es el colchon que cubre los fijos si el ingreso falla. '
-          +'Usarlo para la hipoteca dejaria descubierta la operacion mensual.'
+          +'El Ahorro BI en quetzales queda fuera del abono: es el colchon que cubre los fijos si el ingreso falla.'
         +'</div>'
       +'</div>';
     })()

@@ -96,9 +96,9 @@ html,body{
 /* ── CARDS ── */
 .cards{
   display:grid;
-  grid-template-columns:repeat(3,1fr);
+  grid-template-columns:repeat(2,1fr);
   gap:16px;
-  width:100%;max-width:900px;
+  width:100%;max-width:760px;
   animation:fadeUp .6s .3s ease both;
 }
 
@@ -161,6 +161,8 @@ html,body{
 .card-2{--card-color:var(--gr);}
 /* Card 3 — Portfolio */
 .card-3{--card-color:var(--ac);}
+/* Card 4 — Casa Libre */
+.card-4{--card-color:var(--go);}
 
 /* ── STATUS BAR ── */
 .status{
@@ -194,10 +196,7 @@ html,body{
   .title{letter-spacing:-1px;}
   .card{padding:24px 20px;}
 }
-@media(min-width:701px) and (max-width:900px){
-  .cards{grid-template-columns:1fr 1fr;}
-  .card-3{grid-column:1/-1;}
-}
+
 </style>
 </head>
 <body>
@@ -240,6 +239,14 @@ html,body{
       <span class="card-label">Inversiones</span>
       <div class="card-title">Portfolio Tracker</div>
       <div class="card-desc">Portafolio cripto y broker en tiempo real. Capa 1, Capa 2 y TradFi unificados.</div>
+      <span class="card-arrow">→</span>
+    </a>
+
+    <a class="card card-4" href="./prestamo/">
+      <div class="card-icon">🏠</div>
+      <span class="card-label">Hipoteca</span>
+      <div class="card-title">Casa Libre</div>
+      <div class="card-desc">Plan de liquidación del crédito: abonos, ahorro y portafolio hacia la fecha meta.</div>
       <span class="card-arrow">→</span>
     </a>
 

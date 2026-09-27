@@ -674,16 +674,18 @@ const SEED_SNAPSHOTS = [
 function seedSnapshots(){
   try{
     const d = ldS();
-    if(d.seeded) return;                       // ya se cargó antes
     let snaps = Array.isArray(d.snapshots) ? d.snapshots : [];
-    const corte = Date.parse('2026-09-01T00:00:00Z');
-    const previos = snaps.filter(s => s.t < corte);
-    if(previos.length === 0){
-      snaps = SEED_SNAPSHOTS.concat(snaps).sort((a,b)=>a.t-b.t);
+    const mesDe = t => { const x=new Date(t); return x.getFullYear()+'-'+x.getMonth(); };
+    const yaHay = new Set(snaps.map(s => mesDe(s.t)));
+    let add = 0;
+    SEED_SNAPSHOTS.forEach(s => {
+      if(!yaHay.has(mesDe(s.t))){ snaps.push(s); yaHay.add(mesDe(s.t)); add++; }
+    });
+    if(add > 0){
+      snaps.sort((a,b) => a.t - b.t);
+      d.snapshots = snaps;
+      localStorage.setItem(LS, JSON.stringify(d));
     }
-    d.snapshots = snaps;
-    d.seeded = true;
-    localStorage.setItem(LS, JSON.stringify(d));
   }catch(e){ console.log('seed error:', e); }
 }
 

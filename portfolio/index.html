@@ -363,6 +363,27 @@ td:first-child{text-align:left;}
 </table></div>
 <div class="card-list" id="cl2"><div style="padding:16px;font-family:'DM Mono',monospace;font-size:11px;color:var(--mu)">Cargando...</div></div>
 
+<!-- CAPA 3 · APUESTAS ASIMÉTRICAS -->
+<div class="sec">
+  <div class="ld" style="background:#ff8c42;box-shadow:0 0 6px #ff8c42"></div>
+  <div class="lt">Capa 3 — Asimétricas <span>capital dado por perdido · upside a máximos</span></div>
+</div>
+<div class="tw"><table>
+  <thead><tr>
+    <th>Activo</th><th>Precio</th>
+    <th>Cantidad ✏</th><th>Valor</th><th>Invertido</th><th>Entrada ✏</th><th>P&L</th>
+  </tr></thead>
+  <tbody id="tb3"><tr><td class="lc" colspan="8">Cargando...</td></tr></tbody>
+</table></div>
+<div class="card-list" id="cl3"><div style="padding:16px;font-family:'DM Mono',monospace;font-size:11px;color:var(--mu)">Cargando...</div></div>
+
+<!-- SPLIT · núcleo vs total -->
+<div class="sec" style="margin-top:18px">
+  <div class="ld" style="background:#3db8f5;box-shadow:0 0 6px #3db8f5"></div>
+  <div class="lt">Núcleo vs total <span>medir ambos por separado</span></div>
+</div>
+<div id="split-box" style="background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:14px 16px;margin-bottom:14px"></div>
+
 <!-- BROKER -->
 <div class="sec">
   <div class="ld" style="background:var(--go);box-shadow:0 0 6px var(--go)"></div>
@@ -526,7 +547,7 @@ function ldS(){try{return JSON.parse(localStorage.getItem(LS))||{};}catch(e){ret
 function svS(k,f,v){const d=ldS();if(!d[k])d[k]={};d[k][f]=v;try{localStorage.setItem(LS,JSON.stringify(d));}catch(e){}}
 function applyS(){
   const d=ldS();
-  [...L1,...L2,...BROKER].forEach(a=>{
+  [...L1,...L2,...L3,...BROKER].forEach(a=>{
     if(!d[a.tick])return;
     if(d[a.tick].qty!==undefined)   a.qty  =d[a.tick].qty;
     if(d[a.tick].entry!==undefined) a.entry=d[a.tick].entry;
@@ -545,6 +566,18 @@ const L2=[
   {id:'pyth-network',tick:'PYTH',name:'Pyth Network (PYTH)',col:'#7c3aed',ico:'🔮',qty:7143, entry:0.042, target:5.00, price:0.042,
    note:'Oráculo de datos financieros · "el LINK de Solana" · reemplazó FET 30jul · infra de datos de baja latencia · suelo profundo (ATH $1.15 mar2024, -96%) · patrón Render'},
 ];
+// ── L3 · APUESTAS ASIMÉTRICAS ──────────────────────────────────
+// Capital que se da por perdido de antemano. Cuentan en el total
+// pero se separan del núcleo para poder medir ambos por aparte.
+const L3=[
+  {id:'theta-token',  tick:'THETA',name:'Theta Network',  col:'#2ab8e6',ico:'Θ',qty:1267.4,  entry:0.2367,  target:4.00,   price:0.2367,
+   note:'Video descentralizado · ATH $15.89 abr2021 (-98.5%) · supply fijo 1B todo circulando · target $4 = $4B market cap'},
+  {id:'lcx',          tick:'LCX',  name:'LCX Exchange',   col:'#00c8a0',ico:'L',qty:12096.8, entry:0.0248,  target:0.564,  price:0.0248,
+   note:'Exchange regulado Liechtenstein · 8 licencias FMA · MiCA compliant jul2026 · ATH $0.564 nov2021 · liquidez baja'},
+  {id:'tars-protocol',tick:'TAI',  name:'TARS AI',        col:'#ff8c42',ico:'T',qty:78328,   entry:0.00383, target:0.4941, price:0.00383,
+   note:'AI agents en Solana · ATH $0.4941 dic2024 · tocó mínimo histórico sep2026 · MC $3.4M · volumen $196K/día'},
+];
+
 const BROKER=[
   {tick:'MSTR',name:'MicroStrategy (Schwab)',col:'#e8a020',ico:'M',qty:18.46, entry:172.10, price:166.43,   strat:'exit', sl:'Hold · triggers documentados',  note:'18.46 acc · prom $172.10 · no compra sin triggers (mNAV >1.2x · breakout $205 · BTC >$90K)'},
   {tick:'BTC', name:'Bitcoin (Lava+DCA)',   col:'#f7931a',ico:'₿',qty:0.10438,entry:34000,  price:81093,   strat:'dca',  sl:'DCA perpetuo',   note:'Colchón LF · DCA $50/sem · entrada promedio ~$34K'},
@@ -629,6 +662,32 @@ function mkCard(a,price,chg,isL2){
 const SNAP_MAX = 365;
 const SNAP_MIN_INTERVAL_MS = 60 * 60 * 1000; // 1 hora entre snapshots
 
+// ── SNAPSHOTS HISTÓRICOS · cargados una sola vez ──────────────
+// Datos confirmados por el usuario: aporte del mes y valor acumulado.
+// May +$1,140 · Jun +$1,706.21 · Jul +$1,937.99 · Ago +$501.93
+const SEED_SNAPSHOTS = [
+  {t: Date.parse('2026-05-31T12:00:00Z'), c: 14379, v: 14379},
+  {t: Date.parse('2026-06-30T12:00:00Z'), c: 16085, v: 16085},
+  {t: Date.parse('2026-07-31T12:00:00Z'), c: 18023, v: 18023},
+  {t: Date.parse('2026-08-31T12:00:00Z'), c: 18525, v: 18525},
+];
+function seedSnapshots(){
+  try{
+    const d = ldS();
+    if(d.seeded) return;                       // ya se cargó antes
+    let snaps = Array.isArray(d.snapshots) ? d.snapshots : [];
+    const corte = Date.parse('2026-09-01T00:00:00Z');
+    const previos = snaps.filter(s => s.t < corte);
+    if(previos.length === 0){
+      snaps = SEED_SNAPSHOTS.concat(snaps).sort((a,b)=>a.t-b.t);
+    }
+    d.snapshots = snaps;
+    d.seeded = true;
+    localStorage.setItem(LS, JSON.stringify(d));
+  }catch(e){ console.log('seed error:', e); }
+}
+
+
 async function saveSnapshot(totalValue, totalCost){
   if(!totalValue || isNaN(totalValue) || totalValue <= 0) return;
   try {
@@ -647,7 +706,38 @@ async function saveSnapshot(totalValue, totalCost){
     localStorage.setItem(LS, JSON.stringify(full));
   } catch(e){ console.log('Snapshot error:', e); }
 }
-async function renderTrendChart(){
+async function renderSplit(totCore, cstCore, totAsim, cstAsim){
+  const box = document.getElementById('split-box');
+  if(!box) return;
+  const f = n => '$' + Math.round(n).toLocaleString('en-US');
+  const pct = (a,b) => b>0 ? ((a-b)/b*100) : 0;
+  const plCore = totCore - cstCore, plAsim = totAsim - cstAsim;
+  const totAll = totCore + totAsim, cstAll = cstCore + cstAsim;
+  const plAll = totAll - cstAll;
+  const pesoAsim = totAll>0 ? (totAsim/totAll*100) : 0;
+
+  const fila = (lbl, sub, val, cost, pl, col) =>
+     '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:9px 0;border-bottom:1px solid var(--bd)">'
+    +'<div><div style="font-size:12px;font-weight:600;color:'+col+'">'+lbl+'</div>'
+    +'<div style="font-size:9px;color:var(--mu2);margin-top:1px">'+sub+'</div></div>'
+    +'<div style="text-align:right">'
+    +'<div style="font-family:\'DM Mono\',monospace;font-size:15px;font-weight:700;color:var(--tx)">'+f(val)+'</div>'
+    +'<div style="font-family:\'DM Mono\',monospace;font-size:10px;color:'+(pl>=0?'var(--gr)':'var(--rd)')+'">'
+    +(pl>=0?'+':'−')+f(Math.abs(pl))+' · '+(pl>=0?'+':'')+pct(val,cost).toFixed(1)+'%</div>'
+    +'</div></div>';
+
+  box.innerHTML =
+     fila('Núcleo', 'proyectos con tesis · L1 + L2 + broker', totCore, cstCore, plCore, '#3db8f5')
+    +fila('Asimétricas', 'capital dado por perdido · L3', totAsim, cstAsim, plAsim, '#ff8c42')
+    +fila('Total', 'todo junto', totAll, cstAll, plAll, 'var(--tx)')
+    +'<div style="margin-top:10px;font-family:\'DM Mono\',monospace;font-size:9px;color:var(--mu2);line-height:1.6">'
+    +'Las asimétricas pesan '+pesoAsim.toFixed(1)+'% del portafolio. '
+    +'Sin ellas el núcleo rinde '+(plCore>=0?'+':'')+pct(totCore,cstCore).toFixed(1)+'%. '
+    +'Se separan porque su capital se considera perdido de antemano: el núcleo es lo que sostiene el plan.'
+    +'</div>';
+}
+
+function renderTrendChart(){
   const wrap = document.getElementById('trend-svg-wrap');
   const empty = document.getElementById('trend-empty');
   const rangeEl = document.getElementById('trend-range');
@@ -928,7 +1018,7 @@ async function load(){
   rb.classList.add('busy');sp.classList.add('go');
   document.getElementById('ts').textContent='Actualizando precios...';
   applyS();
-  const cgIds=['hyperliquid','ondo-finance','akash-network','morpho','pyth-network'];
+  const cgIds=['hyperliquid','ondo-finance','akash-network','morpho','pyth-network','theta-token','lcx','tars-protocol'];
   const px=await fetchCG(cgIds);
   if(Object.keys(px).length===0){
     document.getElementById('ts').textContent='⚠ Sin conexión a CoinGecko — usando precios guardados';
@@ -954,6 +1044,24 @@ async function load(){
     m2+=mkCard(a,price,chg,true);
   });
   BROKER.forEach(a=>{tot+=a.price*a.qty;cst+=a.entry*a.qty;});
+  // ── núcleo: todo menos las apuestas asimétricas ──
+  const totCore=tot, cstCore=cst;
+  // ── L3 · apuestas asimétricas ──
+  let h3='',m3='',totAsim=0,cstAsim=0;
+  L3.forEach(a=>{
+    const p=px[a.id];
+    let price=p?.usd??a.price??null;
+    let chg=p?.usd_24h_change??null;
+    if(p?.usd){a.price=p.usd;svS(a.tick,'price',p.usd);svS(a.tick,'priceTs',Date.now());}
+    if(price!=null){totAsim+=price*a.qty;cstAsim+=a.entry*a.qty;}
+    if(price!=null&&chg!=null){const pv=price/(1+chg/100);c24+=(price-pv)*a.qty;}
+    h3+=mkRow(a,price,chg,true);
+    m3+=mkCard(a,price,chg,true);
+  });
+  tot+=totAsim; cst+=cstAsim;
+  const tb3=document.getElementById('tb3'); if(tb3) tb3.innerHTML=h3;
+  const cl3=document.getElementById('cl3'); if(cl3) cl3.innerHTML=m3||'<div style="padding:12px;font-family:\'DM Mono\',monospace;font-size:11px;color:var(--mu)">Sin datos</div>';
+  renderSplit(totCore,cstCore,totAsim,cstAsim);
   document.getElementById('tb1').innerHTML=h1;
   document.getElementById('tb2').innerHTML=h2;
   document.getElementById('cl1').innerHTML=m1||'<div style="padding:12px;font-family:\'DM Mono\',monospace;font-size:11px;color:var(--mu)">Sin datos</div>';
@@ -975,7 +1083,7 @@ async function load(){
   document.getElementById('ts').textContent=`${n.toLocaleDateString('es-GT')} ${n.toLocaleTimeString('es-GT',{hour:'2-digit',minute:'2-digit'})}`;
   // Actualizar timestamps por activo
   const d2=ldS();
-  [...L1,...L2].forEach(a=>{
+  [...L1,...L2,...L3].forEach(a=>{
     const el=document.getElementById('ts-'+a.tick);
     if(!el) return;
     const ts=d2[a.tick]?.priceTs;
@@ -1173,8 +1281,8 @@ function renderHipoteca(){
     +'</div>';
 }
 
-function onQC(tick,val){const v=parseFloat(val);if(isNaN(v)||v<0)return;const a=[...L1,...L2].find(x=>x.tick===tick);if(a){a.qty=v;svS(tick,'qty',v);load();}}
-function onEC(tick,val){const v=parseFloat(val);if(isNaN(v)||v<=0)return;const a=[...L1,...L2].find(x=>x.tick===tick);if(a){a.entry=v;svS(tick,'entry',v);load();}}
+function onQC(tick,val){const v=parseFloat(val);if(isNaN(v)||v<0)return;const a=[...L1,...L2,...L3].find(x=>x.tick===tick);if(a){a.qty=v;svS(tick,'qty',v);load();}}
+function onEC(tick,val){const v=parseFloat(val);if(isNaN(v)||v<=0)return;const a=[...L1,...L2,...L3].find(x=>x.tick===tick);if(a){a.entry=v;svS(tick,'entry',v);load();}}
 function onBQ(tick,val){const v=parseFloat(val);if(isNaN(v)||v<0)return;const a=BROKER.find(x=>x.tick===tick);if(a){a.qty=v;svS(tick,'qty',v);load();}}
 function onBE(tick,val){const v=parseFloat(val);if(isNaN(v)||v<=0)return;const a=BROKER.find(x=>x.tick===tick);if(a){a.entry=v;svS(tick,'entry',v);load();}}
 function onBP(tick,val){const v=parseFloat(val);if(isNaN(v)||v<=0)return;const a=BROKER.find(x=>x.tick===tick);if(a){a.price=v;svS(tick,'price',v);load();}}
@@ -1949,6 +2057,9 @@ const TRANCHES = {
   'MORPHO': { t1: {pct:15, px:3.50},   t2: {pct:10, px:6.00},   t3: {pct:45, px:10.00},  trailing: {pct:30, px:15.00},  moon: null   },
   'MSTR':   { t1: {pct:20, px:200.0},  t2: {pct:25, px:350.0},  t3: {pct:30, px:500.0},  trailing: {pct:25, px:750.00}, moon: null   },
   'PYTH': { t1: {pct:15, px:0.10},  t2: {pct:20, px:0.30},   t3: {pct:30, px:0.80},   trailing: {pct:20, px:2.50}, moon: {pct:15, px:5.00} },
+  'THETA':  { t1: {pct:60, px:4.00},   t2: {pct:25, px:8.00},   t3: {pct:15, px:12.00},  trailing: null, moon: null },
+  'LCX':    { t1: {pct:20, px:0.496},  t2: {pct:45, px:1.190},  t3: {pct:35, px:1.240},  trailing: null, moon: null },
+  'TAI':    { t1: {pct:20, px:0.0766}, t2: {pct:45, px:0.1838}, t3: {pct:35, px:0.1915}, trailing: null, moon: null },
 };
 // BTC se calcula aparte: solo 10% del holding actual en cycle peak
 const BTC_PEAK = { pct: 10, px: 250000 };
@@ -1957,7 +2068,7 @@ function calcProyeccion(){
   const rows = [];
   let total = 0;
 
-  // 5 activos con tranches escalonados
+  // activos con tranches escalonados · incluye asimétricas L3
   Object.keys(TRANCHES).forEach(tick => {
     const t = TRANCHES[tick];
     let qty = 0;
@@ -1965,7 +2076,7 @@ function calcProyeccion(){
       const a = BROKER.find(x => x.tick === 'MSTR');
       qty = a ? a.qty : 0;
     } else {
-      const a = L2.find(x => x.tick === tick) || L1.find(x => x.tick === tick);
+      const a = L2.find(x => x.tick === tick) || L1.find(x => x.tick === tick) || L3.find(x => x.tick === tick);
       qty = a ? a.qty : 0;
     }
     let avgPx;
@@ -2473,6 +2584,7 @@ function importData(input){
 
 // pintar el bloque del prestamo de inmediato, sin esperar a los precios
 try{ renderHipoteca(); renderRitmo(); }catch(e){}
+try{ seedSnapshots(); }catch(e){}
 load();
 </script>
 </body>

@@ -1027,6 +1027,12 @@ async function load(){
   document.getElementById('tb2').innerHTML=h2;
   document.getElementById('cl1').innerHTML=m1||'<div style="padding:12px;font-family:\'DM Mono\',monospace;font-size:11px;color:var(--mu)">Sin datos</div>';
   document.getElementById('cl2').innerHTML=m2||'<div style="padding:12px;font-family:\'DM Mono\',monospace;font-size:11px;color:var(--mu)">Sin datos</div>';
+  // realizable = alts al 100% + solo el 10% del BTC
+  {
+    const _btc=BROKER.find(a=>a.tick==='BTC');
+    const _btcVal=_btc?(_btc.price||0)*_btc.qty:0;
+    window.__realizable = tot - _btcVal*0.90;
+  }
   renderBroker();renderGoal(tot);
   const pnl=tot-cst,pp=(pnl/cst)*100;
   const btcPx=BROKER.find(a=>a.tick==='BTC')?.price;
@@ -1574,7 +1580,8 @@ function verHistorialTx(tick){
 
 // ── RESUMEN EJECUTIVO PROFESIONAL ───────────────────────────────
 function descargarResumen(){
-  const allAssets=[...L1,...L2,...BROKER];
+  const allAssets=[...L1,...L2,...L3,...BROKER];
+  const ASIM=new Set(L3.map(a=>a.tick));
   const capHist = getCapitalHistorico();
   const TC = 7.75;
 
@@ -1605,6 +1612,14 @@ function descargarResumen(){
   try{ proy=calcProyeccion(); }catch(e){}
   const pctHoy  = saldoUsd>0 ? tot/saldoUsd*100 : 0;
   const pctProy = saldoUsd>0 ? proy.total/saldoUsd*100 : 0;
+  // ── aporte de las asimétricas ──
+  const proyAsim = (proy.rows||[]).filter(r=>ASIM.has(r.tick)).reduce((s,r)=>s+r.valor,0);
+  const proyCore = proy.total - proyAsim;
+  const pctCore  = saldoUsd>0 ? proyCore/saldoUsd*100 : 0;
+  const pctAsim  = saldoUsd>0 ? proyAsim/saldoUsd*100 : 0;
+  const valAsim  = L3.reduce((s,a)=>s+(a.price||0)*a.qty,0);
+  const costAsim = L3.reduce((s,a)=>s+a.entry*a.qty,0);
+
 
   let ritmo=null;
   try{ window.__realizable=tot; ritmo=calcRitmo(); }catch(e){}
@@ -1646,7 +1661,8 @@ function descargarResumen(){
     const v=(a.price||0)*a.qty*(esBtc?BTC_VENDIBLE:1);
     const c=a.entry*a.qty*(esBtc?BTC_VENDIBLE:1);
     return {tick:a.tick, qty:a.qty, px:a.price||0, val:v, cost:c,
-            pl:v-c, plPct:c>0?((v-c)/c*100):0, peso:tot>0?(v/tot*100):0, esBtc};
+            pl:v-c, plPct:c>0?((v-c)/c*100):0, peso:tot>0?(v/tot*100):0, esBtc,
+            esAsim:ASIM.has(a.tick)};
   }).sort((a,b)=>b.val-a.val);
 
   /* ── 6 · CONCENTRACIÓN ──────────────────────────────────── */
@@ -1867,6 +1883,7 @@ tr.tot td{font-weight:700;border-top:2px solid #e5e7eb;border-bottom:none;backgr
    +'<table><thead><tr><th>Activo</th><th class="r">Precio</th><th class="r">Valor</th>'
    +'<th class="r">P&L</th><th class="r">% cartera</th></tr></thead><tbody>'
    +posiciones.map(p=>'<tr><td><b>'+p.tick+'</b>'
+     +(p.esAsim?'<span class="tag" style="background:#fff7ed;color:#9a3412;font-size:8px;font-weight:700;padding:1px 6px;border-radius:10px;margin-left:5px">asimétrica</span>':'')
      +'<span class="s2">'+p.qty.toLocaleString('en-US',{maximumFractionDigits:4})
      +(p.esBtc?' total · 10% operable':'')+'</span></td>'
      +'<td class="r mono">'+px(p.px)+'</td>'
@@ -1908,6 +1925,28 @@ tr.tot td{font-weight:700;border-top:2px solid #e5e7eb;border-bottom:none;backgr
    +'<div style="font-size:9px;color:#9ca3af;margin-top:3px">'+fu(proy.total)+' proyectado · '
    +(proy.total>=saldoUsd?'cubre el saldo completo ✅':'brecha '+fu(saldoUsd-proy.total))+'</div></div></div>'
 
+   +'<div class="sec"><div class="st"><span>Aporte de las asimétricas</span>'
+   +'<span class="n">capital dado por perdido · '+fu(costAsim)+' invertidos</span></div>'
+   +'<table><thead><tr><th>Escenario</th><th class="r">Proyectado</th><th class="r">Cubre</th></tr></thead><tbody>'
+   +'<tr><td><b>Solo el núcleo</b><span class="s2">sin contar L3 · el piso creíble</span></td>'
+   +'<td class="r mono">'+fu(proyCore)+'</td><td class="r mono">'+pc(pctCore)+'</td></tr>'
+   +'<tr><td><b>Asimétricas</b><span class="s2">'+L3.map(a=>a.tick).join(' + ')+'</span></td>'
+   +'<td class="r mono" style="color:#ea580c">'+fu(proyAsim)+'</td>'
+   +'<td class="r mono" style="color:#ea580c">+'+pc(pctAsim)+'</td></tr>'
+   +'<tr class="tot"><td>Con todo</td><td class="r mono" style="color:#0c4a6e">'+fu(proy.total)+'</td>'
+   +'<td class="r mono" style="color:#0c4a6e">'+pc(pctProy)+'</td></tr>'
+   +'</tbody></table>'
+   +bar(pctCore,'#0284c7',9)
+   +'<div style="font-size:9px;color:#9ca3af;margin-top:3px">núcleo solo</div>'
+   +bar(pctProy,'#ea580c',9)
+   +'<div style="font-size:9px;color:#9ca3af;margin-top:3px">con asimétricas</div>'
+   +'<div class="al '+(proyAsim/Math.max(proy.total,1)>0.3?'al-a':'al-g')+'" style="margin-top:9px;margin-bottom:0">'
+   +'Valen '+fu(valAsim)+' hoy y proyectan '+fu(proyAsim)+', un '
+   +pc(proyAsim/Math.max(proy.total,1)*100)+' del total. '
+   +(proyAsim/Math.max(proy.total,1)>0.3
+     ? 'Es un peso alto para capital que se dio por perdido: si las tres fallan, la proyección real es '+fu(proyCore)+'.'
+     : 'Peso moderado dentro del plan.')
+   +'</div></div>'
    +bloqueRitmo
 
    +'<div class="sec"><div class="st"><span>Distancia al siguiente tier</span>'
@@ -2021,6 +2060,9 @@ const TRANCHES = {
   'MORPHO': { t1: {pct:15, px:3.50},   t2: {pct:10, px:6.00},   t3: {pct:45, px:10.00},  trailing: {pct:30, px:15.00},  moon: null   },
   'MSTR':   { t1: {pct:20, px:200.0},  t2: {pct:25, px:350.0},  t3: {pct:30, px:500.0},  trailing: {pct:25, px:750.00}, moon: null   },
   'PYTH': { t1: {pct:15, px:0.10},  t2: {pct:20, px:0.30},   t3: {pct:30, px:0.80},   trailing: {pct:20, px:2.50}, moon: {pct:15, px:5.00} },
+  'THETA':  { t1: {pct:60, px:4.00},   t2: {pct:25, px:8.00},   t3: {pct:15, px:12.00},  trailing: null, moon: null },
+  'LCX':    { t1: {pct:20, px:0.496},  t2: {pct:45, px:1.190},  t3: {pct:35, px:1.240},  trailing: null, moon: null },
+  'TAI':    { t1: {pct:20, px:0.0766}, t2: {pct:45, px:0.1838}, t3: {pct:35, px:0.1915}, trailing: null, moon: null },
 };
 // BTC se calcula aparte: solo 10% del holding actual en cycle peak
 const BTC_PEAK = { pct: 10, px: 250000 };

@@ -519,24 +519,6 @@ td:first-child{text-align:left;}
 </div>
 <div class="cap-body" id="cap-body" style="display:none;margin-bottom:10px;background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:12px"></div>
 
-<!-- ESTRATEGIA POR ACTIVO -->
-<div class="lbl" style="margin-top:16px;margin-bottom:8px">
-  <span class="dot" style="background:#f59e0b"></span>
-  <div class="lt">Estrategia por activo <span>plan vigente · referencia rápida</span></div>
-</div>
-<div class="acc-toggle" onclick="toggleStrat()" id="strat-toggle-btn"
-  style="background:var(--s1);border:1px solid var(--bd);border-radius:10px;
-  padding:11px 14px;display:flex;justify-content:space-between;align-items:center;
-  cursor:pointer;-webkit-tap-highlight-color:rgba(245,158,11,.2);margin-bottom:6px;
-  transition:background .15s;">
-  <div>
-    <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--mu);letter-spacing:.08em;text-transform:uppercase">📋 Plan vigente por activo</div>
-    <div style="font-family:'DM Mono',monospace;font-size:11px;font-weight:600;color:#f59e0b;margin-top:2px">Tap para ver detalle</div>
-  </div>
-  <span id="strat-toggle-ico" style="font-size:14px;color:var(--mu);transition:transform .2s">▾</span>
-</div>
-<div id="strat-list" style="display:none;margin-bottom:10px"></div>
-
 <!-- COBERTURA DEL PRÉSTAMO -->
 <div class="lbl" style="margin-top:16px;margin-bottom:8px">
   <span class="dot" style="background:#f59e0b"></span>
@@ -2348,6 +2330,13 @@ cargarTranches();
 
 // BTC se calcula aparte: solo 10% del holding actual en cycle peak
 
+// Promedio ponderado tolerante: ignora los niveles desactivados.
+function avgTranche(t){
+  if(!t) return 0;
+  return ['t1','t2','t3','trailing','moon']
+    .reduce((s,k)=> s + (t[k] ? (+t[k].pct||0)*(+t[k].px||0) : 0), 0) / 100;
+}
+
 function calcProyeccion(){
   const rows = [];
   let total = 0;
@@ -2363,13 +2352,7 @@ function calcProyeccion(){
       const a = L2.find(x => x.tick === tick) || L1.find(x => x.tick === tick) || L3.find(x => x.tick === tick);
       qty = a ? a.qty : 0;
     }
-    let avgPx;
-    {
-      const base2 = t.t1.pct*t.t1.px + t.t2.pct*t.t2.px + t.t3.pct*t.t3.px;
-      const moonVal2 = t.moon ? t.moon.pct*t.moon.px : 0;
-      const trailVal2 = t.trailing ? t.trailing.pct*t.trailing.px : 0;
-      avgPx = (base2 + moonVal2 + trailVal2) / 100;
-    }
+    const avgPx = avgTranche(t);
     const valor = qty * avgPx;
     total += valor;
     rows.push({ tick, qty, avgPx, valor, t, isBTC: false });
@@ -2451,11 +2434,11 @@ function renderProy(){
         <div style="font-family:'DM Mono',monospace;font-size:13px;font-weight:700;color:#10b981">$${r.valor.toLocaleString('en-US',{maximumFractionDigits:0})}</div>
       </div>
       <div style="font-size:10px;color:var(--mu);margin-bottom:4px">${r.qty.toLocaleString('en-US',{maximumFractionDigits:2})} ${r.tick==='MSTR'?'acc':'tokens'} · prom. $${r.avgPx.toFixed(r.tick==='ONDO'?3:2)}</div>
-      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--fg);padding:2px 0"><span>T1 ${t.t1.pct}% @ $${t.t1.px}</span><span style="color:var(--mu)">→ $${(r.qty*t.t1.pct/100*t.t1.px).toLocaleString('en-US',{maximumFractionDigits:0})}</span></div>
-      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--fg);padding:2px 0"><span>T2 ${t.t2.pct}% @ $${t.t2.px}</span><span style="color:var(--mu)">→ $${(r.qty*t.t2.pct/100*t.t2.px).toLocaleString('en-US',{maximumFractionDigits:0})}</span></div>
-      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--fg);padding:2px 0"><span>T3 ${t.t3.pct}% @ $${t.t3.px}</span><span style="color:var(--mu)">→ $${(r.qty*t.t3.pct/100*t.t3.px).toLocaleString('en-US',{maximumFractionDigits:0})}</span></div>
+      ${['t1','t2','t3'].map((k,idx)=> t[k]
+        ? `<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--fg);padding:2px 0"><span>T${idx+1} ${t[k].pct}% @ $${t[k].px.toLocaleString('en-US',{maximumFractionDigits:t[k].px<10?4:0})}</span><span style="color:var(--mu)">→ $${(r.qty*t[k].pct/100*t[k].px).toLocaleString('en-US',{maximumFractionDigits:0})}</span></div>`
+        : '').join('')}
       ${moonRow}
-      ${t.trailing ? `<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--fg);padding:2px 0"><span><b style="color:#3db8f5">T4 ${t.trailing.pct}%</b> @ $${t.trailing.px}</span><span style="color:var(--mu)">→ $${(r.qty*t.trailing.pct/100*t.trailing.px).toLocaleString('en-US',{maximumFractionDigits:0})}</span></div>` : ''}
+      ${t.trailing ? `<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--fg);padding:2px 0"><span><b style="color:#3db8f5">T4 ${t.trailing.pct}%</b> @ $${t.trailing.px.toLocaleString('en-US',{maximumFractionDigits:t.trailing.px<10?4:0})}</span><span style="color:var(--mu)">→ $${(r.qty*t.trailing.pct/100*t.trailing.px).toLocaleString('en-US',{maximumFractionDigits:0})}</span></div>` : ''}
     </div>`;
   }).join('');
 
@@ -2474,98 +2457,6 @@ function updateProySummary(){
   summary.textContent = `$${total.toLocaleString('en-US',{maximumFractionDigits:0})} · ${pctMeta.toFixed(1)}% del prestamo · tap para detalle`;
 }
 
-// ── ESTRATEGIA POR ACTIVO (HARDCODED v2.0) ─────────────────────
-// Actualizar "updated" cuando cambie algo de un activo específico
-const STRAT = {
-  'BTC': {
-    color:'#f7931a', ico:'₿', name:'Bitcoin',
-    tag:'COLCHÓN · HOLD 60%', tagColor:'#f7931a',
-    plan:'Venta escalonada: T1 10% @ $130K · T2 10% @ $160K · T3 10% @ $200K · T4 10% @ $250K. Hold 60% permanente como colchón multi-ciclo.',
-    updated:'8 jul 2026'
-  },
-  'HYPE': {
-    color:'#3db8f5', ico:'H', name:'Hyperliquid',
-    tag:'VENTA ESCALONADA', tagColor:'#3db8f5',
-    plan:'Venta: 10% @ $85 · 15% @ $100 · 30% @ $200 · 25% @ $350 · 20% @ $500. Horizonte 2028.',
-    updated:'8 jul 2026'
-  },
-  'ONDO': {
-    color:'#818cf8', ico:'O', name:'Ondo Finance',
-    tag:'VENTA ESCALONADA', tagColor:'#818cf8',
-    plan:'Venta: 5% @ $0.75 · 20% @ $1.20 · 35% @ $2.00 · 40% @ $3.00. Horizonte 2028.',
-    updated:'8 jul 2026'
-  },
-  'AKT': {
-    color:'#10b981', ico:'A', name:'Akash Network',
-    tag:'VENTA ESCALONADA', tagColor:'#10b981',
-    plan:'Venta: 15% @ $1.50 · 10% @ $3.00 · 40% @ $5.50 · 35% @ $8.00. Horizonte 2028.',
-    updated:'8 jul 2026'
-  },
-  'MORPHO': {
-    color:'#9d7ff0', ico:'M', name:'Morpho Protocol',
-    tag:'VENTA ESCALONADA', tagColor:'#9d7ff0',
-    plan:'Venta: 15% @ $3.50 · 10% @ $6.00 · 45% @ $10.00 · 30% @ $15.00. Horizonte 2028.',
-    updated:'8 jul 2026'
-  },
-  'MSTR': {
-    color:'#e8a020', ico:'M', name:'MicroStrategy',
-    tag:'VENTA ESCALONADA', tagColor:'#e8a020',
-    plan:'Venta: T1 20% @ $200 · T2 25% @ $350 · T3 30% @ $500 · T4 25% @ $750.',
-    updated:'8 jul 2026'
-  },
-  'PYTH': {
-    color:'#7c3aed', ico:'🔮', name:'Pyth Network (PYTH)',
-    tag:'ESPECULATIVO · ORÁCULO DE DATOS (SOLANA)', tagColor:'#7c3aed',
-    plan:'Venta: 15% @ $0.10 · 20% @ $0.30 · 30% @ $0.80 · 20% @ $2.50 · 15% @ $5.00. Patrón Render, horizonte 2028.',
-    updated:'30 jul 2026'
-  },
-};
-
-let _stratOpen = false;
-function toggleStrat(){
-  _stratOpen = !_stratOpen;
-  const list = document.getElementById('strat-list');
-  const ico  = document.getElementById('strat-toggle-ico');
-  if(!list||!ico) return;
-  if(_stratOpen){
-    list.style.display='block';
-    ico.style.transform='rotate(180deg)';
-    renderStrat();
-  } else {
-    list.style.display='none';
-    ico.style.transform='rotate(0deg)';
-  }
-}
-
-function renderStrat(){
-  const list = document.getElementById('strat-list');
-  if(!list) return;
-  const orden = ['BTC','HYPE','ONDO','AKT','MORPHO','MSTR','PYTH'];
-  const rows = orden.map(tick => {
-    const s = STRAT[tick];
-    if(!s) return '';
-    const warnBlock = s.warn ? `<div style="margin-top:6px;font-size:10px;color:#b45309;line-height:1.35">${s.warn}</div>` : '';
-    return `<div style="background:var(--s1);border:1px solid var(--bd);border-left:3px solid ${s.color};border-radius:8px;padding:10px 12px;margin-bottom:8px">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;gap:8px">
-        <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">
-          <div style="background:${s.color}22;color:${s.color};border:1px solid ${s.color}44;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">${s.ico}</div>
-          <div style="min-width:0">
-            <div style="font-size:12px;font-weight:800;color:${s.color}">${tick}</div>
-            <div style="font-size:9px;color:var(--mu);margin-top:1px">${s.name}</div>
-          </div>
-        </div>
-        <span style="font-size:9px;font-weight:700;background:${s.tagColor}22;color:${s.tagColor};border:1px solid ${s.tagColor}44;padding:3px 7px;border-radius:10px;white-space:nowrap;flex-shrink:0">${s.tag}</span>
-      </div>
-      <div style="font-size:11px;color:var(--fg);line-height:1.45"><span style="color:var(--mu);font-size:9px;text-transform:uppercase;letter-spacing:.05em">Plan · </span>${s.plan}</div>
-      ${warnBlock}
-      <div style="margin-top:6px;padding-top:6px;border-top:1px dashed var(--bd);font-size:9px;color:var(--mu);text-align:right">actualizado ${s.updated}</div>
-    </div>`;
-  }).join('');
-  list.innerHTML = rows;
-}
-
-
-let _accOpen = false;
 function toggleAcc(){
   _accOpen = !_accOpen;
   const list = document.getElementById('acc-list');
@@ -2594,13 +2485,7 @@ function calcAccTargets(){
   Object.keys(ACC_META_COLORS).forEach(tick => {
     const t = TRANCHES[tick];
     if(!t) return;
-    let avgPx;
-    {
-      const base3 = t.t1.pct*t.t1.px + t.t2.pct*t.t2.px + t.t3.pct*t.t3.px;
-      const moonVal3 = t.moon ? t.moon.pct*t.moon.px : 0;
-      const trailVal3 = t.trailing ? t.trailing.pct*t.trailing.px : 0;
-      avgPx = (base3 + moonVal3 + trailVal3) / 100;
-    }
+    const avgPx = avgTranche(t);
     result[tick] = { metaPorActivo, avgPx, tokensTarget: avgPx > 0 ? metaPorActivo / avgPx : 0 };
   });
   return result;

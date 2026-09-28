@@ -2191,6 +2191,8 @@ const TRANCHES_DEFAULT = {
   'LCX':    { t1: {pct:20, px:0.496},  t2: {pct:45, px:1.190},  t3: {pct:35, px:1.240},  trailing: null, moon: null },
   'TAI':    { t1: {pct:20, px:0.0766}, t2: {pct:45, px:0.1838}, t3: {pct:35, px:0.1915}, trailing: null, moon: null },
   'XPL':    { t1: {pct:20, px:2.36},   t2: {pct:45, px:5.66},   t3: {pct:35, px:5.90},   trailing: null, moon: null },
+  // BTC: solo se vende el 40% en cuatro tramos · el 60% es hold permanente
+  'BTC':    { t1: {pct:10, px:130000}, t2: {pct:10, px:160000}, t3: {pct:10, px:200000}, trailing: {pct:10, px:250000}, moon: null },
 };
 // ── TIERS EDITABLES ────────────────────────────────────────────
 // TRANCHES arranca de los valores por defecto y se sobrescribe con
@@ -2273,7 +2275,8 @@ function renderTiers(){
   box.innerHTML = Object.keys(TRANCHES).map(tick=>{
     const t = TRANCHES[tick];
     const suma = sumaPct(t);
-    const ok = Math.abs(suma-100) < 0.01;
+    const hold = 100 - suma;
+    const ok = suma <= 100.01;          // menos de 100 = el resto queda en hold
     const abierto = !!_tiersOpen[tick];
     const activo = [...(typeof L1!=='undefined'?L1:[]),...(typeof L2!=='undefined'?L2:[]),
                     ...(typeof L3!=='undefined'?L3:[]),...(typeof BROKER!=='undefined'?BROKER:[])]
@@ -2310,7 +2313,9 @@ function renderTiers(){
         +'<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;'
         +'padding-top:7px;border-top:1px solid var(--bd)">'
         +'<span style="font-family:\'DM Mono\',monospace;font-size:9px;color:'+(ok?'var(--gr)':'#f25c5c')+'">'
-        +'suma '+suma.toFixed(0)+'%'+(ok?' ✓':' · debe dar 100')+'</span>'
+        +'vende '+suma.toFixed(0)+'%'
+        +(!ok ? ' · pasa de 100, revisá' : (hold>0.01 ? ' · hold '+hold.toFixed(0)+'%' : ' ✓'))
+        +'</span>'
         +'<button onclick="resetTranches(\''+tick+'\')" style="background:none;border:1px solid var(--bd);'
         +'border-radius:4px;color:var(--mu);font-size:9px;padding:3px 9px;cursor:pointer">restaurar</button>'
         +'</div></div>';
@@ -2324,7 +2329,9 @@ function renderTiers(){
       +'<span style="font-size:9px;color:var(--mu2);margin-left:8px">'
       +(px?('hoy $'+fmtPx(px)):'sin precio')+' · prom venta $'+fmtPx(avg)+'</span></div>'
       +'<div style="display:flex;align-items:center;gap:9px">'
-      +(ok?'':'<span style="font-size:9px;color:#f25c5c;font-weight:700">'+suma.toFixed(0)+'%</span>')
+      +(!ok
+        ? '<span style="font-size:9px;color:#f25c5c;font-weight:700">'+suma.toFixed(0)+'%</span>'
+        : (hold>0.01 ? '<span style="font-size:8px;color:var(--mu2)">hold '+hold.toFixed(0)+'%</span>' : ''))
       +'<span style="font-size:11px;color:var(--mu2);transform:rotate('+(abierto?'90':'0')+'deg);'
       +'display:inline-block;transition:transform .15s">▶</span></div></div>'
       + filas + '</div>';
@@ -2340,7 +2347,6 @@ function refrescarTodo(){
 cargarTranches();
 
 // BTC se calcula aparte: solo 10% del holding actual en cycle peak
-const BTC_PEAK = { pct: 10, px: 250000 };
 
 function calcProyeccion(){
   const rows = [];
@@ -2350,8 +2356,8 @@ function calcProyeccion(){
   Object.keys(TRANCHES).forEach(tick => {
     const t = TRANCHES[tick];
     let qty = 0;
-    if(tick === 'MSTR'){
-      const a = BROKER.find(x => x.tick === 'MSTR');
+    if(tick === 'MSTR' || tick === 'BTC'){
+      const a = BROKER.find(x => x.tick === tick);
       qty = a ? a.qty : 0;
     } else {
       const a = L2.find(x => x.tick === tick) || L1.find(x => x.tick === tick) || L3.find(x => x.tick === tick);
@@ -2367,22 +2373,6 @@ function calcProyeccion(){
     const valor = qty * avgPx;
     total += valor;
     rows.push({ tick, qty, avgPx, valor, t, isBTC: false });
-  });
-
-  // BTC: solo 10% del holding actual en cycle peak
-  const btcAsset = BROKER.find(x => x.tick === 'BTC');
-  const btcQty = btcAsset ? btcAsset.qty : 0;
-  const btcQtySell = btcQty * (BTC_PEAK.pct / 100);
-  const btcValor = btcQtySell * BTC_PEAK.px;
-  total += btcValor;
-  rows.push({
-    tick: 'BTC',
-    qty: btcQty,
-    qtySell: btcQtySell,
-    avgPx: BTC_PEAK.px,
-    valor: btcValor,
-    t: { peak: BTC_PEAK },
-    isBTC: true
   });
 
   const pctMeta = (total / getMetaObjetivo()) * 100;

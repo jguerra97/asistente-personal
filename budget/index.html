@@ -1442,9 +1442,10 @@ function renderCols(){
     <input class="col-inp" type="number" value="${btcQty}" step="0.00000001" min="0"
       onchange="onColChange('btcQty',this.value)"
       placeholder="0.10289" style="color:${btcOrange};border-color:${btcOrange}55;margin:4px 0">
-    <div class="col-row" style="margin-top:6px"><span class="col-lbl">Precio BTC (USD)</span></div>
-    <input class="col-inp" type="number" value="${btcPx}" step="1" min="0"
-      onchange="onColChange('btcPx',this.value)"
+    <div class="col-row" style="margin-top:6px"><span class="col-lbl">Precio BTC (USD)</span>
+      <span id="btc-px-status" style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu2)">·  cargando</span></div>
+    <input class="col-inp" type="number" value="${btcPx}" step="1" min="0" readonly
+      title="Se actualiza solo desde CoinGecko"
       placeholder="78670" style="color:${btcOrange};border-color:${btcOrange}55;margin:4px 0">
     <div class="col-row" style="margin-top:8px;border-top:1px solid var(--bd);padding-top:6px">
       <span class="col-lbl">Valor USD</span>
@@ -3624,10 +3625,38 @@ function renderSnap(){
   document.getElementById('snap-list').innerHTML = bannerHtml + actionHtml + rowsHtml;
 }
 
+// ── PRECIO BTC AUTOMÁTICO ─────────────────────────────────────
+// Consulta CoinGecko al cargar. Si falla, conserva el ultimo valor guardado.
+async function fetchBtcPrice(){
+  const marca = txt => {
+    // renderCols() redibuja el bloque, asi que se busca el nodo cada vez
+    const el = document.getElementById('btc-px-status');
+    if(el) el.innerHTML = txt;
+  };
+  marca('·  actualizando');
+  try{
+    const r = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd');
+    if(!r.ok) throw new Error('http '+r.status);
+    const j = await r.json();
+    const px = j?.bitcoin?.usd;
+    if(!px || isNaN(px)) throw new Error('sin dato');
+    COLS.btcPx = px;
+    saveCol('btcPx', px);
+    renderCols();
+    recalc();
+    renderPatrimonio();
+    marca('<span style="color:var(--gr)">●</span> en vivo · '
+      + new Date().toLocaleTimeString('es-GT',{hour:'2-digit',minute:'2-digit'}));
+  }catch(e){
+    marca('<span style="color:var(--go)">●</span> manual · CoinGecko no respondio');
+  }
+}
+
 // ── INIT ─────────────────────────────────────────────────────────
 loadSaved();
 loadReimbGasto();
 recalc();
+fetchBtcPrice();          // precio BTC en vivo, sin bloquear el arranque
 renderStats();
 renderDCA();
 renderFijosList();

@@ -919,26 +919,6 @@ function onPatChange(k,val){
   const d=ldS(); d[k]=v; svS(d);
   renderPatrimonio();
 }
-// ── SNAPSHOT MENSUAL DE PATRIMONIO ────────────────────────────
-// Guarda un punto por mes con lo esencial para ver la trayectoria.
-// Se llama al renderizar; sobrescribe el del mes en curso.
-function guardarSnapPatrimonio(datos){
-  try{
-    const d = ldS();
-    if(!Array.isArray(d.patrimonio)) d.patrimonio = [];
-    const key = (ST.anio||2026)+'-'+String(ST.mes).padStart(2,'0');
-    const reg = Object.assign({k:key, t:Date.now()}, datos);
-    const i = d.patrimonio.findIndex(x=>x.k===key);
-    if(i>=0) d.patrimonio[i]=reg; else d.patrimonio.push(reg);
-    d.patrimonio.sort((a,b)=>a.k<b.k?-1:1);
-    if(d.patrimonio.length>36) d.patrimonio=d.patrimonio.slice(-36);
-    localStorage.setItem(LS, JSON.stringify(d));
-  }catch(e){}
-}
-function getSnapsPatrimonio(){
-  try{ const d=ldS(); return Array.isArray(d.patrimonio)?d.patrimonio:[]; }catch(e){ return []; }
-}
-
 function renderPatrimonio(){
   const wrap=document.getElementById('patrimonio-wrap');
   if(!wrap) return;
@@ -1036,17 +1016,6 @@ function renderPatrimonio(){
   const s6 = Math.max(ingresoMes-fijosMes,0)/ingresoMes*100;
   const s6c = s6<15?'rd':(s6<30?'go':'gr');
 
-  // guardar la foto del mes para la serie histórica
-  guardarSnapPatrimonio({
-    neto: Math.round(patNetoQ),
-    activos: Math.round(totalActivosU*tc),
-    hipoteca: Math.round(salHip),
-    colchon: Math.round(colchonQ),
-    inmediata: Math.round(liqInmediataQ),
-    cartera: Math.round(criptoQ),
-    ingreso: Math.round(ingresoMes),
-    fijos: Math.round(fijosMes)
-  });
   const dot=c=>({rd:'🔴',go:'🟡',gr:'🟢'}[c]);
   const cvar=c=>({rd:'var(--rd)',go:'var(--go)',gr:'var(--gr)'}[c]);
   const semaforo=(dotc,lbl,val,detalle)=>`<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--bd)">
@@ -2371,7 +2340,10 @@ function descargarResumen(){
 
 // ── TRAYECTORIA DEL PATRIMONIO ──
     +(()=>{
-      const sn=getSnapsPatrimonio();
+      // usa los snapshots de reservas, que ya se capturan solos cada mes
+      const _todos=(typeof SNAPSHOTS!=='undefined'?SNAPSHOTS:[]).filter(s=>s.neto);
+      const _porMes={}; _todos.forEach(s=>{ _porMes[s.date.slice(0,7)]=s; });
+      const sn=Object.keys(_porMes).sort().map(k=>Object.assign({k:k},_porMes[k]));
       if(sn.length<2){
         return '<div class="rsec" style="'+S.sec+'">'
           +'<span style="'+S.sectl+'">Trayectoria del patrimonio</span>'
@@ -3543,8 +3515,21 @@ function takeSnapshot(){
 
   // Si ya hay snapshot del mismo dia, sobrescribe (rate-limit por dia)
   var existing = SNAPSHOTS.findIndex(s => s.date === iso);
+  // patrimonio del momento: se calcula aqui para no depender del mes navegado
+  var _portU = parseFloat(ST.portafolioUsd)||0;
+  var _btcU  = btcQty*btcPx;
+  var _portSinBtcQ = Math.max(_portU-_btcU,0)*tc;
+  var _casaQ = (parseFloat(ST.casaUsd)||210000)*tc;
+  var _hipQ  = (typeof salHipGlobal!=='undefined' && salHipGlobal>0) ? salHipGlobal : 0;
+  var _neto  = _casaQ + _portSinBtcQ + total - _hipQ;
+  var _colchon = emer + bant*0.20;
+  var _inmediata = buf + lulu + bant*0.40 + reimb*tc + abiUsd*tc;
+
   var snap = {date: iso, emer: emer, bant: bant, buf: buf, reimb: reimb, abiUsd: abiUsd, lulu: lulu,
-              btcQty: btcQty, btcPx: btcPx, btcQ: btcQ, total: total};
+              btcQty: btcQty, btcPx: btcPx, btcQ: btcQ, total: total,
+              neto: Math.round(_neto), casa: Math.round(_casaQ), hipoteca: Math.round(_hipQ),
+              colchon: Math.round(_colchon), inmediata: Math.round(_inmediata),
+              cartera: Math.round(_portSinBtcQ + btcQ*0.10)};
   if(existing >= 0){
     SNAPSHOTS[existing] = snap;
   } else {

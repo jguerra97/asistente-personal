@@ -1039,12 +1039,12 @@ function renderPatrimonio(){
     <!-- PANEL DE SEMÁFOROS -->
     <div class="col-card" style="margin-bottom:12px;border-color:var(--bd2)">
       <div class="col-ttl">🚦 Indicadores de salud · decisión a tiempo</div>
-      ${semaforo(s1c,'Colchón operativo',s1.toFixed(1)+' m','Ahorro BI + 20% Bantrab ÷ fijos · meta >4 meses')}
-      ${semaforo(s2c,'Peso hipoteca',s2.toFixed(0)+'%','cuota ÷ ingreso · 🟢<40 🟡40-48 🔴>48')}
-      ${semaforo(s3c,'Liquidez inmediata',fqR(s3),'Monetaria + Lulubit + 40% Bantrab + reembolsos + superávit')}
-      ${semaforo(s4c,'Inmediata en meses',s4.toFixed(1)+' m','cuánto aguanta sin tocar el colchón ÷ fijos · >4m')}
-      ${semaforo(s5c,'Liquidez real total',s5.toFixed(1)+' m','colchón + inmediata + cartera realizable ÷ fijos · >12m')}
-      ${semaforo(s6c,'Excedente disponible',s6.toFixed(0)+'%','ingreso − fijos ÷ ingreso · lo que queda libre · >30%')}
+      ${semaforo(s1c,'Colchón operativo',s1.toFixed(1)+' m',`${fqR(ahorroBiQ)} Ahorro BI + ${fqR(bantColchonQ)} Bantrab 20% = ${fqR(colchonQ)} ÷ ${fqR(fijosMes)} fijos · meta >4m`)}
+      ${semaforo(s2c,'Peso hipoteca',s2.toFixed(0)+'%',`${fqR(CUOTA)} cuota ÷ ${fqR(ingresoMes)} ingreso · 🟢<40 🟡40-48 🔴>48`)}
+      ${semaforo(s3c,'Liquidez inmediata',fqR(s3),`${fqR(monetariaQ)} Monetaria + ${fqR(luluQ)} Lulubit + ${fqR(bantLiquidaQ)} Bantrab 40% + ${fqR(reembQ)} reembolsos + ${fqR(abiUsdQ)} superávit`)}
+      ${semaforo(s4c,'Inmediata en meses',s4.toFixed(1)+' m',`${fqR(liqInmediataQ)} ÷ ${fqR(fijosMes)} fijos · cuánto aguanto sin tocar el colchón · >4m`)}
+      ${semaforo(s5c,'Liquidez real total',s5.toFixed(1)+' m',`${fqR(colchonQ)} colchón + ${fqR(liqInmediataQ)} inmediata + ${fqR(criptoQ)} cartera = ${fqR(liqRealQ)} ÷ ${fqR(fijosMes)} · >12m`)}
+      ${semaforo(s6c,'Excedente disponible',s6.toFixed(0)+'%',`${fqR(ingresoMes)} ingreso − ${fqR(fijosMes)} fijos = ${fqR(Math.max(ingresoMes-fijosMes,0))} libre · >30%`)}
       <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu2);margin-top:8px;line-height:1.5">
         Verde = sano · Amarillo = vigilar · Rojo = actúa.</div>
       <div style="margin-top:8px;padding:8px 10px;background:rgba(59,130,246,.08);border-left:2px solid var(--ac);border-radius:4px">
@@ -2293,12 +2293,12 @@ function descargarResumen(){
       return '<div class="rsec" style="'+S.sec+'">'
         +'<span style="'+S.sectl+'">Indicadores de salud · ¿cómo estoy?</span>'
         +'<table style="'+S.tbl+'"><tbody>'
-        +semRow(s1c,'Colchón operativo',s1.toFixed(1)+' m','Ahorro BI + 20% Bantrab ÷ fijos · meta >4m')
-        +semRow(s2c,'Peso hipoteca',s2.toFixed(0)+'%','cuota ÷ ingreso · sano <40%')
-        +semRow(s3c,'Liquidez inmediata',fqR(inmediata),'Monetaria + Lulubit + 40% Bantrab + reembolsos + superávit')
-        +semRow(s4c,'Inmediata en meses',s4.toFixed(1)+' m','cuánto aguanta sin tocar el colchón · >4m')
-        +semRow(s5c,'Liquidez real total',s5.toFixed(1)+' m','colchón + inmediata + cartera realizable · >12m')
-        +semRow(s6c,'Excedente disponible',s6.toFixed(0)+'%','ingreso − fijos ÷ ingreso · >30%')
+        +semRow(s1c,'Colchón operativo',s1.toFixed(1)+' m',fqR(ahorroBi)+' + '+fqR(bantColchon)+' (Bantrab 20%) = '+fqR(colchon)+' ÷ '+fqR(fijos)+' fijos · meta >4m')
+        +semRow(s2c,'Peso hipoteca',s2.toFixed(0)+'%',fqR(CUOTA)+' cuota ÷ '+fqR(ing)+' ingreso · sano <40%')
+        +semRow(s3c,'Liquidez inmediata',fqR(inmediata),fqR(mon)+' Monetaria + '+fqR(lulu)+' Lulubit + '+fqR(bantLiquida)+' Bantrab 40% + '+fqR(reemb)+' reembolsos + '+fqR(abiUsd)+' superávit')
+        +semRow(s4c,'Inmediata en meses',s4.toFixed(1)+' m',fqR(inmediata)+' ÷ '+fqR(fijos)+' fijos · cuánto aguanto sin tocar el colchón · >4m')
+        +semRow(s5c,'Liquidez real total',s5.toFixed(1)+' m',fqR(colchon)+' colchón + '+fqR(inmediata)+' inmediata + '+fqR(cripto)+' cartera = '+fqR(real)+' ÷ '+fqR(fijos)+' · >12m')
+        +semRow(s6c,'Excedente disponible',s6.toFixed(0)+'%',fqR(ing)+' ingreso − '+fqR(fijos)+' fijos = '+fqR(Math.max(ing-fijos,0))+' libre · >30%')
         +'</tbody></table>'
         +'<div style="font-size:9px;color:#a0aec0;margin-top:8px;line-height:1.5">🟢 sano · 🟡 vigilar · 🔴 actúa.</div>'
         +'<div style="margin-top:9px;padding:9px 11px;background:#f0f9ff;border-left:3px solid #0284c7;border-radius:4px">'

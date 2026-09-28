@@ -279,6 +279,62 @@ td:first-child{text-align:left;}
 .trend-labels{display:flex;justify-content:space-between;margin-top:4px;}
 .trend-lbl{font-family:'DM Mono',monospace;font-size:8px;color:var(--mu2);}
 .trend-empty{font-family:'DM Mono',monospace;font-size:10px;color:var(--mu);text-align:center;padding:28px 0;}
+
+/* ── TABS ─────────────────────────────────────── */
+.tabbar{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:18px;
+  position:sticky;top:0;z-index:20;background:linear-gradient(180deg,var(--bg) 70%,transparent);
+  padding:10px 0 12px;}
+.tabbtn{position:relative;font-family:'DM Mono',monospace;font-size:10px;font-weight:600;
+  letter-spacing:.06em;color:var(--mu);background:var(--s1);border:1px solid var(--bd);
+  border-radius:10px;padding:11px 6px 12px;cursor:pointer;transition:all .22s cubic-bezier(.4,0,.2,1);
+  line-height:1.3;text-align:center;overflow:hidden;}
+.tabbtn .ti{display:block;font-size:14px;margin-bottom:3px;opacity:.5;transition:opacity .22s;}
+.tabbtn .tn{display:block;}
+.tabbtn::after{content:'';position:absolute;left:50%;bottom:0;width:0;height:2px;
+  background:currentColor;transform:translateX(-50%);transition:width .25s;border-radius:2px 2px 0 0;}
+.tabbtn:hover{color:var(--tx);border-color:var(--bd2);background:var(--s2);}
+.tabbtn:hover .ti{opacity:.85;}
+.tabbtn.active{background:var(--s2);font-weight:700;}
+.tabbtn.active .ti{opacity:1;}
+.tabbtn.active::after{width:60%;}
+
+/* color propio por pestaña */
+.tabbtn[data-tab="cartera"].active{color:#3db8f5;border-color:rgba(61,184,245,.45);
+  box-shadow:0 0 14px rgba(61,184,245,.12),inset 0 1px 0 rgba(61,184,245,.1);}
+.tabbtn[data-tab="meta"].active{color:#34d07a;border-color:rgba(52,208,122,.45);
+  box-shadow:0 0 14px rgba(52,208,122,.12),inset 0 1px 0 rgba(52,208,122,.1);}
+.tabbtn[data-tab="tiers"].active{color:#9d7ff0;border-color:rgba(157,127,240,.45);
+  box-shadow:0 0 14px rgba(157,127,240,.12),inset 0 1px 0 rgba(157,127,240,.1);}
+.tabbtn[data-tab="proy"].active{color:#f5b731;border-color:rgba(245,183,49,.45);
+  box-shadow:0 0 14px rgba(245,183,49,.12),inset 0 1px 0 rgba(245,183,49,.1);}
+
+.tabsec-hidden{display:none !important;}
+[data-tab]:not(.tabbtn){animation:tabIn .28s ease both;}
+@keyframes tabIn{from{opacity:0;transform:translateY(5px);}to{opacity:1;transform:none;}}
+@media(max-width:520px){.tabbar{gap:4px;}.tabbtn{font-size:8px;padding:9px 2px 10px;letter-spacing:.02em;}
+  .tabbtn .ti{font-size:12px;margin-bottom:2px;}}
+
+/* ── CABECERA DE PESTAÑA ───────────────────────── */
+.thead{position:relative;border-radius:12px;padding:16px 18px;margin-bottom:16px;overflow:hidden;
+  background:var(--s1);border:1px solid var(--bd);}
+.thead::before{content:'';position:absolute;inset:0 auto 0 0;width:3px;background:var(--th-c);}
+.thead::after{content:'';position:absolute;top:-40%;right:-8%;width:45%;height:180%;
+  background:radial-gradient(ellipse,var(--th-g) 0%,transparent 70%);pointer-events:none;}
+.thead h2{font-family:'Syne',sans-serif;font-size:17px;font-weight:700;letter-spacing:-.02em;
+  color:var(--tx);margin-bottom:3px;position:relative;}
+.thead p{font-size:11px;color:var(--mu);line-height:1.5;max-width:52ch;position:relative;}
+.thead .fig{position:absolute;right:18px;top:50%;transform:translateY(-50%);text-align:right;z-index:1;}
+.thead .fig b{display:block;font-family:'DM Mono',monospace;font-size:21px;font-weight:700;
+  letter-spacing:-.02em;line-height:1;color:var(--th-c);}
+.thead .fig span{display:block;font-family:'DM Mono',monospace;font-size:9px;color:var(--mu2);
+  margin-top:4px;letter-spacing:.04em;}
+@media(max-width:560px){
+  .thead{padding:14px 15px;}
+  .thead .fig{position:static;transform:none;text-align:left;margin-top:11px;
+    padding-top:11px;border-top:1px solid var(--bd);}
+  .thead .fig b{font-size:18px;}
+  .thead p{max-width:none;}
+}
 </style>
 </head>
 <body>
@@ -300,11 +356,26 @@ td:first-child{text-align:left;}
   </div>
 </div>
 
+<div class="tabbar">
+  <button class="tabbtn active" data-tab="cartera" onclick="showTab('cartera')"><span class="ti">◈</span><span class="tn">CARTERA</span></button>
+  <button class="tabbtn" data-tab="meta" onclick="showTab('meta')"><span class="ti">◎</span><span class="tn">META</span></button>
+  <button class="tabbtn" data-tab="tiers" onclick="showTab('tiers')"><span class="ti">⛰</span><span class="tn">TIERS</span></button>
+  <button class="tabbtn" data-tab="proy" onclick="showTab('proy')"><span class="ti">◮</span><span class="tn">PROYECCIÓN</span></button>
+</div>
+
+
 <div class="summ">
   <div class="sc"><label>Valor Total</label><div class="sv" id="sv">—</div><div class="ss" id="sb">—</div></div>
   <div class="sc"><label>Total Invertido</label><div class="sv" id="sc2">—</div><div class="ss">costo de entrada</div></div>
   <div class="sc"><label>P&L Total</label><div class="sv" id="spnl">—</div><div class="ss" id="spp">—</div></div>
   <div class="sc"><label>Cambio 24h</label><div class="sv" id="s24">—</div><div class="ss">activos live</div></div>
+</div>
+
+<div data-tab="cartera">
+<div class="thead" style="--th-c:#3db8f5;--th-g:rgba(61,184,245,.10)">
+  <h2>Cartera</h2>
+  <p>Tres capas de convicción más el broker. Los precios se actualizan solos; cantidades y entradas se editan aquí.</p>
+  <div class="fig"><b id="tc-val">—</b><span id="tc-sub">—</span></div>
 </div>
 
 <!-- CRECIMIENTO POR ACTIVO -->
@@ -426,6 +497,14 @@ td:first-child{text-align:left;}
 </div>
 <div class="acc-list" id="acc-list" style="display:none;margin-bottom:10px"></div>
 
+</div>
+<div data-tab="meta">
+<div class="thead" style="--th-c:#34d07a;--th-g:rgba(52,208,122,.10)">
+  <h2>Camino al préstamo</h2>
+  <p>Cuánto del saldo cubre la cartera hoy y si el ritmo alcanza para cancelarlo a tiempo.</p>
+  <div class="fig"><b id="tm-val">—</b><span id="tm-sub">—</span></div>
+</div>
+
 <!-- CAPITAL HISTÓRICO -->
 <div onclick="toggleCapHist()" id="cap-toggle-btn"
   style="background:var(--s1);border:1px solid var(--bd);border-radius:10px;
@@ -482,6 +561,38 @@ td:first-child{text-align:left;}
   <div id="hip-ritmo"></div>
 </div>
 
+
+</div>
+<div data-tab="tiers">
+<div class="thead" style="--th-c:#9d7ff0;--th-g:rgba(157,127,240,.10)">
+  <h2>Tiers de salida</h2>
+  <p>A qué precio vendes cuánto. La estrategia se mantiene, los números se ajustan cuando el mercado cambia.</p>
+  <div class="fig"><b id="tt-val">—</b><span id="tt-sub">—</span></div>
+</div>
+
+<!-- CONFIGURACIÓN DE TIERS -->
+<div class="lbl" style="margin-top:16px;margin-bottom:8px">
+  <span class="dot" style="background:#a78bfa"></span>
+  <div class="lt">Tiers de salida <span>editables · la estrategia se mantiene, los precios se ajustan</span></div>
+</div>
+<div id="tiers-box" style="margin-bottom:10px"></div>
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;
+            padding:9px 12px;background:var(--s1);border:1px solid var(--bd);border-radius:8px">
+  <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu2);line-height:1.5">
+    Los cambios se guardan solos y afectan la proyección, la cobertura del préstamo y el resumen.
+  </span>
+  <button onclick="if(confirm('¿Restaurar todos los tiers a sus valores originales?'))resetTranches()"
+    style="background:none;border:1px solid var(--bd);border-radius:5px;color:var(--mu);
+    font-size:9px;padding:5px 11px;cursor:pointer;white-space:nowrap">restaurar todo</button>
+</div>
+
+</div>
+<div data-tab="proy">
+<div class="thead" style="--th-c:#f5b731;--th-g:rgba(245,183,49,.10)">
+  <h2>Proyección</h2>
+  <p>Lo que realizarías ejecutando todos los tiers, activo por activo.</p>
+  <div class="fig"><b id="tp-val">—</b><span id="tp-sub">—</span></div>
+</div>
 
 <!-- PROYECCIÓN A META (TRANCHES + MOONSHOT) -->
 <div class="lbl" style="margin-top:16px;margin-bottom:8px">
@@ -1103,33 +1214,49 @@ function calcRitmo(){
   try{ const d=ldS(); snaps=Array.isArray(d.snapshots)?d.snapshots:[]; }catch(e){}
   const hoy = (typeof window.__realizable==='number' && window.__realizable>0)
     ? window.__realizable : (snaps.length?snaps[snaps.length-1].v:0);
-  // sin valor aun: se devuelve el objeto igual para que la UI muestre el estado
-  if(hoy<=0) return {hoy:0, saldoUsdHoy:getHipSaldo()/7.75, gAnual:null, meses:null, fecha:null, aTiempo:null};
-
-  // saldo hoy y su ritmo de amortizacion (~Q5,200/mes a capital)
   const saldoUsdHoy = getHipSaldo()/7.75;
-  const amortMensualUsd = 5200/7.75;
+  const amort = 5200/7.75;
+  if(hoy<=0) return {hoy:0, saldoUsdHoy, gAnual:null, nota:'sin valor'};
 
-  // crecimiento anual observado: primer vs ultimo snapshot con >=30 dias
-  let gAnual=null;
-  if(snaps.length>=2){
-    const a=snaps[0], b=snaps[snaps.length-1];
-    const dias=(b.t-a.t)/86400000;
-    if(dias>=30 && a.v>0){
-      gAnual = Math.pow(b.v/a.v, 365/dias) - 1;
-    }
-  }
-  // sin historia suficiente: no inventamos una tasa
-  if(gAnual===null) return {hoy, saldoUsdHoy, gAnual:null, meses:null, fecha:null, aTiempo:null};
+  const porMes={};
+  snaps.forEach(s=>{ const d=new Date(s.t); porMes[d.getFullYear()+'-'+d.getMonth()]=s; });
+  const serie=Object.keys(porMes).sort().map(k=>porMes[k]);
+  if(serie.length<3) return {hoy, saldoUsdHoy, gAnual:null, nota:'faltan meses', n:serie.length};
 
-  // simular mes a mes: portafolio crece, saldo baja
-  const gMensual = Math.pow(1+gAnual, 1/12) - 1;
-  let v=hoy, s=saldoUsdHoy, m=0;
-  while(v < s && m < 360){ v*=(1+gMensual); s=Math.max(s-amortMensualUsd,0); m++; }
-  if(m>=360) return {hoy, saldoUsdHoy, gAnual, meses:null, fecha:null, aTiempo:false};
+  const vars=[];
+  for(let k=1;k<serie.length;k++){ const a=serie[k-1].v, b=serie[k].v; if(a>0) vars.push(b/a-1); }
+  vars.sort((x,y)=>x-y);
+  const mid=Math.floor(vars.length/2);
+  const gReal = vars.length%2 ? vars[mid] : (vars[mid-1]+vars[mid])/2;
 
-  const f=new Date(); f.setMonth(f.getMonth()+m);
-  return {hoy, saldoUsdHoy, gAnual, meses:m, fecha:f, aTiempo: f<=OBJETIVO_FECHA};
+  // simula con cualquier tasa y devuelve la fecha de cruce
+  const proyectar = g => {
+    let v=hoy, s=saldoUsdHoy, m=0;
+    while(v < s && m < 360){ v*=(1+g); s=Math.max(s-amort,0); m++; }
+    if(m>=360) return null;
+    const f=new Date(); f.setMonth(f.getMonth()+m);
+    return {meses:m, fecha:f};
+  };
+
+  // Escenario base: se capa a 12%/mes porque sostener mas dos anios
+  // no tiene precedente. El ritmo real se conserva y se muestra aparte.
+  const TECHO = 0.12;
+  const capado = gReal > TECHO;
+  const gBase = capado ? TECHO : gReal;
+
+  const base = proyectar(gBase);
+  const real = capado ? proyectar(gReal) : null;
+
+  return {
+    hoy, saldoUsdHoy, muestras:vars.length,
+    gMensual: gBase, gAnual: Math.pow(1+gBase,12)-1,
+    gMensualReal: gReal, gAnualReal: Math.pow(1+gReal,12)-1,
+    capado,
+    meses: base?base.meses:null, fecha: base?base.fecha:null,
+    aTiempo: base ? base.fecha<=OBJETIVO_FECHA : false,
+    fechaReal: real?real.fecha:null,
+    aTiempoReal: real ? real.fecha<=OBJETIVO_FECHA : null
+  };
 }
 function renderRitmo(){
   const box=document.getElementById('hip-ritmo');
@@ -1163,42 +1290,41 @@ function renderRitmo(){
   if(!r){ box.innerHTML=ESPERA('Aun no hay valor de portafolio registrado. El indicador aparece en cuanto el tracker guarde su primer snapshot con precios cargados.'); return; }
 
   if(r.gAnual===null){
-    box.innerHTML=ESPERA('Faltan datos para estimar el ritmo de crecimiento. El tracker guarda un snapshot cada vez que abres la app con precios actualizados.');
+    box.innerHTML=ESPERA('Se necesitan al menos 3 meses de registros para calcular un ritmo con sentido. Llevas '+(r.n||0)+'.');
     return;
   }
-  const pct=(r.gAnual*100);
+  const MESR=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
   const objTxt='dic 2028';
-  let veredicto, col, msg;
-  if(r.meses===null){
-    veredicto='No alcanza'; col='#e34948';
-    msg='Al ritmo actual el portafolio no cubre el saldo dentro del horizonte. Acumular mas agresivo o ajustar la meta.';
-  } else {
-    const fTxt=MES[r.fecha.getMonth()]+' '+r.fecha.getFullYear();
-    if(r.aTiempo){
-      veredicto=fTxt; col='#34d07a';
-      msg='Vas adelantado frente a '+objTxt+'. Puedes sostener el ritmo actual sin forzar.';
-    } else {
-      veredicto=fTxt; col='#eda100';
-      const meses=Math.round((r.fecha-OBJETIVO_FECHA)/(30.44*86400000));
-      msg='Llegas '+meses+' meses tarde contra '+objTxt+'. Subir el DCA o esperar mayor apreciacion.';
-    }
-  }
-  box.innerHTML=
-     '<div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--bd)">'
-    +'<div style="font-family:\'DM Mono\',monospace;font-size:9px;color:var(--mu);'
-    +'letter-spacing:.08em;text-transform:uppercase;margin-bottom:7px">¿Voy a tiempo?</div>'
+  const fTxt = r.fecha ? MESR[r.fecha.getMonth()]+' '+r.fecha.getFullYear() : 'no alcanza';
+  const col = !r.fecha ? '#e34948' : (r.aTiempo ? '#34d07a' : '#eda100');
+  let msg;
+  if(!r.fecha) msg='Al ritmo conservador no cubre el saldo en el horizonte.';
+  else if(r.aTiempo) msg='Vas adelantado frente a '+objTxt+' incluso en el escenario conservador.';
+  else { const mm=Math.round((r.fecha-OBJETIVO_FECHA)/(30.44*86400000));
+         msg='En el escenario conservador llegas '+mm+' meses tarde contra '+objTxt+'.'; }
+  const fReal = r.fechaReal ? MESR[r.fechaReal.getMonth()]+' '+r.fechaReal.getFullYear() : null;
+  const card=(lbl,val,sub,c,bg)=>'<div style="background:'+(bg||'var(--s2)')+';border-radius:6px;padding:8px 10px'
+    +(bg?';border:1px solid rgba(237,161,0,.3)':'')+'">'
+    +'<div style="font-size:8px;color:var(--mu2);text-transform:uppercase;letter-spacing:.5px">'+lbl+'</div>'
+    +'<div style="font-family:\'DM Mono\',monospace;font-size:15px;font-weight:700;color:'+c+'">'+val+'</div>'
+    +'<div style="font-size:8px;color:var(--mu2);margin-top:1px">'+sub+'</div></div>';
+
+  box.innerHTML = HDR
     +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">'
-      +'<div style="background:var(--s2);border-radius:6px;padding:8px 10px">'
-        +'<div style="font-size:8px;color:var(--mu2);text-transform:uppercase;letter-spacing:.5px">Ritmo observado</div>'
-        +'<div style="font-family:\'DM Mono\',monospace;font-size:15px;font-weight:700;color:'
-        +(pct>=0?'#34d07a':'#e34948')+'">'+(pct>=0?'+':'')+pct.toFixed(0)+'% / año</div></div>'
-      +'<div style="background:var(--s2);border-radius:6px;padding:8px 10px">'
-        +'<div style="font-size:8px;color:var(--mu2);text-transform:uppercase;letter-spacing:.5px">Cubre el saldo en</div>'
-        +'<div style="font-family:\'DM Mono\',monospace;font-size:15px;font-weight:700;color:'+col+'">'+veredicto+'</div></div>'
+    +card('Ritmo conservador','+'+(r.gAnual*100).toFixed(0)+'% / año',(r.gMensual*100).toFixed(1)+'% mensual','#34d07a')
+    +card('Cubre el saldo en',fTxt,r.aTiempo?'a tiempo':'tarde',col)
     +'</div>'
+    +(r.capado
+      ? '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">'
+        +card('Tu ritmo real','+'+(r.gAnualReal*100).toFixed(0)+'% / año',(r.gMensualReal*100).toFixed(1)+'% mensual','#eda100','rgba(237,161,0,.07)')
+        +card('Si se sostiene',fReal||'—',r.aTiempoReal?'muy adelantado':'—','#eda100','rgba(237,161,0,.07)')
+        +'</div>'
+      : '')
     +'<div style="font-size:10px;color:var(--mu);line-height:1.6">'+msg+'</div>'
     +'<div style="font-size:9px;color:var(--mu2);margin-top:6px;line-height:1.5">'
-    +'Simula mes a mes: el portafolio crece al ritmo observado y el saldo baja ~Q5,200 de capital por cuota.</div>'
+    +'Mediana de '+(r.muestras||0)+' meses'
+    +(r.capado?' · base capada a 12%/mes, tu ritmo real arriba':'')
+    +' · el saldo baja ~Q5,200 de capital por cuota.</div>'
     +'</div>';
 }
 
@@ -1361,6 +1487,7 @@ function renderCapHist(){
         <span style="color:${cap.pctRecuperado >= 100 ? 'var(--gr)' : 'var(--mu)'}">${cap.pctRecuperado >= 100 ? '✅ Dinero de la casa: $' + (cap.ventas - cap.capitalTotal).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0}) : 'Falta: $' + (cap.capitalTotal - cap.ventas).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0})}</span>
       </div>
     </div>
+</div>
 
     <!-- FORMULARIO REGISTRAR VENTA -->
     <div style="background:var(--s2);border-radius:6px;padding:10px 12px;margin-top:10px;border:1px solid rgba(242,92,92,.2)">
@@ -1810,29 +1937,44 @@ tr.tot td{font-weight:700;border-top:2px solid #e5e7eb;border-bottom:none;backgr
   /* ── bloque de ritmo ── */
   let bloqueRitmo='';
   if(ritmo && ritmo.gAnual!==null){
-    const g=ritmo.gAnual*100;
-    const fTxt=ritmo.fecha?(MES[ritmo.fecha.getMonth()]+' '+ritmo.fecha.getFullYear()):'no alcanza';
-    const ok=ritmo.aTiempo;
-    const col=ok?'#059669':'#d97706';
+    const MES2=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+    const fTxt = ritmo.fecha ? (MES2[ritmo.fecha.getMonth()]+' '+ritmo.fecha.getFullYear()) : 'no alcanza';
+    const ok = ritmo.aTiempo;
+    const col = ok ? '#059669' : '#d97706';
     let msg;
-    if(!ritmo.fecha) msg='Al ritmo actual el portafolio no cubre el saldo dentro del horizonte. Acumular más agresivo o revisar la meta.';
-    else if(ok) msg='Vas adelantado frente a diciembre 2028. Puedes sostener el ritmo actual sin forzar.';
+    if(!ritmo.fecha) msg='Al ritmo actual el portafolio no cubre el saldo dentro del horizonte.';
+    else if(ok) msg='Vas adelantado frente a diciembre 2028 incluso con el escenario conservador.';
     else{
       const m=Math.round((ritmo.fecha-new Date(2028,11,31))/(30.44*86400000));
-      msg='Llegas '+m+' meses tarde contra diciembre 2028. Subir el DCA o esperar mayor apreciación.';
+      msg='En el escenario conservador llegas '+m+' meses tarde contra diciembre 2028.';
     }
+    const fReal = ritmo.fechaReal ? (MES2[ritmo.fechaReal.getMonth()]+' '+ritmo.fechaReal.getFullYear()) : null;
+
     bloqueRitmo='<div class="sec"><div class="st"><span>¿Voy a tiempo?</span>'
       +'<span class="n">objetivo: cancelar en dic 2028</span></div>'
       +'<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px">'
-      +'<div class="kpi"><div class="kl">Ritmo observado</div>'
-      +'<div class="kv '+(g>=0?'up':'dn')+'">'+(g>=0?'+':'')+g.toFixed(0)+'% / año</div>'
-      +'<div class="kd mu">crecimiento del portafolio</div></div>'
+      +'<div class="kpi"><div class="kl">Ritmo conservador</div>'
+      +'<div class="kv up">+'+(ritmo.gAnual*100).toFixed(0)+'% / año</div>'
+      +'<div class="kd mu">'+(ritmo.gMensual*100).toFixed(1)+'% mensual</div></div>'
       +'<div class="kpi"><div class="kl">Cubre el saldo en</div>'
       +'<div class="kv" style="color:'+col+'">'+fTxt+'</div>'
       +'<div class="kd mu">'+(ok?'a tiempo':'tarde')+'</div></div></div>'
+      +(ritmo.capado
+        ? '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:8px">'
+          +'<div class="kpi" style="border-color:#fcd34d;background:#fffbeb"><div class="kl">Tu ritmo real</div>'
+          +'<div class="kv" style="color:#b45309">+'+(ritmo.gAnualReal*100).toFixed(0)+'% / año</div>'
+          +'<div class="kd mu">'+(ritmo.gMensualReal*100).toFixed(1)+'% mensual</div></div>'
+          +'<div class="kpi" style="border-color:#fcd34d;background:#fffbeb"><div class="kl">Si se sostiene</div>'
+          +'<div class="kv" style="color:#b45309">'+(fReal||'—')+'</div>'
+          +'<div class="kd mu">'+(ritmo.aTiempoReal?'muy adelantado':'—')+'</div></div></div>'
+        : '')
       +'<div class="al '+(ok?'al-g':'al-a')+'" style="margin-top:9px;margin-bottom:0">'+msg+'</div>'
-      +'<div class="nt">Simula mes a mes: el portafolio crece al ritmo observado y el saldo baja '
-      +'~Q5,200 de capital por cuota.</div></div>';
+      +'<div class="nt">Ritmo = mediana de las variaciones mensuales sobre '+(ritmo.muestras||0)+' meses. '
+      +(ritmo.capado
+        ? 'El escenario base capa el crecimiento a 12% mensual porque sostener mas dos anios no tiene precedente; '
+          +'arriba se muestra tu ritmo real por si el ciclo lo permite.'
+        : 'Se usa la mediana y no el promedio para que un mes extraordinario no arrastre la proyeccion.')
+      +' El saldo baja ~Q5,200 de capital por cuota.</div></div>';
   } else {
     bloqueRitmo='<div class="sec"><div class="st"><span>¿Voy a tiempo?</span>'
       +'<span class="n">requiere 30 días de historial</span></div>'
@@ -1949,21 +2091,6 @@ tr.tot td{font-weight:700;border-top:2px solid #e5e7eb;border-bottom:none;backgr
    +'</div></div>'
    +bloqueRitmo
 
-   +'<div class="sec"><div class="st"><span>Distancia al siguiente tier</span>'
-   +'<span class="n">ordenado del más cercano</span></div>'
-   +'<table><thead><tr><th>Activo</th><th class="r">Precio</th><th class="r">Siguiente</th>'
-   +'<th class="r">Vende</th><th class="r">Falta</th></tr></thead><tbody>'
-   +distancias.map(d=>{
-      const col=d.dist===null?'#9ca3af':d.dist<30?'#059669':d.dist<100?'#d97706':'#dc2626';
-      return '<tr><td><b>'+d.tick+'</b></td>'
-        +'<td class="r mono">'+px(d.px)+'</td>'
-        +'<td class="r mono">'+(d.sig?px(d.sig):'—')+'</td>'
-        +'<td class="r mono mu">'+(d.pctVenta?d.pctVenta+'%':'—')+'</td>'
-        +'<td class="r mono" style="color:'+col+';font-weight:'+(d.dist!==null&&d.dist<30?'700':'400')+'">'
-        +(d.dist===null?'todos superados':'+'+d.dist.toFixed(0)+'%')+'</td></tr>';
-    }).join('')
-   +'</tbody></table></div>'
-
    +'<div class="sec"><div class="st"><span>Proyección con venta escalonada</span>'
    +'<span class="n">tokens × precio promedio ponderado</span></div>'
    +'<table><thead><tr><th>Activo</th><th class="r">Precio prom.</th><th class="r">Proyectado</th>'
@@ -1987,19 +2114,6 @@ tr.tot td{font-weight:700;border-top:2px solid #e5e7eb;border-bottom:none;backgr
        +fu(proy.total-proyRows[0].valor)+'.</div>'
      : '')
    +'</div>'
-
-   +'<div class="sec"><div class="st"><span>Tiers de salida</span><span class="n">el plan de ejecución</span></div>'
-   +'<table><thead><tr><th>Activo</th><th class="r">T1</th><th class="r">T2</th><th class="r">T3</th><th class="r">T4</th></tr></thead><tbody>'
-   +distancias.map(d=>'<tr><td><b>'+d.tick+'</b></td>'
-     +d.tiers.slice(0,4).map(n=>{
-        const alcanzado=d.px>=n.px;
-        const esSig=d.sig===n.px;
-        return '<td class="r mono" style="'+(alcanzado?'color:#9ca3af;text-decoration:line-through':
-               esSig?'color:#059669;font-weight:700':'')+'">'
-               +(n.px>=1000?('$'+(n.px/1000)+'K'):px(n.px))+'<span style="font-size:8px;color:#9ca3af"> '+n.pct+'%</span></td>';
-      }).join('')
-     +'</tr>').join('')
-   +'</tbody></table></div>'
 
    +'<div style="font-size:9px;color:#a0aec0;margin-top:10px;text-align:center;line-height:1.6">'
    +'Capital histórico desplegado: '+fu(capHist.invertido||0)+' · recuperado '+((capHist.pctRecuperado||0).toFixed(1))+'%<br>'
@@ -2053,7 +2167,7 @@ function getMetaObjetivo(){
   try{ const q=getHipSaldo(); if(q>0) return q/7.75; }catch(e){}
   return 88000;
 }
-const TRANCHES = {
+const TRANCHES_DEFAULT = {
   'HYPE':   { t1:{pct:10,px:150.00},  t2:{pct:25,px:200.00}, t3:{pct:30,px:350.00}, trailing:{pct:35,px:500.00}, moon:null   },
   'ONDO':   { t1:{pct:5,px:0.75},    t2:{pct:20,px:1.20},   t3:{pct:35,px:2.00},   trailing:{pct:40,px:5.00},   moon:null   },
   'AKT':    { t1: {pct:15, px:1.50},   t2: {pct:10, px:3.00},   t3: {pct:40, px:5.50},   trailing: {pct:35, px:8.00},   moon: null   },
@@ -2064,6 +2178,153 @@ const TRANCHES = {
   'LCX':    { t1: {pct:20, px:0.496},  t2: {pct:45, px:1.190},  t3: {pct:35, px:1.240},  trailing: null, moon: null },
   'TAI':    { t1: {pct:20, px:0.0766}, t2: {pct:45, px:0.1838}, t3: {pct:35, px:0.1915}, trailing: null, moon: null },
 };
+// ── TIERS EDITABLES ────────────────────────────────────────────
+// TRANCHES arranca de los valores por defecto y se sobrescribe con
+// lo que el usuario haya guardado. Cada token se guarda por separado.
+let TRANCHES = JSON.parse(JSON.stringify(TRANCHES_DEFAULT));
+const TR_KEY = 'pf_tranches';
+
+function cargarTranches(){
+  try{
+    const g = JSON.parse(localStorage.getItem(TR_KEY) || '{}');
+    Object.keys(g).forEach(tick => {
+      if(TRANCHES[tick]) TRANCHES[tick] = g[tick];
+    });
+  }catch(e){}
+}
+function guardarTranches(){
+  try{ localStorage.setItem(TR_KEY, JSON.stringify(TRANCHES)); }catch(e){}
+}
+function resetTranches(tick){
+  if(tick && TRANCHES_DEFAULT[tick]){
+    TRANCHES[tick] = JSON.parse(JSON.stringify(TRANCHES_DEFAULT[tick]));
+  } else {
+    TRANCHES = JSON.parse(JSON.stringify(TRANCHES_DEFAULT));
+  }
+  guardarTranches(); renderTiers(); refrescarTodo();
+}
+function sumaPct(t){
+  return ['t1','t2','t3','trailing','moon'].reduce((s,k)=> s + (t[k] ? (+t[k].pct||0) : 0), 0);
+}
+function onTierEdit(tick, nivel, campo, val){
+  const v = parseFloat(val);
+  if(isNaN(v) || v < 0) return;
+  if(!TRANCHES[tick]) return;
+  if(!TRANCHES[tick][nivel]) TRANCHES[tick][nivel] = {pct:0, px:0};
+  TRANCHES[tick][nivel][campo] = v;
+  guardarTranches(); renderTiers(); refrescarTodo();
+}
+function toggleNivel(tick, nivel){
+  if(!TRANCHES[tick]) return;
+  if(TRANCHES[tick][nivel]) TRANCHES[tick][nivel] = null;
+  else TRANCHES[tick][nivel] = {pct:0, px:0};
+  guardarTranches(); renderTiers(); refrescarTodo();
+}
+// ── RENDER DE LA PESTAÑA DE TIERS ──────────────────────────────
+let _tiersOpen = {};
+function toggleTierCard(tick){
+  _tiersOpen[tick] = !_tiersOpen[tick];
+  renderTiers();
+}
+function showTab(tab){
+  document.querySelectorAll('[data-tab]').forEach(el=>{
+    if(el.classList.contains('tabbtn')) return;
+    el.classList.toggle('tabsec-hidden', el.getAttribute('data-tab')!==tab);
+  });
+  document.querySelectorAll('.tabbtn').forEach(b=>{
+    b.classList.toggle('active', b.getAttribute('data-tab')===tab);
+  });
+  try{ localStorage.setItem('pf_tab', tab); }catch(e){}
+  if(tab==='tiers') try{ renderTiers(); }catch(e){}
+  if(tab==='meta')  try{ renderHipoteca(); renderRitmo(); if(_proyOpen) renderProy(); }catch(e){}
+}
+function restaurarTab(){
+  let t='cartera';
+  try{ t = localStorage.getItem('pf_tab') || 'cartera'; }catch(e){}
+  showTab(t);
+}
+
+function renderTiers(){
+  const box = document.getElementById('tiers-box');
+  if(!box) return;
+  const NIV = [['t1','T1'],['t2','T2'],['t3','T3'],['trailing','T4'],['moon','Moon']];
+  const fmtPx = v => v>=1000 ? v.toFixed(0) : (v>=1 ? v.toFixed(2) : v.toFixed(4));
+  const inp = (tick,niv,campo,val,ancho,suf) =>
+     '<input type="number" step="any" min="0" value="'+val+'" '
+    +'onchange="onTierEdit(\''+tick+'\',\''+niv+'\',\''+campo+'\',this.value)" '
+    +'style="width:'+ancho+'px;background:var(--s2);border:1px solid var(--bd);border-radius:5px;'
+    +'padding:5px 6px;color:var(--tx);font-family:\'DM Mono\',monospace;font-size:11px;text-align:right">'
+    +(suf?'<span style="font-size:9px;color:var(--mu2);margin-left:3px">'+suf+'</span>':'');
+
+  box.innerHTML = Object.keys(TRANCHES).map(tick=>{
+    const t = TRANCHES[tick];
+    const suma = sumaPct(t);
+    const ok = Math.abs(suma-100) < 0.01;
+    const abierto = !!_tiersOpen[tick];
+    const activo = [...(typeof L1!=='undefined'?L1:[]),...(typeof L2!=='undefined'?L2:[]),
+                    ...(typeof L3!=='undefined'?L3:[]),...(typeof BROKER!=='undefined'?BROKER:[])]
+                   .find(a=>a.tick===tick);
+    const px = activo && activo.price ? activo.price : null;
+    const avg = ['t1','t2','t3','trailing','moon']
+      .reduce((s,k)=> s + (t[k] ? (+t[k].pct||0)*(+t[k].px||0) : 0), 0) / 100;
+
+    let filas = '';
+    if(abierto){
+      filas = '<div style="padding:10px 12px 4px;border-top:1px solid var(--bd)">'
+        +'<div style="display:flex;gap:8px;font-size:8px;color:var(--mu2);text-transform:uppercase;'
+        +'letter-spacing:.06em;padding-bottom:5px"><span style="width:44px">Nivel</span>'
+        +'<span style="width:74px;text-align:right">% venta</span>'
+        +'<span style="width:94px;text-align:right">Precio</span>'
+        +'<span style="flex:1;text-align:right">Múltiplo</span></div>'
+        + NIV.map(([k,lbl])=>{
+            const n = t[k];
+            if(!n) return '<div style="display:flex;align-items:center;gap:8px;padding:3px 0">'
+              +'<span style="width:44px;font-family:\'DM Mono\',monospace;font-size:10px;color:var(--mu2)">'+lbl+'</span>'
+              +'<span style="flex:1;font-size:10px;color:var(--mu2)">sin usar</span>'
+              +'<button onclick="toggleNivel(\''+tick+'\',\''+k+'\')" style="background:none;border:1px solid var(--bd);'
+              +'border-radius:4px;color:var(--mu);font-size:9px;padding:2px 8px;cursor:pointer">activar</button></div>';
+            const mult = px && n.px ? (n.px/px) : null;
+            return '<div style="display:flex;align-items:center;gap:8px;padding:3px 0">'
+              +'<span style="width:44px;font-family:\'DM Mono\',monospace;font-size:10px;color:var(--tx);font-weight:600">'+lbl+'</span>'
+              +'<span style="width:74px;text-align:right">'+inp(tick,k,'pct',n.pct,46,'%')+'</span>'
+              +'<span style="width:94px;text-align:right">'+inp(tick,k,'px',n.px,78,'')+'</span>'
+              +'<span style="flex:1;text-align:right;font-family:\'DM Mono\',monospace;font-size:10px;color:'
+              +(mult?(mult>=10?'#34d07a':'var(--mu)'):'var(--mu2)')+'">'+(mult?mult.toFixed(1)+'x':'—')+'</span>'
+              +'<button onclick="toggleNivel(\''+tick+'\',\''+k+'\')" style="background:none;border:none;'
+              +'color:var(--mu2);font-size:12px;cursor:pointer;padding:0 4px" title="quitar">×</button></div>';
+          }).join('')
+        +'<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;'
+        +'padding-top:7px;border-top:1px solid var(--bd)">'
+        +'<span style="font-family:\'DM Mono\',monospace;font-size:9px;color:'+(ok?'var(--gr)':'#f25c5c')+'">'
+        +'suma '+suma.toFixed(0)+'%'+(ok?' ✓':' · debe dar 100')+'</span>'
+        +'<button onclick="resetTranches(\''+tick+'\')" style="background:none;border:1px solid var(--bd);'
+        +'border-radius:4px;color:var(--mu);font-size:9px;padding:3px 9px;cursor:pointer">restaurar</button>'
+        +'</div></div>';
+    }
+
+    return '<div style="background:var(--s1);border:1px solid '+(ok?'var(--bd)':'rgba(242,92,92,.5)')
+      +';border-radius:9px;margin-bottom:8px;overflow:hidden">'
+      +'<div onclick="toggleTierCard(\''+tick+'\')" style="display:flex;justify-content:space-between;'
+      +'align-items:center;padding:11px 13px;cursor:pointer">'
+      +'<div><span style="font-family:\'DM Mono\',monospace;font-size:13px;font-weight:700;color:var(--tx)">'+tick+'</span>'
+      +'<span style="font-size:9px;color:var(--mu2);margin-left:8px">'
+      +(px?('hoy $'+fmtPx(px)):'sin precio')+' · prom venta $'+fmtPx(avg)+'</span></div>'
+      +'<div style="display:flex;align-items:center;gap:9px">'
+      +(ok?'':'<span style="font-size:9px;color:#f25c5c;font-weight:700">'+suma.toFixed(0)+'%</span>')
+      +'<span style="font-size:11px;color:var(--mu2);transform:rotate('+(abierto?'90':'0')+'deg);'
+      +'display:inline-block;transition:transform .15s">▶</span></div></div>'
+      + filas + '</div>';
+  }).join('');
+}
+
+function refrescarTodo(){
+  try{ if(typeof _proyOpen!=='undefined' && _proyOpen) renderProy(); }catch(e){}
+  try{ updateProySummary(); }catch(e){}
+  try{ renderHipoteca(); renderRitmo(); renderTiers(); restaurarTab(); }catch(e){}
+  try{ renderGoalTokens(); }catch(e){}
+}
+cargarTranches();
+
 // BTC se calcula aparte: solo 10% del holding actual en cycle peak
 const BTC_PEAK = { pct: 10, px: 250000 };
 

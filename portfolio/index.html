@@ -773,7 +773,7 @@ async function saveSnapshot(totalValue, totalCost){
     localStorage.setItem(LS, JSON.stringify(full));
   } catch(e){ console.log('Snapshot error:', e); }
 }
-async function renderSplit(totCore, cstCore, totAsim, cstAsim){
+function renderSplit(totCore, cstCore, totAsim, cstAsim){
   const box = document.getElementById('split-box');
   if(!box) return;
   const f = n => '$' + Math.round(n).toLocaleString('en-US');
@@ -1169,20 +1169,21 @@ async function load(){
     }
   });
   rb.classList.remove('busy');sp.classList.remove('go');
-  renderDist();
-  renderAcc();
-  updateProySummary();
-  renderGrowth(tot);
+  try{ renderDist(); }catch(e){ console.log('renderDist:',e); }
+  try{ renderAcc(); }catch(e){ console.log('renderAcc:',e); }
+  try{ updateProySummary(); }catch(e){ console.log('updateProySummary:',e); }
+  try{ renderGrowth(tot); }catch(e){ console.log('renderGrowth:',e); }
   // Actualizar label del capital histórico
   const _cap = getCapitalHistorico();
   const _lbl = document.getElementById('cap-toggle-val');
   if(_lbl) _lbl.textContent = _cap.pctRecuperado.toFixed(1) + '% recuperado · $' + _cap.ventas.toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0});
   if(_capOpen) renderCapHist();
-  await saveSnapshot(tot, cst);
-  renderTrendChart();
-  if(_proyOpen) renderProy();
-  renderHipoteca();
-  renderRitmo();
+  try{ await saveSnapshot(tot, cst); }catch(e){ console.log('saveSnapshot:',e); }
+  try{ renderTrendChart(); }catch(e){ console.log('renderTrendChart:',e); }
+  try{ if(_proyOpen) renderProy(); }catch(e){ console.log('renderProy:',e); }
+  try{ renderHipoteca(); }catch(e){ console.log('renderHipoteca:',e); }
+  try{ renderRitmo(); }catch(e){ console.log('renderRitmo:',e); }
+  try{ renderTiers(); }catch(e){ console.log('renderTiers:',e); }
 }
 
 // ── COBERTURA DEL PRÉSTAMO ─────────────────────────────────

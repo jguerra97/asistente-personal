@@ -919,6 +919,26 @@ function onPatChange(k,val){
   const d=ldS(); d[k]=v; svS(d);
   renderPatrimonio();
 }
+// ── SNAPSHOT MENSUAL DE PATRIMONIO ────────────────────────────
+// Guarda un punto por mes con lo esencial para ver la trayectoria.
+// Se llama al renderizar; sobrescribe el del mes en curso.
+function guardarSnapPatrimonio(datos){
+  try{
+    const d = ldS();
+    if(!Array.isArray(d.patrimonio)) d.patrimonio = [];
+    const key = (ST.anio||2026)+'-'+String(ST.mes).padStart(2,'0');
+    const reg = Object.assign({k:key, t:Date.now()}, datos);
+    const i = d.patrimonio.findIndex(x=>x.k===key);
+    if(i>=0) d.patrimonio[i]=reg; else d.patrimonio.push(reg);
+    d.patrimonio.sort((a,b)=>a.k<b.k?-1:1);
+    if(d.patrimonio.length>36) d.patrimonio=d.patrimonio.slice(-36);
+    localStorage.setItem(LS, JSON.stringify(d));
+  }catch(e){}
+}
+function getSnapsPatrimonio(){
+  try{ const d=ldS(); return Array.isArray(d.patrimonio)?d.patrimonio:[]; }catch(e){ return []; }
+}
+
 function renderPatrimonio(){
   const wrap=document.getElementById('patrimonio-wrap');
   if(!wrap) return;
@@ -1015,6 +1035,18 @@ function renderPatrimonio(){
   // 6. Excedente disponible (ingreso − fijos / ingreso) — lo que queda libre tras fijos
   const s6 = Math.max(ingresoMes-fijosMes,0)/ingresoMes*100;
   const s6c = s6<15?'rd':(s6<30?'go':'gr');
+
+  // guardar la foto del mes para la serie histórica
+  guardarSnapPatrimonio({
+    neto: Math.round(patNetoQ),
+    activos: Math.round(totalActivosU*tc),
+    hipoteca: Math.round(salHip),
+    colchon: Math.round(colchonQ),
+    inmediata: Math.round(liqInmediataQ),
+    cartera: Math.round(criptoQ),
+    ingreso: Math.round(ingresoMes),
+    fijos: Math.round(fijosMes)
+  });
   const dot=c=>({rd:'🔴',go:'🟡',gr:'🟢'}[c]);
   const cvar=c=>({rd:'var(--rd)',go:'var(--go)',gr:'var(--gr)'}[c]);
   const semaforo=(dotc,lbl,val,detalle)=>`<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--bd)">
@@ -1953,7 +1985,7 @@ function recalc(){
   try{ renderMetaAbono(); }catch(e){}
 }
 
-// ── HISTORIAL DE INGRESOS ────────────────────────────────────────
+    // ── HISTORIAL DE INGRESOS ────────────────────────────────────────
 function saveHistorial(){
   if(ST.q1<=0||ST.q2<=0) return;
   const d=ldS();
@@ -2328,13 +2360,68 @@ function descargarResumen(){
       return '<div class="rsec" style="'+S.sec+'">'
         +'<span style="'+S.sectl+'">Liquidez real · '+fqR(real)+' (todo movible, sin casa)</span>'
         +'<table style="'+S.tbl+'"><thead><tr><th style="'+S.th+'">Capa</th><th style="'+S.th+'">Qué incluye</th><th style="'+S.th+'">Acceso</th><th style="'+S.th+'">Monto</th></tr></thead><tbody>'
-        +'<tr><td style="'+S.td+'font-weight:700;color:#059669">🔓 Operable</td><td style="'+S.td+'color:#888;font-size:9px">Lulubit+Bantrab+Monetaria+Reemb+USD</td><td style="'+S.td+'color:#888">hoy</td><td style="'+S.td+'text-align:right;font-weight:700">'+fqR(operable)+'</td></tr>'
-        +'<tr><td style="'+S.td+'font-weight:700;color:#3182ce">💵 Inmediata</td><td style="'+S.td+'color:#888;font-size:9px">+ Ahorro BI (fijos) · sin vender cripto</td><td style="'+S.td+'color:#888">directo</td><td style="'+S.td+'text-align:right;font-weight:700">'+fqR(inmediata)+'</td></tr>'
-        +'<tr><td style="'+S.td+'font-weight:700;color:#e8a020">📈 Invertida</td><td style="'+S.td+'color:#888;font-size:9px">portafolio + BTC</td><td style="'+S.td+'color:#888">requiere vender</td><td style="'+S.td+'text-align:right;font-weight:700">'+fqR(cripto)+'</td></tr>'
-        +'<tr style="background:#f0f9ff"><td style="'+S.td+'font-weight:800;color:#0c4a6e" colspan="3">LIQUIDEZ REAL TOTAL</td><td style="'+S.td+'text-align:right;font-weight:800;color:#0c4a6e">'+fqR(real)+'</td></tr>'
+        +'<tr><td style="'+S.td+'font-weight:700;color:#e8a020">🛡️ Colchón</td><td style="'+S.td+'color:#888;font-size:9px">Ahorro BI '+fqR(ahorroBi)+' + 20% Bantrab '+fqR(bantColchon)+'</td><td style="'+S.td+'color:#888">reservado a fijos</td><td style="'+S.td+'text-align:right;font-weight:700">'+fqR(colchon)+'</td></tr>'
+        +'<tr><td style="'+S.td+'font-weight:700;color:#059669">💵 Inmediata</td><td style="'+S.td+'color:#888;font-size:9px">Monetaria '+fqR(mon)+' + Lulubit '+fqR(lulu)+' + 40% Bantrab '+fqR(bantLiquida)+' + reemb '+fqR(reemb)+' + superávit '+fqR(abiUsd)+'</td><td style="'+S.td+'color:#888">hoy</td><td style="'+S.td+'text-align:right;font-weight:700">'+fqR(inmediata)+'</td></tr>'
+        +'<tr><td style="'+S.td+'font-weight:700;color:#3182ce">📈 Cartera</td><td style="'+S.td+'color:#888;font-size:9px">alts 100% + 10% del BTC · el 90% restante no se vende</td><td style="'+S.td+'color:#888">requiere vender</td><td style="'+S.td+'text-align:right;font-weight:700">'+fqR(cripto)+'</td></tr>'
+        +'<tr><td style="'+S.td+'font-weight:700" colspan="3">LIQUIDEZ REAL TOTAL</td><td style="'+S.td+'text-align:right;font-weight:700;color:#0c4a6e">'+fqR(real)+'</td></tr>'
         +'</tbody></table>'
         +'<div style="font-size:9px;color:#a0aec0;margin-top:8px;line-height:1.5">Real es todo tu dinero movible. Las capas muestran qué tan rápido accedes a cada parte: operable hoy, inmediata sin vender, invertida requiere liquidar.</div>'
       +'</div>';
+    })()
+
+// ── TRAYECTORIA DEL PATRIMONIO ──
+    +(()=>{
+      const sn=getSnapsPatrimonio();
+      if(sn.length<2){
+        return '<div class="rsec" style="'+S.sec+'">'
+          +'<span style="'+S.sectl+'">Trayectoria del patrimonio</span>'
+          +'<div style="padding:12px;background:#f0f9ff;border-left:3px solid #0284c7;border-radius:4px;font-size:10px;color:#0c4a6e;line-height:1.6">'
+          +'Se guarda una foto al cerrar cada mes. Llevas '+sn.length+' registro'+(sn.length===1?'':'s')+'. '
+          +'Con dos o mas aparece la grafica de evolucion.'
+          +'</div></div>';
+      }
+      const W=580,H=170,pl=58,pr=12,pt=16,pb=28;
+      const iw=W-pl-pr, ih=H-pt-pb;
+      const vals=sn.map(x=>x.neto);
+      const mx=Math.max(...vals)*1.1, mn=Math.min(...vals)*0.9;
+      const y=v=>pt+ih-((v-mn)/Math.max(mx-mn,1))*ih;
+      const step=sn.length>1?iw/(sn.length-1):0;
+      const MS=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+      let pts='',dots='',lbl='';
+      sn.forEach((s,k)=>{
+        const X=pl+k*step, Y=y(s.neto), last=k===sn.length-1;
+        pts+=(k?' ':'')+X.toFixed(1)+','+Y.toFixed(1);
+        dots+='<circle cx="'+X.toFixed(1)+'" cy="'+Y.toFixed(1)+'" r="'+(last?4.5:3)+'" fill="'+(last?'#0c4a6e':'#7dd3fc')+'"/>';
+        const m=+s.k.split('-')[1]-1;
+        lbl+='<text x="'+X.toFixed(1)+'" y="'+(H-10)+'" text-anchor="middle" font-size="8.5" fill="'+(last?'#0c4a6e':'#6b7280')+'"'+(last?' font-weight="700"':'')+'>'+MS[m]+'</text>';
+      });
+      const L=sn[sn.length-1], F=sn[0];
+      const delta=L.neto-F.neto, pctD=F.neto!==0?(delta/Math.abs(F.neto)*100):0;
+      return '<div class="rsec" style="'+S.sec+'">'
+        +'<span style="'+S.sectl+'">Trayectoria del patrimonio · '+sn.length+' meses</span>'
+        +'<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto;display:block;margin-bottom:8px">'
+        +'<line x1="'+pl+'" y1="'+(pt+ih)+'" x2="'+(W-pr)+'" y2="'+(pt+ih)+'" stroke="#d1d5db"/>'
+        +'<text x="'+(pl-8)+'" y="'+(pt+5)+'" text-anchor="end" font-size="7.5" fill="#9ca3af" font-family="monospace">'+(mx/1000).toFixed(0)+'K</text>'
+        +'<text x="'+(pl-8)+'" y="'+(pt+ih)+'" text-anchor="end" font-size="7.5" fill="#9ca3af" font-family="monospace">'+(mn/1000).toFixed(0)+'K</text>'
+        +'<path d="M'+pts.split(' ').join(' L')+' L'+(pl+(sn.length-1)*step).toFixed(1)+','+(pt+ih)+' L'+pl+','+(pt+ih)+' Z" fill="#0284c7" opacity="0.08"/>'
+        +'<polyline points="'+pts+'" fill="none" stroke="#0284c7" stroke-width="2.2"/>'
+        +dots+lbl
+        +'<text x="'+(W-pr)+'" y="'+(y(L.neto)-8).toFixed(1)+'" text-anchor="end" font-size="9" font-weight="700" fill="#0c4a6e" font-family="monospace">'+fqR(L.neto)+'</text>'
+        +'</svg>'
+        +'<table style="'+S.tbl+'"><thead><tr><th style="'+S.th+'">Mes</th><th style="'+S.th+'">Patrimonio</th>'
+        +'<th style="'+S.th+'">Hipoteca</th><th style="'+S.th+'">Colchon</th><th style="'+S.th+'">Cartera</th></tr></thead><tbody>'
+        +sn.slice(-8).map(s=>{
+          const m=+s.k.split('-')[1]-1;
+          return '<tr><td style="'+S.td+'">'+MS[m]+' '+s.k.split('-')[0]+'</td>'
+            +'<td style="'+S.td+'font-weight:700">'+fqR(s.neto)+'</td>'
+            +'<td style="'+S.td+'color:#dc2626">'+fqR(s.hipoteca)+'</td>'
+            +'<td style="'+S.td+'">'+fqR(s.colchon)+'</td>'
+            +'<td style="'+S.td+'">'+fqR(s.cartera)+'</td></tr>';
+        }).join('')
+        +'</tbody></table>'
+        +'<div style="font-size:10px;color:#6b7280;margin-top:8px;line-height:1.6">'
+        +'Desde '+MS[+F.k.split('-')[1]-1]+' el patrimonio '+(delta>=0?'subio':'bajo')+' <b>'+fqR(Math.abs(delta))+'</b> ('+(delta>=0?'+':'')+pctD.toFixed(1)+'%).'
+        +'</div></div>';
     })()
 
     // ── HISTORIAL DE INGRESOS (con grafica mes a mes) ──
@@ -2345,7 +2432,7 @@ function descargarResumen(){
         :(function(){
           // ── SVG CHART: barras mes a mes ──
           const chartW = 580, chartH = 180;
-          const padL = 50, padR = 10, padT = 15, padB = 30;
+          const padL = 58, padR = 12, padT = 15, padB = 30;
           const innerW = chartW - padL - padR;
           const innerH = chartH - padT - padB;
           const maxVal = Math.max.apply(null, hist.map(h=>h.total));
@@ -2394,8 +2481,10 @@ function descargarResumen(){
           let avgLine = '';
           if(avgNorm > 0 && yMax > 0){
             const yAvg = padT + innerH - (avgNorm/yMax)*innerH;
-            avgLine = '<line x1="'+padL+'" y1="'+yAvg+'" x2="'+(chartW-padR)+'" y2="'+yAvg+'" stroke="#0284c7" stroke-width="1" stroke-dasharray="4,3" opacity="0.6"/>'
-              +'<text x="'+(chartW-padR-4)+'" y="'+(yAvg-3)+'" text-anchor="end" font-family="monospace" font-size="8" fill="#0284c7">prom '+fqR(avgNorm)+'</text>';
+            // línea de referencia discreta · etiqueta en el eje izquierdo, sin invadir las barras
+            avgLine = '<line x1="'+(padL-6)+'" y1="'+yAvg+'" x2="'+(chartW-padR)+'" y2="'+yAvg+'" stroke="#0c4a6e" stroke-width="1" stroke-dasharray="3,3" opacity="0.45"/>'
+              +'<text x="'+(padL-9)+'" y="'+(yAvg-2)+'" text-anchor="end" font-family="monospace" font-size="7.5" font-weight="700" fill="#0c4a6e">prom</text>'
+              +'<text x="'+(padL-9)+'" y="'+(yAvg+6.5)+'" text-anchor="end" font-family="monospace" font-size="7" fill="#0c4a6e" opacity="0.75">'+(avgNorm/1000).toFixed(1)+'K</text>';
           }
 
           const svg = '<svg viewBox="0 0 '+chartW+' '+chartH+'" style="width:100%;max-width:100%;height:auto;display:block;margin-bottom:10px" preserveAspectRatio="xMidYMid meet">'

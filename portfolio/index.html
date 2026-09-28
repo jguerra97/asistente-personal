@@ -685,11 +685,13 @@ const L3=[
    note:'Exchange regulado Liechtenstein · 8 licencias FMA · MiCA jul2026 · ATH $0.564 nov2021'},
   {id:'tars-protocol',tick:'TAI',  name:'TARS AI',        col:'#ff8c42',ico:'T',qty:78328,   entry:0.00383, target:0.4941, price:0.00383,
    note:'AI agents en Solana · ATH $0.4941 dic2024 · MC $3.4M · volumen $196K/día'},
+  {id:'plasma',       tick:'XPL',  name:'Plasma',         col:'#00d4aa',ico:'X',qty:2542,     entry:0.118,   target:3.00,   price:0.118,
+   note:'L1 para settlement de stablecoins · ATH $1.692 sep2025 · absorbió unlock de 1.8B tokens sep2026 subiendo 34%'},
 ];
 
 const BROKER=[
   {tick:'MSTR',name:'MicroStrategy (Schwab)',col:'#e8a020',ico:'M',qty:18.46, entry:172.10, price:166.43,   strat:'exit', sl:'Hold · triggers documentados',  note:'18.46 acc · prom $172.10 · no compra sin triggers (mNAV >1.2x · breakout $205 · BTC >$90K)'},
-  {tick:'BTC', name:'Bitcoin (Lava+DCA)',   col:'#f7931a',ico:'₿',qty:0.10438,entry:34000,  price:81093,   strat:'dca',  sl:'DCA perpetuo',   note:'Colchón LF · DCA $50/sem · entrada promedio ~$34K'},
+  {tick:'BTC', id:'bitcoin', name:'Bitcoin (Lava+DCA)', col:'#f7931a',ico:'₿',qty:0.10438,entry:34000,  price:81093,   strat:'dca',  sl:'DCA perpetuo',   note:'Colchón LF · DCA $50/sem · entrada promedio ~$34K'},
 ];
 
 const fm=(n,d=2)=>n==null?'—':'$'+n.toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
@@ -996,7 +998,9 @@ function renderBroker(){
       <div class="bg-fields">
         <div class="bg-field"><label>Cantidad</label><input class="bg-inp" type="number" value="${a.qty}" step="any" min="0" onchange="onBQ('${a.tick}',this.value)"></div>
         <div class="bg-field"><label>Precio entrada</label><input class="bg-inp" type="number" value="${a.entry}" step="any" min="0" onchange="onBE('${a.tick}',this.value)"></div>
-        <div class="bg-field"><label>Precio actual ✏</label><input class="bg-inp curr" type="number" value="${a.price}" step="any" min="0" onchange="onBP('${a.tick}',this.value)"></div>
+        ${a.id
+          ? `<div class="bg-field"><label>Precio actual</label><div class="bg-inp curr" style="display:flex;align-items:center;justify-content:flex-end;gap:5px;cursor:default"><span style="font-size:8px;color:var(--gr)">●</span>${a.price.toLocaleString('en-US',{maximumFractionDigits:a.price<10?4:2})}</div></div>`
+          : `<div class="bg-field"><label>Precio actual ✏</label><input class="bg-inp curr" type="number" value="${a.price}" step="any" min="0" onchange="onBP('${a.tick}',this.value)"></div>`}
         <div class="bg-field"><label>Invertido</label><div style="font-family:'DM Mono',monospace;font-size:11px;padding:4px 0;color:var(--mu)">${fm(cst)}</div></div>
       </div>
 
@@ -1092,7 +1096,7 @@ async function load(){
   rb.classList.add('busy');sp.classList.add('go');
   document.getElementById('ts').textContent='Actualizando precios...';
   applyS();
-  const cgIds=['hyperliquid','ondo-finance','akash-network','morpho','pyth-network','theta-token','lcx','tars-protocol'];
+  const cgIds=['hyperliquid','ondo-finance','akash-network','morpho','pyth-network','theta-token','lcx','tars-protocol','plasma','bitcoin'];
   const px=await fetchCG(cgIds);
   if(Object.keys(px).length===0){
     document.getElementById('ts').textContent='⚠ Sin conexión a CoinGecko — usando precios guardados';
@@ -1117,7 +1121,17 @@ async function load(){
     h2+=mkRow(a,price,chg,true);
     m2+=mkCard(a,price,chg,true);
   });
-  BROKER.forEach(a=>{tot+=a.price*a.qty;cst+=a.entry*a.qty;});
+  BROKER.forEach(a=>{
+    // los que tienen id (BTC) se actualizan solos; el resto queda manual
+    const p = a.id ? px[a.id] : null;
+    if(p?.usd){
+      a.price = p.usd;
+      svS(a.tick,'price',p.usd); svS(a.tick,'priceTs',Date.now());
+      const chg = p.usd_24h_change;
+      if(chg!=null){ const pv = p.usd/(1+chg/100); c24 += (p.usd-pv)*a.qty; }
+    }
+    tot += a.price*a.qty; cst += a.entry*a.qty;
+  });
   const totCore=tot, cstCore=cst;
   let h3='',m3='',totAsim=0,cstAsim=0;
   L3.forEach(a=>{
@@ -1487,7 +1501,6 @@ function renderCapHist(){
         <span style="color:${cap.pctRecuperado >= 100 ? 'var(--gr)' : 'var(--mu)'}">${cap.pctRecuperado >= 100 ? '✅ Dinero de la casa: $' + (cap.ventas - cap.capitalTotal).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0}) : 'Falta: $' + (cap.capitalTotal - cap.ventas).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0})}</span>
       </div>
     </div>
-</div>
 
     <!-- FORMULARIO REGISTRAR VENTA -->
     <div style="background:var(--s2);border-radius:6px;padding:10px 12px;margin-top:10px;border:1px solid rgba(242,92,92,.2)">
@@ -2177,6 +2190,7 @@ const TRANCHES_DEFAULT = {
   'THETA':  { t1: {pct:60, px:4.00},   t2: {pct:25, px:8.00},   t3: {pct:15, px:12.00},  trailing: null, moon: null },
   'LCX':    { t1: {pct:20, px:0.496},  t2: {pct:45, px:1.190},  t3: {pct:35, px:1.240},  trailing: null, moon: null },
   'TAI':    { t1: {pct:20, px:0.0766}, t2: {pct:45, px:0.1838}, t3: {pct:35, px:0.1915}, trailing: null, moon: null },
+  'XPL':    { t1: {pct:20, px:2.36},   t2: {pct:45, px:5.66},   t3: {pct:35, px:5.90},   trailing: null, moon: null },
 };
 // ── TIERS EDITABLES ────────────────────────────────────────────
 // TRANCHES arranca de los valores por defecto y se sobrescribe con

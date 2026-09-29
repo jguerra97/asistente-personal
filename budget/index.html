@@ -1443,7 +1443,7 @@ function renderCols(){
       onchange="onColChange('btcQty',this.value)"
       placeholder="0.10289" style="color:${btcOrange};border-color:${btcOrange}55;margin:4px 0">
     <div class="col-row" style="margin-top:6px"><span class="col-lbl">Precio BTC (USD)</span>
-      <span id="btc-px-status" style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu2)">·  cargando</span></div>
+      <span id="btc-px-status" style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu2)">${btcPxStatusHtml()}</span></div>
     <input class="col-inp" type="number" value="${btcPx}" step="1" min="0" readonly
       title="Se actualiza solo desde CoinGecko"
       placeholder="78670" style="color:${btcOrange};border-color:${btcOrange}55;margin:4px 0">
@@ -3627,6 +3627,24 @@ function renderSnap(){
 
 // ── PRECIO BTC AUTOMÁTICO ─────────────────────────────────────
 // Consulta CoinGecko al cargar. Si falla, conserva el ultimo valor guardado.
+// Devuelve el estado del precio segun lo ultimo guardado, para que al
+// redibujar el bloque (cambio de pestaña) no vuelva a decir "cargando".
+function btcPxStatusHtml(){
+  try{
+    const ts = +(localStorage.getItem('bt_btcpx_ts')||0);
+    const fuente = localStorage.getItem('bt_btcpx_src') || 'en vivo';
+    if(ts && COLS.btcPx>0){
+      const min = Math.round((Date.now()-ts)/60000);
+      const color = min<60 ? 'var(--gr)' : 'var(--go)';
+      const hora = new Date(ts).toLocaleTimeString('es-GT',{hour:'2-digit',minute:'2-digit'});
+      return '<span style="color:'+color+'">●</span> '+fuente+' · '+hora
+        + ' <a href="#" onclick="event.preventDefault();fetchBtcPrice(1)" '
+        + 'style="color:var(--mu2);text-decoration:underline">refrescar</a>';
+    }
+  }catch(e){}
+  return '·  cargando';
+}
+
 async function fetchBtcPrice(forzar){
   const marca = txt => {
     const el = document.getElementById('btc-px-status');
@@ -3635,7 +3653,10 @@ async function fetchBtcPrice(forzar){
   const guardar = (px, fuente) => {
     COLS.btcPx = px;
     saveCol('btcPx', px);
-    try{ localStorage.setItem('bt_btcpx_ts', String(Date.now())); }catch(e){}
+    try{
+      localStorage.setItem('bt_btcpx_ts', String(Date.now()));
+      localStorage.setItem('bt_btcpx_src', fuente);
+    }catch(e){}
     renderCols(); recalc(); renderPatrimonio();
     marca('<span style="color:var(--gr)">●</span> '+fuente+' · '
       + new Date().toLocaleTimeString('es-GT',{hour:'2-digit',minute:'2-digit'}));

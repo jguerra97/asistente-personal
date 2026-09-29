@@ -3627,28 +3627,56 @@ function renderSnap(){
 
 // ── PRECIO BTC AUTOMÁTICO ─────────────────────────────────────
 // Consulta CoinGecko al cargar. Si falla, conserva el ultimo valor guardado.
-async function fetchBtcPrice(){
+async function fetchBtcPrice(intento){
+  intento = intento || 1;
   const marca = txt => {
     // renderCols() redibuja el bloque, asi que se busca el nodo cada vez
     const el = document.getElementById('btc-px-status');
     if(el) el.innerHTML = txt;
   };
-  marca('·  actualizando');
+  // Si se actualizo hace menos de 10 minutos, no volver a pedirlo.
+  // Evita gastar la cuota de CoinGecko al recargar la pagina seguido.
+  if(intento===1){
+    try{
+      const ts = +(localStorage.getItem('bt_btcpx_ts')||0);
+      if(ts && (Date.now()-ts) < 10*60*1000 && COLS.btcPx>0){
+        marca('<span style="color:var(--gr)">●</span> en vivo · '
+          + new Date(ts).toLocaleTimeString('es-GT',{hour:'2-digit',minute:'2-digit'})
+          + ' <a href="#" onclick="event.preventDefault();localStorage.removeItem(\'bt_btcpx_ts\');fetchBtcPrice()" '
+          + 'style="color:var(--mu2);text-decoration:underline">refrescar</a>');
+        return;
+      }
+    }catch(e){}
+  }
+  marca(intento>1 ? '·  reintentando ('+intento+'/3)' : '·  actualizando');
   try{
-    const r = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd');
+    const url='https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true';
+    const r = await fetch(url);
+    // 429 y 503 = limite de peticiones. CoinGecko lo devuelve seguido
+    // cuando el tracker de portafolio consulto hace poco desde la misma IP.
+    if(r.status===429 || r.status===503){
+      if(intento>=3) throw new Error('rate_limit');
+      await new Promise(res=>setTimeout(res, intento*4000));   // 4s, luego 8s
+      return fetchBtcPrice(intento+1);
+    }
     if(!r.ok) throw new Error('http '+r.status);
     const j = await r.json();
     const px = j?.bitcoin?.usd;
     if(!px || isNaN(px)) throw new Error('sin dato');
     COLS.btcPx = px;
     saveCol('btcPx', px);
+    try{ localStorage.setItem('bt_btcpx_ts', String(Date.now())); }catch(e){}
     renderCols();
     recalc();
     renderPatrimonio();
     marca('<span style="color:var(--gr)">●</span> en vivo · '
       + new Date().toLocaleTimeString('es-GT',{hour:'2-digit',minute:'2-digit'}));
   }catch(e){
-    marca('<span style="color:var(--go)">●</span> manual · CoinGecko no respondio');
+    const rate = String(e.message||'').indexOf('rate')>=0;
+    marca('<span style="color:var(--go)">●</span> manual'
+      + (rate ? ' · limite de CoinGecko' : '')
+      + ' <a href="#" onclick="event.preventDefault();fetchBtcPrice()" '
+      + 'style="color:var(--ac);text-decoration:underline">reintentar</a>');
   }
 }
 

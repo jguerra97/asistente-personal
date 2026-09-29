@@ -761,12 +761,17 @@ async function saveSnapshot(totalValue, totalCost){
     const d = ldS();
     let snapshots = Array.isArray(d.snapshots) ? d.snapshots : [];
     const now = Date.now();
-    if(snapshots.length > 0){
-      const last = snapshots[snapshots.length-1];
-      if(now - last.t < SNAP_MIN_INTERVAL_MS) return;
-    }
     const _c = (totalCost && !isNaN(totalCost) && totalCost>0) ? Math.round(totalCost) : null;
-    snapshots.push(_c ? { t: now, v: Math.round(totalValue), c: _c } : { t: now, v: Math.round(totalValue) });
+    const _reg = _c ? { t: now, v: Math.round(totalValue), c: _c } : { t: now, v: Math.round(totalValue) };
+
+    // Si el ultimo snapshot es de hace menos de una hora, se sobrescribe en
+    // vez de crear otro. Asi el ultimo punto siempre muestra el valor actual
+    // y la serie sigue teniendo como maximo un registro por hora.
+    if(snapshots.length > 0 && (now - snapshots[snapshots.length-1].t) < SNAP_MIN_INTERVAL_MS){
+      snapshots[snapshots.length-1] = _reg;
+    } else {
+      snapshots.push(_reg);
+    }
     if(snapshots.length > SNAP_MAX) snapshots = snapshots.slice(-SNAP_MAX);
     const full = ldS();
     full.snapshots = snapshots;
@@ -864,8 +869,21 @@ function renderTrendChart(){
     chgEl.textContent = (pctChg >= 0 ? '+' : '') + pctChg.toFixed(1) + '% vs inicio';
     chgEl.style.color = trending ? 'var(--gr)' : 'var(--rd)';
   }
-  if(rangeEl) rangeEl.textContent = snapshots.length + ' puntos · ' + 
-    new Date(times[0]).toLocaleDateString('es-GT') + ' → hoy';
+  // Nota de frescura: cuantos registros, desde cuando y que tan viejo es el ultimo
+  if(rangeEl){
+    const _ult = times[times.length-1];
+    const _min = Math.round((Date.now()-_ult)/60000);
+    let _txt, _col;
+    if(_min < 5){          _txt='ahora mismo';                  _col='var(--gr)'; }
+    else if(_min < 60){    _txt='hace '+_min+' min';            _col='var(--gr)'; }
+    else if(_min < 1440){  _txt='hace '+Math.round(_min/60)+' h';   _col='var(--go)'; }
+    else {                 _txt='hace '+Math.round(_min/1440)+' d'; _col='#f25c5c'; }
+    const _hora = new Date(_ult).toLocaleString('es-GT',
+      {day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+    rangeEl.innerHTML = snapshots.length+' puntos · desde '
+      + new Date(times[0]).toLocaleDateString('es-GT')
+      + ' · <span style="color:'+_col+'">\u25cf</span> '+_txt+' ('+_hora+')';
+  }
 
   // Labels de fecha (inicio, medio, fin)
   if(labelsEl && snapshots.length >= 2){
@@ -1055,20 +1073,21 @@ async function fetchCG(ids, attempt=1){
       return fetchCG(ids, attempt+1);
     }
     if(!r.ok) throw new Error('http_'+r.status);
+    window.__fuentePrecios='CoinGecko';
     return await r.json();
   }catch(e){
     // 403 de CloudFront, rate limit o red caida → probar DefiLlama
     try{
       if(ts) ts.textContent='↻ CoinGecko no responde — usando DefiLlama...';
       const alt=await fetchLlama(ids);
-      if(ts) ts.textContent='✓ precios via DefiLlama · sin cambio 24h';
+      window.__fuentePrecios='DefiLlama';
       return alt;
     }catch(e2){
       if(attempt<2){
         await new Promise(res=>setTimeout(res,2000));
         return fetchCG(ids, attempt+1);
       }
-      if(ts) ts.textContent='✕ sin conexion a precios · valores guardados';
+      window.__fuentePrecios=null;
       return {};
     }
   }
@@ -1154,7 +1173,14 @@ async function load(){
   s24.textContent=c24!=0?(c24>=0?'+':'')+fm(Math.abs(c24)):'—';
   s24.className='sv '+(c24>=0?'g':'r');
   const n=new Date();
-  document.getElementById('ts').textContent=`${n.toLocaleDateString('es-GT')} ${n.toLocaleTimeString('es-GT',{hour:'2-digit',minute:'2-digit'})}`;
+  {
+    const f = window.__fuentePrecios;
+    const hora = `${n.toLocaleDateString('es-GT')} ${n.toLocaleTimeString('es-GT',{hour:'2-digit',minute:'2-digit'})}`;
+    const el = document.getElementById('ts');
+    if(f==='DefiLlama')      el.textContent = hora+' · via DefiLlama, sin cambio 24h';
+    else if(f==='CoinGecko') el.textContent = hora;
+    else                     el.textContent = hora+' · SIN CONEXION, precios guardados';
+  }
   // Actualizar timestamps por activo
   const d2=ldS();
   [...L1,...L2].forEach(a=>{

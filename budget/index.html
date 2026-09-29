@@ -1154,6 +1154,15 @@ const META_PERSONAL  = 3500.00;
 const META_AHORRO    = 2000.00;
 const META_INVERSION = 1492.00;
 
+// Reparto del excedente [DECISIÓN 29 sep 2026 · indefinido hasta que cambie el contexto]
+// 50% Ahorro BI (colchón de fijos) · 25% Bantrab · 25% Personal
+const EXC_SPLIT = {bi:0.50, ban:0.25, pers:0.25};
+function repartirExcedente(exc){
+  const e = Math.max(exc||0, 0);
+  const bi  = e*EXC_SPLIT.bi, ban = e*EXC_SPLIT.ban;
+  return {bi, ban, pers: e - bi - ban};
+}
+
 // Legacy (mantenido para compatibilidad con renderQ antiguo)
 const BANTRAB_FIJO = 550;
 const GASTO_LULUBIT_MENSUAL = 0; // eliminado — fusionado en Personal
@@ -1219,7 +1228,8 @@ function distribuirQ2(pagoQ2, _luluQ1, _subsMovidasQ1){
   const fijQ2_out = fijQ2;
   const exc = Math.max(pagoQ2 - fijQ2, 0);
   const ban_fijo = ahoQ2;
-  const ban_extra = excedente_bantrab;
+  const rep = repartirExcedente(excedente_bantrab);
+  const ban_extra = rep.ban;
   const ban = ban_fijo + ban_extra;
   const inv = invQ2;
   const personal40 = persQ2;
@@ -1233,6 +1243,7 @@ function distribuirQ2(pagoQ2, _luluQ1, _subsMovidasQ1){
   return {fijQ2: fijQ2_out, exc, ban_fijo, ban_extra, ban, inv, personal40,
           subs, lulu, caso, subsPend, luluPend,
           persQ2, ahoQ2, invQ2, excedente_bantrab,
+          exc_bi: rep.bi, exc_ban: rep.ban, exc_pers: rep.pers,
           invRecortada: Math.max(invMeta - invQ2, 0)};
 }
 
@@ -1270,7 +1281,7 @@ function renderQCasos(r, pago, quincena){
   };
   const casoDescQ2 = {
     A: 'diferencias completadas · inversión ajustada',
-    B: 'diferencias completadas · excedente a Bantrab'
+    B: 'diferencias completadas · excedente repartido 50/25/25'
   };
   const casoDesc = (quincena===1 ? casoDescQ1 : casoDescQ2)[r.caso] || '';
 
@@ -1295,7 +1306,11 @@ function renderQCasos(r, pago, quincena){
     rows.push({lbl:'✈️ Bantrab · ahorro (dif.)',       q:(r.ahoQ2||0),         c:'var(--go)'});
     if((r.invQ2||0)>0) rows.push({lbl:'₿ Exchange · inversión', q:-(r.invQ2||0), c:(r.invRecortada||0)>0?'#f59e0b':'var(--go)'});
     if((r.invRecortada||0)>0) rows.push({lbl:'⚠️ Inversión recortada', q:r.invRecortada||0, c:'#f59e0b'});
-    if((r.ban_extra||0)>1) rows.push({lbl:'💰 Bantrab · excedente', q:r.ban_extra, c:'#10b981'});
+    if((r.excedente_bantrab||0)>1){
+      rows.push({lbl:'🛡️ Ahorro BI · excedente 50%',  q:r.exc_bi||0,   c:'var(--gr)'});
+      rows.push({lbl:'💰 Bantrab · excedente 25%',     q:r.exc_ban||0,  c:'#10b981'});
+      rows.push({lbl:'🍽️ Personal · excedente 25%',    q:-(r.exc_pers||0), c:'var(--mu)'});
+    }
   }
 
   const rowsHtml = rows.map((row,idx)=>{
@@ -1648,7 +1663,10 @@ function renderResumenMes(ingTotal, tf, excMes, dMes, btcQ, invRestQ, tQ1, tQ2){
   const invRecMes = _rQ2early?.invRecortada || 0;
   const invMesQ   = (_rQ1early?.inv||0) + (_rQ2early?.inv||0);
   const subsMesE  = (_rQ1early?.subs||0) + (_rQ2early?.subs||0);
-  const banExtraE = (_rQ1early?.ban_extra||0) + (_rQ2early?.ban_extra||0);
+  const excBiE   = _rQ2early?.exc_bi   || 0;
+  const excBanE  = _rQ2early?.exc_ban  || 0;
+  const excPersE = _rQ2early?.exc_pers || 0;
+  const sinDistE = Math.max(excMes - (excBiE + excBanE + excPersE), 0);
 
   const invRecBadgeHTML = invRecMes>0
     ? `<div style="font-family:'DM Mono',monospace;font-size:9px;color:#f59e0b;padding:4px 8px;background:rgba(245,158,11,.1);border-radius:4px;margin-bottom:8px">⚠️ Inversión recortada —Q${Math.round(invRecMes)} · mes corto</div>`
@@ -1660,10 +1678,12 @@ function renderResumenMes(ingTotal, tf, excMes, dMes, btcQ, invRestQ, tQ1, tQ2){
     {lbl:'🍽️ Personal (salidas+buffer)',    q:-META_PERSONAL,          c:'var(--mu)'},
     // Subs incluidas dentro de META_PERSONAL — no se muestran por separado
     {lbl:'✈️ Bantrab · ahorro fijo',         q:META_AHORRO,             c:'#9d7ff0'},
-    {lbl:'💰 Bantrab · excedente',           q:banExtraE,               c:'#10b981'},
+    {lbl:'🛡️ Ahorro BI · excedente 50%',    q:excBiE,                  c:'var(--gr)'},
+    {lbl:'💰 Bantrab · excedente 25%',       q:excBanE,                 c:'#10b981'},
+    {lbl:'🍽️ Personal · excedente 25%',      q:-excPersE,               c:'var(--mu)'},
     {lbl:'₿  Exchange · inversión',         q:-(invMesQ||0),           c:invRecMes>0?'#f59e0b':'var(--go)'},
     {lbl:'─',                               q:null,               c:'',          sep:true},
-    {lbl:'✅ Sin distribuir (debe ser 0)', q:excMes,             c:excMes>1?'var(--yw)':'var(--gr)', bold:true},
+    {lbl:'✅ Sin distribuir (debe ser 0)', q:sinDistE,           c:sinDistE>1?'var(--yw)':'var(--gr)', bold:true},
   ];
 
   body.innerHTML=invRecBadgeHTML+rows.map(r=>{
@@ -1912,7 +1932,11 @@ function recalc(){
     ? fq(tf,2)+' (incl. Q500 buffer · Q25 cobros separados)'
     : fq(tf,2)+' (incl. Q500 buffer · Q25 cobros separados)';
   document.getElementById('r-exc').textContent    = tQ1&&tQ2 ? fq(excMes) : '—';
-  document.getElementById('r-exc-usd').textContent= tQ1&&tQ2 ? fd(excMes)+' USD' : '';
+  { const _rp = repartirExcedente(rQ2 ? (rQ2.excedente_bantrab||0) : 0);
+    const _hayExc = (_rp.bi+_rp.ban+_rp.pers) > 1;
+    document.getElementById('r-exc-usd').textContent = !(tQ1&&tQ2) ? ''
+      : _hayExc ? 'BI '+fq(_rp.bi)+' · Bantrab '+fq(_rp.ban)+' · Personal '+fq(_rp.pers)
+      : 'Sin excedente este mes'; }
   document.getElementById('r-inv').textContent    = tQ1&&tQ2 ? fq(invMesQ) : '—';
   document.getElementById('r-inv-sub').textContent= tQ1&&tQ2
     ? '₿ Q'+btcQ.toFixed(0)+' fijo + Q'+invRestQ.toFixed(0)+' prop.'

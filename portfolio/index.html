@@ -2584,7 +2584,7 @@ function renderDist(){
   const totalLbl= document.getElementById('dist-total-lbl');
   if(!canvas||!legend) return;
 
-  const all = [...L1,...L2,...BROKER];
+  const all = [...L1,...L2,...L3,...BROKER];
   const tot = all.reduce((s,a)=>s+(a.price||0)*a.qty, 0);
   if(tot<=0) return;
   totalLbl.textContent = '$'+tot.toLocaleString('en-US',{maximumFractionDigits:0});
@@ -2596,13 +2596,14 @@ function renderDist(){
       val: (a.price||0)*a.qty
     })).filter(x=>x.val>0).sort((a,b)=>b.val-a.val);
   } else {
-    const v1 = L1.reduce((s,a)=>s+(a.price||0)*a.qty,0);
-    const v2 = L2.reduce((s,a)=>s+(a.price||0)*a.qty,0);
-    const vB = BROKER.reduce((s,a)=>s+(a.price||0)*a.qty,0);
+    // los sub se arman de los arrays, no a mano: no se desactualizan
+    const tk = arr => arr.filter(a=>(a.price||0)*a.qty>0).map(a=>a.tick).join(' · ');
+    const sum = arr => arr.reduce((s,a)=>s+(a.price||0)*a.qty,0);
     items = [
-      {label:'Capa 1 · Sólidos',      col:'#3db8f5', val:v1, sub:'HYPE · ONDO'},
-      {label:'Capa 2 · Explosivos',   col:'#9d7ff0', val:v2, sub:'AKT · MORPHO'},
-      {label:'Broker / Institucional', col:'#f5b731', val:vB, sub:'STRC · MSTR · BTC'},
+      {label:'Capa 1 · Convicción',   col:'#3db8f5', val:sum(L1),     sub:tk(L1)},
+      {label:'Capa 2 · Especulativo', col:'#9d7ff0', val:sum(L2),     sub:tk(L2)},
+      {label:'Capa 3 · Asimétricas',  col:'#ff8c42', val:sum(L3),     sub:tk(L3)},
+      {label:'Broker',                col:'#f5b731', val:sum(BROKER), sub:tk(BROKER)},
     ].filter(x=>x.val>0);
   }
 

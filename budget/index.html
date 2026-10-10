@@ -572,7 +572,7 @@ body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--tx);min-heig
 <div class="snap-list" id="snap-list"></div>
 
 <!-- HIPOTECA -->
-<div class="sec"><div class="ld" style="background:var(--pk);box-shadow:0 0 5px var(--pk)"></div><div class="lt">Hipoteca <span>Q1,470,656 · 7.286% · 179 cuotas · Abr 2026 → Feb 2041</span></div></div>
+<div class="sec"><div class="ld" style="background:var(--pk);box-shadow:0 0 5px var(--pk)"></div><div class="lt">Hipoteca <span>Q1,480,000 · 7.26% · 179 cuotas · hasta Feb 2041</span></div></div>
 <div class="card">
   <div class="card-body">
 
@@ -588,7 +588,7 @@ body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--tx);min-heig
       </div>
     </div>
     <div class="hip-bar"><div class="hip-fill" id="hip-fill" style="background:linear-gradient(90deg,var(--rd),var(--go));width:0%"></div></div>
-    <div class="hip-labels"><span id="hip-lbl-l">Pagado: Q0</span><span>Original: Q1,470,656</span></div>
+    <div class="hip-labels"><span id="hip-lbl-l">Pagado: Q0</span><span>Original: Q1,480,000</span></div>
 
     <!-- Checkbox mes actual (SIEMPRE VISIBLE) -->
     <div id="cuota-wrap-div" style="margin-top:10px">
@@ -833,33 +833,46 @@ var COLS={emer:54275,bant:14204,imp:0,buf:119,reimb:0,abiUsd:0,btcQty:0,btcPx:0}
 // Solo Q13,518.71 amortiza. El seguro de incendio NO baja capital.
 // ══════════════════════════════════════════════════════════════
 const HIP = {
-  principal : 1470656.06,   // implícito en la tabla (la escritura dice Q1,480,000)
+  principal : 1480000,      // escritura · reproduce la tabla BI al centavo
   cuotaAm   :   13518.71,   // capital + interés + fianza + desempleo
   incendio  :     440.90,   // fijo, fuera de la amortización
   cuotaTotal:   13959.61,
-  i         : 0.0060718,    // 0.60718%/mes = 7.286% anual efectivo
-  nTotal    : 179,          // primera 15/04/2026 · última 15/02/2041
-  minAbono  : 167515.32     // 12 cuotas · mínimo que recibe BI [DATO · JP 9-oct-2026]
+  i         : 0.0060500080, // 7.2600% anual · derivado del crecimiento del capital en la tabla BI
+  nTotal    : 179,          // última cuota 15/02/2041
+  minAbono  : 167515.32,    // 12 cuotas · mínimo que recibe BI [DATO · JP 9-oct-2026]
+  // ANCLA: saldo que el banco reporta antes de la cuota del 15/11/2026.
+  // Las cuotas de abr a oct 2026 ya están aplicadas dentro de esta cifra.
+  anclaYM   : '2026-11',
+  anclaSaldo: 1442699.61    // [DATO · estado de cuenta BI 9-oct-2026]
 };
 const CUOTA = HIP.cuotaTotal;
 
-// Saldo tras n cuotas pagadas, menos abonos extra (van 100% a capital)
-function saldoHip(nPagadas, totalAbonos){
-  if(nPagadas===undefined){
+// Saldo = el ancla del banco, rodada hacia adelante por cada cuota marcada
+// de nov-2026 en adelante. Las de abr a oct ya están dentro del ancla.
+// nPost: cuantas cuotas posteriores al ancla estan marcadas (o se pasa a mano).
+function saldoHip(nPost, totalAbonos){
+  if(nPost===undefined){
     const p=getCuotasPagadas();
-    nPagadas=Object.keys(p).filter(k=>p[k]).length;
+    nPost=Object.keys(p).filter(function(k){ return p[k] && k>=HIP.anclaYM; }).length;
   }
   if(totalAbonos===undefined){
     totalAbonos=getAbonosHip().reduce(function(a,x){return a+x.amt;},0);
   }
-  var s=HIP.principal;
-  for(var k=0;k<nPagadas&&s>0;k++) s=s+s*HIP.i-HIP.cuotaAm;
+  var s=HIP.anclaSaldo;
+  for(var k=0;k<nPost&&s>0;k++) s=s+s*HIP.i-HIP.cuotaAm;
   return Math.max(s-totalAbonos,0);
+}
+// Cuotas marcadas posteriores al ancla (las que sí mueven el saldo)
+function cuotasPostAncla(){
+  const p=getCuotasPagadas();
+  return Object.keys(p).filter(function(k){ return p[k] && k>=HIP.anclaYM; }).length;
 }
 // Cuotas que faltan desde un saldo dado (amortizando de verdad)
 function mesesRestantesHip(saldo){
+  // La ultima cuota del banco es Q1.47 mayor y absorbe el residuo, por eso
+  // se da por saldada cuando queda menos de Q50.
   var s=saldo,n=0;
-  while(s>0&&n<400){ s=s+s*HIP.i-HIP.cuotaAm; n++; }
+  while(s>50&&n<400){ s=s+s*HIP.i-HIP.cuotaAm; n++; }
   return n;
 }
 // Cargos (interés + fianza + desempleo) que faltan por pagar desde un saldo
@@ -1623,8 +1636,9 @@ function renderAbonosHip(){
 function recalcHipSaldo(){
   const pagadasObjSaldo=getCuotasPagadas();
   const nCuotasPag=Object.keys(pagadasObjSaldo).filter(k=>pagadasObjSaldo[k]).length;
+  const nPost=cuotasPostAncla();
   const totalAbonos=getAbonosHip().reduce((s,a)=>s+a.amt,0);
-  const sal=saldoHip(nCuotasPag,totalAbonos);
+  const sal=saldoHip(nPost,totalAbonos);
   salHipGlobal=sal;
   // Cuotas marcadas en el período visible (para el detalle visual)
   const mesesPeriodo=getCuotasMeses();
@@ -1638,7 +1652,7 @@ function recalcHipSaldo(){
 
   // Meses restantes: se amortiza de verdad, no se restan cuotas
   const mesesRestantes=mesesRestantesHip(sal);
-  const cuotasAhorradas=Math.max(mesesRestantesHip(saldoHip(nCuotasPag,0))-mesesRestantes,0);
+  const cuotasAhorradas=Math.max(mesesRestantesHip(saldoHip(nPost,0))-mesesRestantes,0);
 
   const tc=ST.tc||7.75;
   document.getElementById('hip-saldo').textContent=fq(sal);
@@ -2739,7 +2753,7 @@ function descargarResumen(){
 
     // ── HIPOTECA ──
     +'<div class="rsec" style="'+S.sec+'">'
-      +'<span style="'+S.sectl+'">Crédito hipotecario · 7.286% anual · cuota Q13,959.61 (amortizan Q13,518.71) · 179 cuotas</span>'
+      +'<span style="'+S.sectl+'">Crédito hipotecario · 7.26% anual · cuota Q13,959.61 (amortizan Q13,518.71) · 179 cuotas</span>'
       +'<div style="'+S.cards+'">'
         +'<div style="'+S.card+'"><span style="'+S.clbl+'">Saldo pendiente</span>'
           +'<span style="'+S.cval+'color:#dc2626">'+fqR(salHip)+'</span>'

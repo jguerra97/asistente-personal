@@ -343,7 +343,8 @@ td:first-child{text-align:left;}
 <div class="wrap">
 
 <div class="hdr">
-  <div><h1>PORT<em>FOLIO</em></h1><div class="sub" id="ts">Conectando...</div></div>
+  <div><h1>PORT<em>FOLIO</em></h1><div class="sub" id="ts">Conectando...</div>
+  <div class="sub" id="sync-ts" style="margin-top:3px;font-size:11px;opacity:.85">—</div></div>
 </div>
 <div class="io-wrap">
   <div class="io-row">
@@ -638,8 +639,54 @@ td:first-child{text-align:left;}
 
 <script>
 const LS='pf_v6';
+// ── SELLO DE EDICIÓN · para saber qué dispositivo tiene lo más reciente ──
+const META_KEY='pf_meta';
+function devNombre(){
+  const u=navigator.userAgent;
+  if(/iPhone/i.test(u))        return 'iPhone';
+  if(/iPad/i.test(u))          return 'iPad';
+  if(/Android/i.test(u))       return 'Android';
+  if(/Macintosh|Mac OS/i.test(u)) return 'Mac';
+  if(/Windows/i.test(u))       return 'Windows';
+  if(/Linux/i.test(u))         return 'Linux';
+  return 'Dispositivo';
+}
+function devId(){
+  let d=null;
+  try{ d=localStorage.getItem('pf_dev'); }catch(e){}
+  if(!d){
+    d = devNombre()+'-'+Math.random().toString(36).slice(2,5);
+    try{ localStorage.setItem('pf_dev', d); }catch(e){}
+  }
+  return d;
+}
+function leerMeta(){ try{ return JSON.parse(localStorage.getItem(META_KEY)||'null'); }catch(e){ return null; } }
+function marcarEdicion(){
+  try{ localStorage.setItem(META_KEY, JSON.stringify({ts:Date.now(), dev:devId()})); }catch(e){}
+  try{ pintarSync(); }catch(e){}
+}
+function haceCuanto(ts){
+  const s=Math.max(0,(Date.now()-ts)/1000);
+  if(s<90)    return 'hace un momento';
+  if(s<3600)  return 'hace '+Math.round(s/60)+' min';
+  if(s<86400) return 'hace '+Math.round(s/3600)+' h';
+  return 'hace '+Math.round(s/86400)+' d';
+}
+function fechaCorta(ts){
+  try{ return new Date(ts).toLocaleString('es-GT',
+    {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}); }catch(e){ return ''; }
+}
+function pintarSync(){
+  const el=document.getElementById('sync-ts'); if(!el) return;
+  const m=leerMeta();
+  el.innerHTML = m
+    ? '✎ editado <b>'+haceCuanto(m.ts)+'</b> en <b>'+m.dev+'</b> · '+fechaCorta(m.ts)
+    : '✎ sin ediciones en este dispositivo · <b>'+devId()+'</b>';
+}
 function ldS(){try{return JSON.parse(localStorage.getItem(LS))||{};}catch(e){return{};}}
-function svS(k,f,v){const d=ldS();if(!d[k])d[k]={};d[k][f]=v;try{localStorage.setItem(LS,JSON.stringify(d));}catch(e){}}
+function svS(k,f,v){const d=ldS();if(!d[k])d[k]={};d[k][f]=v;try{localStorage.setItem(LS,JSON.stringify(d));}catch(e){}
+  // los precios se actualizan solos: no cuentan como edición tuya
+  if(f!=='price'&&f!=='priceTs') marcarEdicion();}
 function applyS(){
   const d=ldS();
   [...L1,...L2,...L3,...BROKER].forEach(a=>{
@@ -1220,6 +1267,7 @@ function onHipChange(val){
   const v=parseFloat(val);
   if(isNaN(v)||v<0) return;
   try{ localStorage.setItem(HIP_KEY,String(v)); }catch(e){}
+  marcarEdicion();
   renderHipoteca();
   if(typeof _proyOpen!=="undefined" && _proyOpen) renderProy();
   try{ updateProySummary(); }catch(e){}
@@ -1406,7 +1454,7 @@ function onBP(tick,val){const v=parseFloat(val);if(isNaN(v)||v<=0)return;const a
 const CAPSTORE = 'pf_cap_v1';
 
 function ldCap(){ try{return JSON.parse(localStorage.getItem(CAPSTORE)||'{}');}catch{return{};} }
-function svCap(d){ localStorage.setItem(CAPSTORE, JSON.stringify(d)); }
+function svCap(d){ localStorage.setItem(CAPSTORE, JSON.stringify(d)); marcarEdicion(); }
 
 function getCapitalHistorico(){
   const d = ldCap();
@@ -2215,6 +2263,7 @@ function cargarTranches(){
 }
 function guardarTranches(){
   try{ localStorage.setItem(TR_KEY, JSON.stringify(TRANCHES)); }catch(e){}
+  marcarEdicion();
 }
 function resetTranches(tick){
   if(tick && TRANCHES_DEFAULT[tick]){
@@ -2373,6 +2422,7 @@ function refrescarTodo(){
   }catch(e){}
 })();
 cargarTranches();
+try{ pintarSync(); setInterval(pintarSync, 60000); }catch(e){}
 
 // BTC se calcula aparte: solo 10% del holding actual en cycle peak
 
@@ -2673,6 +2723,22 @@ const DRIVE_CLIENT_ID = '625753563994-ckkovl3isvbmajduferhvhcf4qr3lqsc.apps.goog
 const DRIVE_SCOPE     = 'https://www.googleapis.com/auth/drive.appdata';
 const DRIVE_FILENAME  = 'portfolio_gt_data.json';
 let   driveTokenPF    = null;
+// Drive guardaba SOLO pf_v6. Ahora viaja todo: tiers, saldo de hipoteca y capas.
+const SYNC_KEYS = [LS, TR_KEY, HIP_KEY, CAPSTORE];
+function paqueteLocal(){
+  const p = {__v:2, __meta: leerMeta() || {ts:Date.now(), dev:devId()}};
+  SYNC_KEYS.forEach(k=>{ const v=localStorage.getItem(k); if(v!==null) p[k]=v; });
+  return p;
+}
+function aplicarPaquete(p){
+  if(p && p.__v===2){
+    SYNC_KEYS.forEach(k=>{ if(typeof p[k]==='string') localStorage.setItem(k, p[k]); });
+    if(p.__meta) localStorage.setItem(META_KEY, JSON.stringify(p.__meta));
+  } else {
+    // respaldo del formato viejo: todo el JSON era pf_v6
+    localStorage.setItem(LS, JSON.stringify(p));
+  }
+}
 
 function driveMsgPF(txt, type='ok'){
   const el=document.getElementById('drive-msg-pf');
@@ -2698,7 +2764,7 @@ async function driveSavePF(){
   driveMsgPF('Guardando...','ok');
   driveAuthPF(async(token)=>{
     try{
-      const data = JSON.stringify(JSON.parse(localStorage.getItem(LS)||'{}'), null, 2);
+      const data = JSON.stringify(paqueteLocal(), null, 2);
       // Buscar archivo existente
       const search = await fetch(
         `https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name='${DRIVE_FILENAME}'&fields=files(id)`,
@@ -2719,7 +2785,9 @@ async function driveSavePF(){
 
       const res = await fetch(url, {method, headers:{Authorization:'Bearer '+token}, body:form});
       if(!res.ok) throw new Error(await res.text());
-      driveMsgPF('✅ Guardado en Drive','ok');
+      const m=leerMeta();
+      driveMsgPF('✅ Guardado · '+(m?fechaCorta(m.ts)+' · '+m.dev:'ahora'),'ok');
+      pintarSync();
     } catch(e){
       driveTokenPF=null;
       driveMsgPF('Error al guardar: '+e.message,'err');
@@ -2745,9 +2813,21 @@ async function driveLoadPF(){
       );
       if(!res.ok) throw new Error(await res.text());
       const data = await res.json();
-      localStorage.setItem(LS, JSON.stringify(data));
-      driveMsgPF('✅ Datos cargados desde Drive','ok');
-      setTimeout(()=>{ applyS(); load(); }, 400);
+      // Si lo de ESTE dispositivo es más nuevo que el respaldo, avisar antes de pisarlo.
+      const rem = data?.__meta?.ts || 0;
+      const loc = (leerMeta()||{}).ts || 0;
+      if(loc && rem && loc > rem + 60000){
+        const ok = confirm(
+          'Lo que tenés en ESTE dispositivo es más nuevo que el respaldo de Drive.\n\n'+
+          'Este dispositivo: '+fechaCorta(loc)+'\n'+
+          'Drive: '+fechaCorta(rem)+'  ('+(data.__meta.dev||'?')+')\n\n'+
+          'Cargar va a reemplazar lo de acá con lo de Drive. ¿Continuar?');
+        if(!ok){ driveMsgPF('Cancelado · no se tocó nada','ok'); return; }
+      }
+      aplicarPaquete(data);
+      driveMsgPF('✅ Cargado'+(rem?' · '+fechaCorta(rem)+' · '+(data.__meta.dev||'?'):''),'ok');
+      pintarSync();
+      setTimeout(()=>{ cargarTranches(); applyS(); load(); }, 400);
     } catch(e){
       driveTokenPF=null;
       driveMsgPF('Error al cargar: '+e.message,'err');

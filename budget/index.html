@@ -878,11 +878,14 @@ function _huellaBdgt(o){
     return JSON.stringify(c);
   }catch(e){ return ''; }
 }
+// Durante el arranque, recalc() y loadSaved() escriben solos. Nada de eso es
+// una edición tuya, así que el sello queda congelado hasta que termina el init.
+let _initListo = false;
 function svS(d,auto){
   let antes='';
   try{ antes=_huellaBdgt(JSON.parse(localStorage.getItem(LS)||'{}')); }catch(e){}
   try{ localStorage.setItem(LS,JSON.stringify(d)); }catch(e){}
-  if(!auto && antes!==_huellaBdgt(d)) marcarEdicion();
+  if(!auto && _initListo && antes!==_huellaBdgt(d)) marcarEdicion();
 }
 
 // ── ESTADO ────────────────────────────────────────────────────────
@@ -3872,6 +3875,9 @@ renderPatrimonio();
   try{ renderMetaAbono(); }catch(e){}
 })();
 initTabs();
+// A partir de acá cualquier escritura ya viene de algo que tocaste vos.
+// El margen absorbe lo que llegue tarde (precio de BTC, snapshots del mes).
+setTimeout(function(){ _initListo = true; }, 1200);
 
 // ── GOOGLE DRIVE SYNC ─────────────────────────────────────────────
 const DRIVE_CLIENT_ID = '625753563994-ckkovl3isvbmajduferhvhcf4qr3lqsc.apps.googleusercontent.com';

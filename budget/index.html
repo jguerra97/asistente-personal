@@ -299,6 +299,8 @@ body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--tx);min-heig
     <a href="../" class="io-btn home">← Inicio</a>
     <button class="io-btn dl" onclick="descargarResumen()">📄 Resumen</button>
   </div>
+  <div class="io-row"><span id="sync-ts" style="font-family:'DM Mono',monospace;font-size:11px;
+    color:var(--mu2);opacity:.9">—</span></div>
   <div class="io-row">
     <button class="io-btn drive-save" onclick="driveSave()">☁ Guardar en Drive</button>
     <button class="io-btn drive-load" onclick="driveLoad()">☁ Cargar desde Drive</button>
@@ -759,6 +761,51 @@ body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--tx);min-heig
 
 <script>
 const LS='bdgt_v4';
+// ── SELLO DE EDICIÓN · para saber qué dispositivo tiene lo más reciente ──
+// Comparte el nombre de dispositivo con el tracker de portafolio (misma llave pf_dev).
+const META_KEY='bdgt_meta';
+function devNombre(){
+  const u=navigator.userAgent;
+  if(/iPhone/i.test(u))           return 'iPhone';
+  if(/iPad/i.test(u))             return 'iPad';
+  if(/Android/i.test(u))          return 'Android';
+  if(/Macintosh|Mac OS/i.test(u)) return 'Mac';
+  if(/Windows/i.test(u))          return 'Windows';
+  if(/Linux/i.test(u))            return 'Linux';
+  return 'Dispositivo';
+}
+function devId(){
+  let d=null;
+  try{ d=localStorage.getItem('pf_dev'); }catch(e){}
+  if(!d){
+    d = devNombre()+'-'+Math.random().toString(36).slice(2,5);
+    try{ localStorage.setItem('pf_dev', d); }catch(e){}
+  }
+  return d;
+}
+function leerMeta(){ try{ return JSON.parse(localStorage.getItem(META_KEY)||'null'); }catch(e){ return null; } }
+function marcarEdicion(){
+  try{ localStorage.setItem(META_KEY, JSON.stringify({ts:Date.now(), dev:devId()})); }catch(e){}
+  try{ pintarSync(); }catch(e){}
+}
+function haceCuanto(ts){
+  const s=Math.max(0,(Date.now()-ts)/1000);
+  if(s<90)    return 'hace un momento';
+  if(s<3600)  return 'hace '+Math.round(s/60)+' min';
+  if(s<86400) return 'hace '+Math.round(s/3600)+' h';
+  return 'hace '+Math.round(s/86400)+' d';
+}
+function fechaCorta(ts){
+  try{ return new Date(ts).toLocaleString('es-GT',
+    {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}); }catch(e){ return ''; }
+}
+function pintarSync(){
+  const el=document.getElementById('sync-ts'); if(!el) return;
+  const m=leerMeta();
+  el.innerHTML = m
+    ? '✎ editado <b>'+haceCuanto(m.ts)+'</b> en <b>'+m.dev+'</b> · '+fechaCorta(m.ts)
+    : '✎ sin ediciones en este dispositivo · <b>'+devId()+'</b>';
+}
 
 // ── SISTEMA DE TABS ──────────────────────────────────────────────
 // Mapea cada bloque de contenido a su tab según el título de sección.
@@ -817,10 +864,26 @@ function initTabs(){
   let saved='mes';
   try{ const d=JSON.parse(localStorage.getItem(LS))||{}; if(d.activeTab) saved=d.activeTab; }catch(e){}
   showTab(saved);
+  try{ pintarSync(); setInterval(pintarSync, 60000); }catch(e){}
 }
 
 function ldS(){try{return JSON.parse(localStorage.getItem(LS))||{};}catch(e){return{};}}
-function svS(d){try{localStorage.setItem(LS,JSON.stringify(d));}catch(e){}}
+// Solo marca edición si los datos REALMENTE cambiaron. recalc() llama a
+// saveState() en cada render, así que filtrar por quién llama no alcanza.
+// activeTab y snapshots se excluyen: cambian solos y no son ediciones tuyas.
+function _huellaBdgt(o){
+  try{
+    const c=JSON.parse(JSON.stringify(o||{}));
+    delete c.activeTab; delete c.snapshots;
+    return JSON.stringify(c);
+  }catch(e){ return ''; }
+}
+function svS(d,auto){
+  let antes='';
+  try{ antes=_huellaBdgt(JSON.parse(localStorage.getItem(LS)||'{}')); }catch(e){}
+  try{ localStorage.setItem(LS,JSON.stringify(d)); }catch(e){}
+  if(!auto && antes!==_huellaBdgt(d)) marcarEdicion();
+}
 
 // ── ESTADO ────────────────────────────────────────────────────────
 let ST={tc:7.75,mes:3,anio:2026,q1:0,q2:0,sprev:30052.58,reservaLulu:0,bacDeuda:0,bacDeudaUsd:0,bamDeuda:0,portafolioUsd:0,casaUsd:210000};
@@ -1563,7 +1626,7 @@ function saveCuotasPagadas(obj){
   try{
     const d=ldS();
     d.cuotasPagadas=obj;
-    localStorage.setItem(LS,JSON.stringify(d));
+    svS(d);
   }catch(e){console.error('Error guardando cuotas',e);}
 }
 function toggleCuotaMes(){
@@ -3788,7 +3851,7 @@ async function fetchBtcPrice(forzar){
     if(!c) return;
     var n=0;
     Object.keys(c).forEach(function(k){ if(k < '2026-04'){ delete c[k]; n++; } });
-    if(n>0){ d.cuotasPagadas=c; svS(d); }
+    if(n>0){ d.cuotasPagadas=c; svS(d,true); }
   }catch(e){}
 })();
 loadSaved();
@@ -3841,7 +3904,11 @@ async function driveSave(){
   driveMsgBG('Guardando...','ok');
   driveAuthBG(async(token)=>{
     try{
-      const data = JSON.stringify(JSON.parse(localStorage.getItem(LS)||'{}'), null, 2);
+      const data = JSON.stringify({
+        __v:2,
+        __meta: leerMeta() || {ts:Date.now(), dev:devId()},
+        [LS]: localStorage.getItem(LS) || '{}'
+      }, null, 2);
       const search = await fetch(
         `https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name='${DRIVE_FILENAME}'&fields=files(id)`,
         {headers:{Authorization:'Bearer '+token}}
@@ -3858,7 +3925,9 @@ async function driveSave(){
       const method = fileId ? 'PATCH' : 'POST';
       const res = await fetch(url, {method, headers:{Authorization:'Bearer '+token}, body:form});
       if(!res.ok) throw new Error(await res.text());
-      driveMsgBG('✅ Guardado en Drive','ok');
+      const m=leerMeta();
+      driveMsgBG('✅ Guardado · '+(m?fechaCorta(m.ts)+' · '+m.dev:'ahora'),'ok');
+      pintarSync();
     } catch(e){
       driveToken=null;
       driveMsgBG('Error: '+e.message,'err');
@@ -3883,9 +3952,26 @@ async function driveLoad(){
       );
       if(!res.ok) throw new Error(await res.text());
       const data = await res.json();
-      localStorage.setItem(LS, JSON.stringify(data));
-      driveMsgBG('✅ Datos cargados','ok');
-      setTimeout(()=>location.reload(), 400);
+      // Si lo de ESTE dispositivo es más nuevo que el respaldo, avisar antes de pisarlo.
+      const rem = data?.__meta?.ts || 0;
+      const loc = (leerMeta()||{}).ts || 0;
+      if(loc && rem && loc > rem + 60000){
+        const ok = confirm(
+          'Lo que tenés en ESTE dispositivo es más nuevo que el respaldo de Drive.\n\n'+
+          'Este dispositivo: '+fechaCorta(loc)+'\n'+
+          'Drive: '+fechaCorta(rem)+'  ('+(data.__meta.dev||'?')+')\n\n'+
+          'Cargar va a reemplazar lo de acá con lo de Drive. ¿Continuar?');
+        if(!ok){ driveMsgBG('Cancelado · no se tocó nada','ok'); return; }
+      }
+      if(data && data.__v===2){
+        if(typeof data[LS]==='string') localStorage.setItem(LS, data[LS]);
+        if(data.__meta) localStorage.setItem(META_KEY, JSON.stringify(data.__meta));
+      } else {
+        // respaldo del formato viejo: todo el JSON era bdgt_v4
+        localStorage.setItem(LS, JSON.stringify(data));
+      }
+      driveMsgBG('✅ Cargado'+(rem?' · '+fechaCorta(rem)+' · '+(data.__meta.dev||'?'):''),'ok');
+      setTimeout(()=>location.reload(), 600);
     } catch(e){
       driveToken=null;
       driveMsgBG('Error: '+e.message,'err');

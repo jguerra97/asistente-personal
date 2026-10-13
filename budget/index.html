@@ -3884,6 +3884,36 @@ const DRIVE_CLIENT_ID = '625753563994-ckkovl3isvbmajduferhvhcf4qr3lqsc.apps.goog
 const DRIVE_SCOPE     = 'https://www.googleapis.com/auth/drive.appdata';
 const DRIVE_FILENAME  = 'budget_gt_data.json';
 let   driveToken      = null;
+// ── LINAJE · qué versión de Drive vio este dispositivo la última vez ──
+// Dos fechas no bastan: si editás en un equipo que nunca cargó lo del otro,
+// tu edición es más nueva por reloj pero se construyó sobre una base vieja.
+const SYNC_SEEN = 'bdgt_sync';
+function leerVisto(){ try{ return +(localStorage.getItem(SYNC_SEEN)||0); }catch(e){ return 0; } }
+function marcarVisto(ts){ try{ if(ts) localStorage.setItem(SYNC_SEEN, String(ts)); }catch(e){} }
+async function okParaPisarDrive(token, fileId){
+  if(!fileId) return true;
+  let pd=null;
+  try{
+    const r = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
+                          {headers:{Authorization:'Bearer '+token}});
+    if(!r.ok) return true;
+    pd = await r.json();
+  }catch(e){ return true; }
+  const remTs  = pd?.__meta?.ts || 0;
+  const remDev = pd?.__meta?.dev || '?';
+  const visto  = leerVisto();
+  if(!remTs || remTs === visto) return true;
+  const cab = visto
+    ? 'Drive cambió desde la última vez que este dispositivo sincronizó.'
+    : 'Este dispositivo nunca ha sincronizado con Drive.';
+  return confirm(
+    cab+'\n\n'+
+    'En Drive hay una edición de '+remDev+' del '+fechaCorta(remTs)+'\n'+
+    'que este dispositivo nunca cargó.\n\n'+
+    'Si guardás, la reemplazás con lo de acá y se pierde.\n'+
+    'Cancelá y cargá primero si querés conservarla.\n\n'+
+    '¿Guardar de todas formas?');
+}
 
 function driveMsgBG(txt, type='ok'){
   const el=document.getElementById('drive-msg');
@@ -3921,6 +3951,9 @@ async function driveSave(){
       );
       const found = await search.json();
       const fileId = found.files?.[0]?.id;
+      if(!(await okParaPisarDrive(token, fileId))){
+        driveMsgBG('Cancelado · no se subió nada','ok'); return;
+      }
       const meta = JSON.stringify({name:DRIVE_FILENAME, parents:fileId?undefined:['appDataFolder']});
       const form = new FormData();
       form.append('metadata', new Blob([meta],{type:'application/json'}));
@@ -3932,6 +3965,7 @@ async function driveSave(){
       const res = await fetch(url, {method, headers:{Authorization:'Bearer '+token}, body:form});
       if(!res.ok) throw new Error(await res.text());
       const m=leerMeta();
+      if(m) marcarVisto(m.ts);
       driveMsgBG('✅ Guardado · '+(m?fechaCorta(m.ts)+' · '+m.dev:'ahora'),'ok');
       pintarSync();
     } catch(e){
@@ -3976,6 +4010,7 @@ async function driveLoad(){
         // respaldo del formato viejo: todo el JSON era bdgt_v4
         localStorage.setItem(LS, JSON.stringify(data));
       }
+      marcarVisto(rem);
       driveMsgBG('✅ Cargado'+(rem?' · '+fechaCorta(rem)+' · '+(data.__meta.dev||'?'):''),'ok');
       setTimeout(()=>location.reload(), 600);
     } catch(e){

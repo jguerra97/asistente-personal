@@ -309,7 +309,9 @@ td:first-child{text-align:left;}
   box-shadow:0 0 14px rgba(245,183,49,.12),inset 0 1px 0 rgba(245,183,49,.1);}
 
 .tabsec-hidden{display:none !important;}
-[data-tab]:not(.tabbtn){animation:tabIn .28s ease both;}
+/* La animación vive en una clase que showTab agrega y quita, no en el selector
+   global. Así se vuelve a disparar en cada cambio y no deja capa pintada atrás. */
+.tabsec-in{animation:tabIn .28s ease;}
 @keyframes tabIn{from{opacity:0;transform:translateY(5px);}to{opacity:1;transform:none;}}
 @media(max-width:520px){.tabbar{gap:4px;}.tabbtn{font-size:8px;padding:9px 2px 10px;letter-spacing:.02em;}
   .tabbtn .ti{font-size:12px;margin-bottom:2px;}}
@@ -661,12 +663,8 @@ const L2=[
 ];
 // ── L3 · APUESTAS ASIMÉTRICAS ──────────────────────────────────
 const L3=[
-  {id:'theta-token',  tick:'THETA',name:'Theta Network',  col:'#2ab8e6',ico:'Θ',qty:1267.4,  entry:0.2367,  target:4.00,   price:0.2367,
-   note:'Video descentralizado · ATH $15.89 abr2021 · supply fijo 1B · target $4 = $4B market cap'},
   {id:'lcx',          tick:'LCX',  name:'LCX Exchange',   col:'#00c8a0',ico:'L',qty:12096.8, entry:0.0248,  target:0.564,  price:0.0248,
    note:'Exchange regulado Liechtenstein · 8 licencias FMA · MiCA jul2026 · ATH $0.564 nov2021'},
-  {id:'tars-protocol',tick:'TAI',  name:'TARS AI',        col:'#ff8c42',ico:'T',qty:78328,   entry:0.00383, target:0.4941, price:0.00383,
-   note:'AI agents en Solana · ATH $0.4941 dic2024 · MC $3.4M · volumen $196K/día'},
   {id:'plasma',       tick:'XPL',  name:'Plasma',         col:'#00d4aa',ico:'X',qty:2542,     entry:0.118,   target:3.00,   price:0.118,
    note:'L1 para settlement de stablecoins · ATH $1.692 sep2025 · absorbió unlock de 1.8B tokens sep2026 subiendo 34%'},
 ];
@@ -1098,7 +1096,7 @@ async function load(){
   rb.classList.add('busy');sp.classList.add('go');
   document.getElementById('ts').textContent='Actualizando precios...';
   applyS();
-  const cgIds=['hyperliquid','ondo-finance','akash-network','morpho','pyth-network','theta-token','lcx','tars-protocol','plasma','bitcoin'];
+  const cgIds=['hyperliquid','ondo-finance','akash-network','morpho','pyth-network','lcx','plasma','bitcoin'];
   const px=await fetchCG(cgIds);
   if(Object.keys(px).length===0){
     document.getElementById('ts').textContent='⚠ Sin conexión a CoinGecko — usando precios guardados';
@@ -2196,9 +2194,7 @@ const TRANCHES_DEFAULT = {
   'MORPHO': { t1: {pct:15, px:3.50},   t2: {pct:10, px:6.00},   t3: {pct:45, px:10.00},  trailing: {pct:30, px:15.00},  moon: null   },
   'MSTR':   { t1: {pct:20, px:200.0},  t2: {pct:25, px:350.0},  t3: {pct:30, px:500.0},  trailing: {pct:25, px:750.00}, moon: null   },
   'PYTH': { t1: {pct:15, px:0.10},  t2: {pct:20, px:0.30},   t3: {pct:30, px:0.80},   trailing: {pct:20, px:2.50}, moon: {pct:15, px:5.00} },
-  'THETA':  { t1: {pct:60, px:4.00},   t2: {pct:25, px:8.00},   t3: {pct:15, px:12.00},  trailing: null, moon: null },
   'LCX':    { t1: {pct:20, px:0.496},  t2: {pct:45, px:1.190},  t3: {pct:35, px:1.240},  trailing: null, moon: null },
-  'TAI':    { t1: {pct:20, px:0.0766}, t2: {pct:45, px:0.1838}, t3: {pct:35, px:0.1915}, trailing: null, moon: null },
   'XPL':    { t1: {pct:20, px:2.36},   t2: {pct:45, px:5.66},   t3: {pct:35, px:5.90},   trailing: null, moon: null },
   // BTC: solo se vende el 40% en cuatro tramos · el 60% es hold permanente
   'BTC':    { t1: {pct:10, px:130000}, t2: {pct:10, px:160000}, t3: {pct:10, px:200000}, trailing: {pct:10, px:250000}, moon: null },
@@ -2251,9 +2247,12 @@ function toggleTierCard(tick){
   _tiersOpen[tick] = !_tiersOpen[tick];
   renderTiers();
 }
+let _tabActual=null;
 function showTab(tab){
+  const cambio = _tabActual!==null && _tabActual!==tab;
   document.querySelectorAll('[data-tab]').forEach(el=>{
     if(el.classList.contains('tabbtn')) return;
+    el.classList.remove('tabsec-in');
     el.classList.toggle('tabsec-hidden', el.getAttribute('data-tab')!==tab);
   });
   document.querySelectorAll('.tabbtn').forEach(b=>{
@@ -2262,6 +2261,12 @@ function showTab(tab){
   try{ localStorage.setItem('pf_tab', tab); }catch(e){}
   if(tab==='tiers') try{ renderTiers(); }catch(e){}
   if(tab==='meta')  try{ renderHipoteca(); renderRitmo(); if(_proyOpen) renderProy(); }catch(e){}
+  // Fuerza repintado y vuelve a animar la sección visible, para que no quede
+  // dibujada la anterior. Sube al inicio solo si de verdad cambiaste de pestaña.
+  const vis=document.querySelector('[data-tab="'+tab+'"]:not(.tabbtn)');
+  if(vis){ void vis.offsetHeight; vis.classList.add('tabsec-in'); }
+  if(cambio){ try{ window.scrollTo(0,0); }catch(e){} }
+  _tabActual=tab;
 }
 function restaurarTab(){
   let t='cartera';
@@ -2353,6 +2358,20 @@ function refrescarTodo(){
   try{ renderHipoteca(); renderRitmo(); renderTiers(); restaurarTab(); }catch(e){}
   try{ renderGoalTokens(); }catch(e){}
 }
+// Limpieza oct-2026: THETA y TAI salieron del portafolio. Se borran sus restos
+// del almacenamiento para que no queden colgados ni reaparezcan en una restauración.
+(function(){
+  try{
+    const d=ldS(); let n=0;
+    ['THETA','TAI'].forEach(t=>{ if(d[t]){ delete d[t]; n++; } });
+    if(n) localStorage.setItem(LS, JSON.stringify(d));
+  }catch(e){}
+  try{
+    const g=JSON.parse(localStorage.getItem(TR_KEY)||'{}'); let n=0;
+    ['THETA','TAI'].forEach(t=>{ if(g[t]){ delete g[t]; n++; } });
+    if(n) localStorage.setItem(TR_KEY, JSON.stringify(g));
+  }catch(e){}
+})();
 cargarTranches();
 
 // BTC se calcula aparte: solo 10% del holding actual en cycle peak

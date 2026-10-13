@@ -959,13 +959,13 @@ const FIJOS_RUBROS=[
   {ico:'🏠',nom:'Hipoteca BI',        amt:13959.61, cat:'vivienda'},
   {ico:'🔧',nom:'Mantenimiento+agua', amt:1355.00,  cat:'vivienda'},
   {ico:'🏛️',nom:'IUSI (provisión)',   amt:970.00,   cat:'vivienda'},
-  {ico:'🤖',nom:'Claude AI Max',      amt:972.50,   cat:'digital'},
+  {ico:'🤖',nom:'Claude AI Max',      amt:968.75,   cat:'digital', usd:125},  // USD · amt lo recalcula sincFijosTC() con el TC vigente
   {ico:'📡',nom:'Internet (Starlink)', amt:545.00,  cat:'servicios'},
   {ico:'⛽',nom:'Gasolina',            amt:500.00,   cat:'transporte'},
   {ico:'💡',nom:'Luz',                 amt:450.00,   cat:'servicios'},
   {ico:'🏦',nom:'Cobros bancarios',    amt:25.00,    cat:'servicios'}
 ];
-const FIJOS_TOTAL = FIJOS_RUBROS.reduce((s,r)=>s+r.amt,0); // Q18,777.11 · derivado
+let FIJOS_TOTAL = FIJOS_RUBROS.reduce((s,r)=>s+r.amt,0); // derivado · lo refresca sincFijosTC()
 const SUBS_ENT=[
   {nom:'Spotify',      usd:6.49,  freq:'mensual'},
   {nom:'Disney+',      usd:11.49, freq:'mensual'},
@@ -977,10 +977,27 @@ const SUBS_ENT=[
 const LULU_CATS=[
   {ico:'🍽️',nom:'Salidas (3×350)',  amt:1050, col:'#3db8f5'},
   {ico:'🎁',nom:'Regalos/flores',   amt:600,  col:'#f472b6'},
-  {ico:'📱',nom:'Suscripciones',    amt:268,  col:'#10b981'},
+  {ico:'📱',nom:'Suscripciones',    amt:268,  col:'#10b981', derivado:'subs'},  // lo recalcula sincFijosTC() desde SUBS_ENT × TC
   {ico:'🛡️',nom:'Buffer personal',  amt:82,   col:'#a78bfa'},
 ]; // Total Q2,000 — buffer reducido Q582→Q82 (colchón cubierto por bono)
-const LULU_EST_TOTAL=LULU_CATS.reduce((s,c)=>s+c.amt,0); // Q2,518
+let LULU_EST_TOTAL=LULU_CATS.reduce((s,c)=>s+c.amt,0); // derivado · lo refresca sincFijosTC()
+
+// ── ATADO AL TIPO DE CAMBIO ───────────────────────────────────────
+// Lo que está contratado en dólares se vuelve a convertir con el TC
+// vigente. Los rubros en quetzales no se tocan. Se llama al inicio de
+// recalc(), antes de que cualquier reparto lea FIJOS_TOTAL o META_FIJOS.
+function sincFijosTC(){
+  const tc = ST.tc || 7.75;
+  FIJOS_RUBROS.forEach(function(r){
+    if(r.usd != null) r.amt = +(r.usd * tc).toFixed(2);
+  });
+  FIJOS_TOTAL = +FIJOS_RUBROS.reduce(function(s,r){return s+r.amt;},0).toFixed(2);
+  META_FIJOS  = FIJOS_TOTAL;
+  LULU_CATS.forEach(function(c){
+    if(c.derivado === 'subs') c.amt = Math.round(SUBS_Q_MENSUAL());
+  });
+  LULU_EST_TOTAL = LULU_CATS.reduce(function(s,c){return s+c.amt;},0);
+}
 
 // ── FORMATO ───────────────────────────────────────────────────────
 const fq=(n,d=2)=>'Q'+n.toLocaleString('es-GT',{minimumFractionDigits:d,maximumFractionDigits:d});
@@ -1272,7 +1289,7 @@ const PCT_AHORRO    = 0.07761;  // 4.602% — ahorro mínimo Q1,200
 const PCT_INVERSION = 0.05790;  // 14.958% — inversión mínimo Q3,900
 
 // Metas mensuales absolutas (fijos incluyen Q25 cobros bancarios)
-const META_FIJOS     = 18777.11;  // fijos ajustados jul 2026 (IUSI 970, internet 545, luz 450, buffer 300, cobros 25)
+let META_FIJOS       = FIJOS_TOTAL;  // derivado de FIJOS_RUBROS · lo refresca sincFijosTC()
 const META_PERSONAL  = 3500.00;
 const META_AHORRO    = 2000.00;
 const META_INVERSION = 1492.00;
@@ -1988,6 +2005,7 @@ function limpiarMes(){
 function recalc(){
   const _prevMes=ST.mes, _prevAnio=ST.anio||2026;
   ST.tc   =parseFloat(document.getElementById('tc').value)||7.75;
+  sincFijosTC();   // los rubros en USD se reconvierten antes de cualquier reparto
   ST.mes  =parseInt(document.getElementById('mes').value);
   ST.anio =parseInt(document.getElementById('anio').value)||2026;
   ST.sprev=parseFloat(document.getElementById('sprev').value)||30052.58;
@@ -2100,6 +2118,7 @@ function recalc(){
     renderStats();
   }
   try{ renderMetaAbono(); }catch(e){}
+  try{ if(_fijosOpen) renderFijosList(); }catch(e){}
 }
 
     // ── HISTORIAL DE INGRESOS ────────────────────────────────────────

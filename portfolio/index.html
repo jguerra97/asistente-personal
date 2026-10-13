@@ -383,7 +383,7 @@ td:first-child{text-align:left;}
 
 <!-- CRECIMIENTO POR ACTIVO -->
 <div class="growth-panel" id="growth-panel">
-  <div class="growth-title">Crecimiento por activo · desde entrada</div>
+  <div class="growth-title" id="growth-title">Crecimiento por activo · desde entrada</div>
   <div id="growth-rows"><!-- JS --></div>
 </div>
 
@@ -600,7 +600,7 @@ td:first-child{text-align:left;}
 <!-- DISTRIBUCIÓN -->
 <div class="sec">
   <div class="ld" style="background:var(--pu);box-shadow:0 0 5px var(--pu)"></div>
-  <div class="lt">Distribución del portafolio <span>peso % por valor actual</span></div>
+  <div class="lt">Distribución del portafolio <span id="dist-sub">peso % por valor actual</span></div>
 </div>
 <div class="card" id="dist-card">
   <div class="card-body">
@@ -615,6 +615,11 @@ td:first-child{text-align:left;}
         style="font-family:'DM Mono',monospace;font-size:9px;padding:4px 10px;border-radius:5px;
         cursor:pointer;transition:all .18s;border:1px solid var(--bd2);background:transparent;color:var(--mu);">
         Por capa
+      </button>
+      <button id="dist-btn-costo" onclick="setDistView('costo')"
+        style="font-family:'DM Mono',monospace;font-size:9px;padding:4px 10px;border-radius:5px;
+        cursor:pointer;transition:all .18s;border:1px solid var(--bd2);background:transparent;color:var(--mu);">
+        Por inversión
       </button>
     </div>
     <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;">
@@ -959,9 +964,13 @@ function renderTrendChart(){
 }
 
 // ── CRECIMIENTO POR ACTIVO ──────────────────────────────────────
+let _growthAll = false;
+const GROWTH_TOP = 5;
+function toggleGrowth(){ _growthAll = !_growthAll; renderGrowth(); }
 function renderGrowth(_tot){
-  const allA = [...L1,...L2,...BROKER];
-  const rows = allA
+  // antes excluia L3: las asimetricas no aparecian. Ahora entra todo el libro.
+  const allA = [...L1,...L2,...L3,...BROKER];
+  const todas = allA
     .filter(a => a.price > 0 && a.entry > 0 && a.qty > 0)
     .map(a => {
       const pnlPct = ((a.price - a.entry) / a.entry) * 100;
@@ -970,6 +979,10 @@ function renderGrowth(_tot){
     })
     .sort((a,b) => b.pnlPct - a.pnlPct);
 
+  const ocultas = Math.max(todas.length - GROWTH_TOP, 0);
+  const rows = _growthAll ? todas : todas.slice(0, GROWTH_TOP);
+  // la escala se calcula sobre lo que se muestra, para que la barra mas larga
+  // de la vista siempre llegue al tope y no quede todo aplastado
   const maxAbs = Math.max(...rows.map(r => Math.abs(r.pnlPct)), 1);
 
   const html = rows.map(r => {
@@ -987,8 +1000,21 @@ function renderGrowth(_tot){
     </div>`;
   }).join('');
 
+  const pie = ocultas > 0
+    ? `<div onclick="toggleGrowth()" style="cursor:pointer;text-align:center;margin-top:10px;
+         padding-top:9px;border-top:1px solid var(--bd);font-family:'DM Mono',monospace;
+         font-size:9px;color:var(--mu);letter-spacing:.06em;user-select:none">`
+      + (_growthAll ? '▴  ver solo los ' + GROWTH_TOP + ' mejores'
+                    : '▾  ver los ' + ocultas + ' restantes')
+      + `</div>`
+    : '';
+
   const el = document.getElementById('growth-rows');
-  if(el) el.innerHTML = html;
+  if(el) el.innerHTML = html + pie;
+  const ttl = document.getElementById('growth-title');
+  if(ttl) ttl.textContent = _growthAll
+    ? 'Crecimiento por activo · desde entrada · ' + todas.length + ' activos'
+    : 'Crecimiento por activo · desde entrada · top ' + Math.min(GROWTH_TOP, todas.length);
 }
 
 // ── META VISUAL PANEL ───────────────────────────────────────────
@@ -2224,10 +2250,19 @@ let distView = 'activo';
 
 function setDistView(v){
   distView = v;
-  const ba = document.getElementById('dist-btn-activo');
-  const bc = document.getElementById('dist-btn-capa');
-  if(ba) { ba.style.background=v==='activo'?'var(--pu)':'transparent'; ba.style.color=v==='activo'?'#fff':'var(--mu)'; ba.style.borderColor=v==='activo'?'var(--pu)':'var(--bd2)'; }
-  if(bc) { bc.style.background=v==='capa'?'var(--ac)':'transparent'; bc.style.color=v==='capa'?'#fff':'var(--mu)'; bc.style.borderColor=v==='capa'?'var(--ac)':'var(--bd2)'; }
+  const sub = document.getElementById('dist-sub');
+  if(sub) sub.textContent = v==='costo' ? 'peso % por lo invertido'
+                          : v==='capa'  ? 'peso % por valor actual · agrupado por capa'
+                          :               'peso % por valor actual';
+  const btns = {activo:['dist-btn-activo','var(--pu)'], capa:['dist-btn-capa','var(--ac)'],
+                costo:['dist-btn-costo','#f5b731']};
+  Object.keys(btns).forEach(k=>{
+    const [id,color]=btns[k]; const b=document.getElementById(id); if(!b) return;
+    const on = v===k;
+    b.style.background  = on ? color : 'transparent';
+    b.style.color       = on ? '#fff' : 'var(--mu)';
+    b.style.borderColor = on ? color : 'var(--bd2)';
+  });
   renderDist();
 }
 
@@ -2674,12 +2709,29 @@ function renderDist(){
   if(!canvas||!legend) return;
 
   const all = [...L1,...L2,...L3,...BROKER];
-  const tot = all.reduce((s,a)=>s+(a.price||0)*a.qty, 0);
+  const totVal = all.reduce((s,a)=>s+(a.price||0)*a.qty, 0);
+  const totCos = all.reduce((s,a)=>s+(a.entry||0)*a.qty, 0);
+  const tot = distView==='costo' ? totCos : totVal;
   if(tot<=0) return;
   totalLbl.textContent = '$'+tot.toLocaleString('en-US',{maximumFractionDigits:0});
 
   let items;
-  if(distView === 'activo'){
+  if(distView === 'costo'){
+    // Peso por lo que PUSISTE, no por lo que vale. El sub compara las dos
+    // lecturas: si un activo pesa mas por valor que por costo, te rindio.
+    items = all.map(a=>{
+      const cos = (a.entry||0)*a.qty;
+      const val = (a.price||0)*a.qty;
+      const pC  = totCos>0 ? cos/totCos*100 : 0;
+      const pV  = totVal>0 ? val/totVal*100 : 0;
+      const d   = pV - pC;
+      return {
+        label: a.tick, col: a.col, val: cos,
+        sub: 'hoy ' + pV.toFixed(1) + '% por valor · '
+             + (d>=0?'+':'') + d.toFixed(1) + ' pts'
+      };
+    }).filter(x=>x.val>0).sort((a,b)=>b.val-a.val);
+  } else if(distView === 'activo'){
     items = all.map(a=>({
       label: a.tick, col: a.col,
       val: (a.price||0)*a.qty
@@ -2719,7 +2771,14 @@ function renderDist(){
 
   // Leyenda
   const fm = n => '$'+n.toLocaleString('en-US',{maximumFractionDigits:0});
-  legend.innerHTML = items.map(item=>{
+  if(distView==='costo' && totCos>0){
+    legend.innerHTML = '<div style="font-family:\'DM Mono\',monospace;font-size:8px;'
+      + 'color:var(--mu2);letter-spacing:.06em;margin-bottom:4px">'
+      + 'INVERTIDO $'+totCos.toLocaleString('en-US',{maximumFractionDigits:0})
+      + ' · HOY VALE $'+totVal.toLocaleString('en-US',{maximumFractionDigits:0})
+      + ' · ' + (totVal>=totCos?'+':'') + ((totVal/totCos-1)*100).toFixed(1) + '%</div>';
+  } else { legend.innerHTML = ''; }
+  legend.innerHTML += items.map(item=>{
     const pct = ((item.val/tot)*100).toFixed(1);
     const barW = Math.max(4, Math.round((item.val/tot)*100));
     return `<div style="display:flex;align-items:center;gap:7px;">

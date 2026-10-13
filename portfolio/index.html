@@ -374,7 +374,7 @@ td:first-child{text-align:left;}
   <div class="sc"><label>Cambio 24h</label><div class="sv" id="s24">—</div><div class="ss">activos live</div></div>
 </div>
 
-<div data-tab="cartera">
+<div data-tab="cartera" class="tabsec-hidden">
 <div class="thead" style="--th-c:#3db8f5;--th-g:rgba(61,184,245,.10)">
   <h2>Cartera</h2>
   <p>Tres capas de convicción más el broker. Los precios se actualizan solos; cantidades y entradas se editan aquí.</p>
@@ -501,7 +501,7 @@ td:first-child{text-align:left;}
 <div class="acc-list" id="acc-list" style="display:none;margin-bottom:10px"></div>
 
 </div>
-<div data-tab="meta">
+<div data-tab="meta" class="tabsec-hidden">
 <div class="thead" style="--th-c:#34d07a;--th-g:rgba(52,208,122,.10)">
   <h2>Camino al préstamo</h2>
   <p>Cuánto del saldo cubre la cartera hoy y si el ritmo alcanza para cancelarlo a tiempo.</p>
@@ -548,7 +548,7 @@ td:first-child{text-align:left;}
 
 
 </div>
-<div data-tab="tiers">
+<div data-tab="tiers" class="tabsec-hidden">
 <div class="thead" style="--th-c:#9d7ff0;--th-g:rgba(157,127,240,.10)">
   <h2>Tiers de salida</h2>
   <p>A qué precio vendes cuánto. La estrategia se mantiene, los números se ajustan cuando el mercado cambia.</p>
@@ -572,7 +572,7 @@ td:first-child{text-align:left;}
 </div>
 
 </div>
-<div data-tab="proy">
+<div data-tab="proy" class="tabsec-hidden">
 <div class="thead" style="--th-c:#f5b731;--th-g:rgba(245,183,49,.10)">
   <h2>Proyección</h2>
   <p>Lo que realizarías ejecutando todos los tiers, activo por activo.</p>
@@ -630,6 +630,22 @@ td:first-child{text-align:left;}
     </div>
   </div>
 </div>
+
+<script>
+// Aplica la pestaña guardada ANTES del primer pintado. Sin esto, al recargar se
+// veían las cuatro secciones a la vez y la barra marcaba CARTERA aunque
+// estuvieras en otra. Corre acá, no al final, para que no haya parpadeo.
+(function(){
+  var t='cartera';
+  try{ t = localStorage.getItem('pf_tab') || 'cartera'; }catch(e){}
+  var nodos=document.querySelectorAll('[data-tab]');
+  for(var i=0;i<nodos.length;i++){
+    var el=nodos[i], mio = el.getAttribute('data-tab')===t;
+    if(el.classList.contains('tabbtn')) el.classList.toggle('active', mio);
+    else                                el.classList.toggle('tabsec-hidden', !mio);
+  }
+})();
+</script>
 
 <div class="foot">
   HYPE, ONDO, AKT, MORPHO vía CoinGecko · MSTR/BTC precio manual<br>
@@ -2864,6 +2880,9 @@ function importData(input){
 
 // pintar el bloque del prestamo de inmediato, sin esperar a los precios
 try{ renderHipoteca(); renderRitmo(); }catch(e){}
+// restaurar la pestaña guardada: el script en línea ya la mostró, esto dispara
+// los render que esa pestaña necesita y deja _tabActual sincronizado.
+try{ restaurarTab(); }catch(e){}
 load();
 </script>
 </body>

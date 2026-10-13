@@ -2809,6 +2809,38 @@ function paqueteLocal(){
   SYNC_KEYS.forEach(k=>{ const v=localStorage.getItem(k); if(v!==null) p[k]=v; });
   return p;
 }
+// ── LINAJE · qué versión de Drive vio este dispositivo la última vez ──
+// Dos fechas no bastan: si editás en un equipo que nunca cargó lo del otro,
+// tu edición es más nueva por reloj pero se construyó sobre una base vieja.
+// Este marcador detecta justo eso.
+const SYNC_SEEN = 'pf_sync';
+function leerVisto(){ try{ return +(localStorage.getItem(SYNC_SEEN)||0); }catch(e){ return 0; } }
+function marcarVisto(ts){ try{ if(ts) localStorage.setItem(SYNC_SEEN, String(ts)); }catch(e){} }
+// Devuelve true si se puede continuar; false si el usuario canceló.
+async function okParaPisarDrive(token, fileId){
+  if(!fileId) return true;                       // primer respaldo, no hay nada que pisar
+  let pd=null;
+  try{
+    const r = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
+                          {headers:{Authorization:'Bearer '+token}});
+    if(!r.ok) return true;                       // no se pudo leer: no bloquear el guardado
+    pd = await r.json();
+  }catch(e){ return true; }
+  const remTs  = pd?.__meta?.ts || 0;
+  const remDev = pd?.__meta?.dev || '?';
+  const visto  = leerVisto();
+  if(!remTs || remTs === visto) return true;     // Drive es el que este equipo ya conocía
+  const cab = visto
+    ? 'Drive cambió desde la última vez que este dispositivo sincronizó.'
+    : 'Este dispositivo nunca ha sincronizado con Drive.';
+  return confirm(
+    cab+'\n\n'+
+    'En Drive hay una edición de '+remDev+' del '+fechaCorta(remTs)+'\n'+
+    'que este dispositivo nunca cargó.\n\n'+
+    'Si guardás, la reemplazás con lo de acá y se pierde.\n'+
+    'Cancelá y cargá primero si querés conservarla.\n\n'+
+    '¿Guardar de todas formas?');
+}
 function aplicarPaquete(p){
   if(p && p.__v===2){
     SYNC_KEYS.forEach(k=>{ if(typeof p[k]==='string') localStorage.setItem(k, p[k]); });
@@ -2852,6 +2884,11 @@ async function driveSavePF(){
       const found = await search.json();
       const fileId = found.files?.[0]?.id;
 
+      // ¿Drive tiene algo que este dispositivo nunca vio?
+      if(!(await okParaPisarDrive(token, fileId))){
+        driveMsgPF('Cancelado · no se subió nada','ok'); return;
+      }
+
       const meta = JSON.stringify({name:DRIVE_FILENAME, parents:fileId?undefined:['appDataFolder']});
       const form = new FormData();
       form.append('metadata', new Blob([meta],{type:'application/json'}));
@@ -2865,6 +2902,7 @@ async function driveSavePF(){
       const res = await fetch(url, {method, headers:{Authorization:'Bearer '+token}, body:form});
       if(!res.ok) throw new Error(await res.text());
       const m=leerMeta();
+      if(m) marcarVisto(m.ts);          // este es ahora el estado conocido de Drive
       driveMsgPF('✅ Guardado · '+(m?fechaCorta(m.ts)+' · '+m.dev:'ahora'),'ok');
       pintarSync();
     } catch(e){
@@ -2904,6 +2942,7 @@ async function driveLoadPF(){
         if(!ok){ driveMsgPF('Cancelado · no se tocó nada','ok'); return; }
       }
       aplicarPaquete(data);
+      marcarVisto(rem);                 // acabamos de ver esta versión de Drive
       driveMsgPF('✅ Cargado'+(rem?' · '+fechaCorta(rem)+' · '+(data.__meta.dev||'?'):''),'ok');
       pintarSync();
       setTimeout(()=>{ cargarTranches(); applyS(); load(); }, 400);

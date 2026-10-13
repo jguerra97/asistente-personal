@@ -728,6 +728,8 @@ const L2=[
 const L3=[
   {id:'lcx',          tick:'LCX',  name:'LCX Exchange',   col:'#00c8a0',ico:'L',qty:12096.8, entry:0.0248,  target:0.564,  price:0.0248,
    note:'Exchange regulado Liechtenstein · 8 licencias FMA · MiCA jul2026 · ATH $0.564 nov2021'},
+  {id:'popcat',       tick:'POPCAT',name:'Popcat',        col:'#ff9f1c',ico:'P',qty:6438,    entry:0.046601,target:1.30,   price:0.046601,
+   note:'Meme de Solana · ATH $2.07 nov2024 · 100% del supply ya circula (979.93M de 979.97M max): cero dilución pendiente · 128,912 holders · volumen 18.5% del mcap, el más alto por tamaño del libro · top-10 concentra 30.77%'},
   {id:'plasma',       tick:'XPL',  name:'Plasma',         col:'#00d4aa',ico:'X',qty:2542,     entry:0.118,   target:3.00,   price:0.118,
    note:'L1 para settlement de stablecoins · ATH $1.692 sep2025 · absorbió unlock de 1.8B tokens sep2026 subiendo 34%'},
 ];
@@ -1159,7 +1161,7 @@ async function load(){
   rb.classList.add('busy');sp.classList.add('go');
   document.getElementById('ts').textContent='Actualizando precios...';
   applyS();
-  const cgIds=['hyperliquid','ondo-finance','akash-network','morpho','pyth-network','lcx','plasma','bitcoin'];
+  const cgIds=['hyperliquid','ondo-finance','akash-network','morpho','pyth-network','lcx','popcat','plasma','bitcoin'];
   const px=await fetchCG(cgIds);
   if(Object.keys(px).length===0){
     document.getElementById('ts').textContent='⚠ Sin conexión a CoinGecko — usando precios guardados';
@@ -2259,6 +2261,8 @@ const TRANCHES_DEFAULT = {
   'MSTR':   { t1: {pct:20, px:200.0},  t2: {pct:25, px:350.0},  t3: {pct:30, px:500.0},  trailing: {pct:25, px:750.00}, moon: null   },
   'PYTH': { t1: {pct:15, px:0.10},  t2: {pct:20, px:0.30},   t3: {pct:30, px:0.80},   trailing: {pct:20, px:2.50}, moon: {pct:15, px:5.00} },
   'LCX':    { t1: {pct:20, px:0.496},  t2: {pct:45, px:1.190},  t3: {pct:35, px:1.240},  trailing: null, moon: null },
+  // POPCAT: vende 60% en dos niveles, el 40% restante corre sin techo.
+  'POPCAT': { t1: {pct:30, px:0.60},   t2: {pct:30, px:1.30},   t3: null, trailing: null, moon: null },
   'XPL':    { t1: {pct:20, px:2.36},   t2: {pct:45, px:5.66},   t3: {pct:35, px:5.90},   trailing: null, moon: null },
   // BTC: solo se vende el 40% en cuatro tramos · el 60% es hold permanente
   'BTC':    { t1: {pct:10, px:130000}, t2: {pct:10, px:160000}, t3: {pct:10, px:200000}, trailing: {pct:10, px:250000}, moon: null },

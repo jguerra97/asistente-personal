@@ -1468,42 +1468,80 @@ function calcRitmo(){
 
   const porMes={};
   snaps.forEach(s=>{ const d=new Date(s.t); porMes[d.getFullYear()+'-'+d.getMonth()]=s; });
-  const serie=Object.keys(porMes).sort().map(k=>porMes[k]);
+  // Se ordena por timestamp, no por la clave: 'AAAA-M' es texto y
+  // '2026-10' (noviembre) ordena antes que '2026-4' en un sort de
+  // strings, lo que desordenaria la serie a partir de noviembre.
+  const serie=Object.keys(porMes).map(k=>porMes[k]).sort((a,b)=>a.t-b.t);
   if(serie.length<3) return {hoy, saldoUsdHoy, gAnual:null, nota:'faltan meses', n:serie.length};
 
-  const vars=[];
-  for(let k=1;k<serie.length;k++){ const a=serie[k-1].v, b=serie[k].v; if(a>0) vars.push(b/a-1); }
-  vars.sort((x,y)=>x-y);
-  const mid=Math.floor(vars.length/2);
-  const gReal = vars.length%2 ? vars[mid] : (vars[mid-1]+vars[mid])/2;
+  /* ── DOS MOTORES, NO UNO ──────────────────────────────────────
+     El valor sube por dos razones distintas: lo que aportas y lo que
+     rinde. Medir valor-contra-valor las confunde y llama rendimiento
+     al deposito. Aqui se separan con Dietz modificado, usando el
+     capital (c) que saveSnapshot ya guarda en cada registro:
 
-  // simula con cualquier tasa y devuelve la fecha de cruce
-  const proyectar = g => {
+         r = (V1 - V0 - flujo) / (V0 + flujo/2)
+
+     Y se proyectan con su propia mecanica: el rendimiento compone,
+     el aporte suma lineal. Tratar un deposito como tasa compuesta
+     infla el resultado mas cuanto mas largo el horizonte.
+     [DECISION JP 14-oct-2026: proyeccion real, no ilusionante] */
+  const vars=[], crudos=[], flujos=[];
+  let conFlujo=0;
+  for(let k=1;k<serie.length;k++){
+    const V0=serie[k-1].v, V1=serie[k].v;
+    if(!(V0>0)) continue;
+    crudos.push(V1/V0-1);
+    const c0=serie[k-1].c, c1=serie[k].c;
+    if(c0!=null && c1!=null){
+      const f=c1-c0;
+      flujos.push(f); conFlujo++;
+      vars.push((V1-V0-f)/(V0+f/2));
+    } else {
+      vars.push(V1/V0-1);   // sin capital registrado no hay como ajustar
+    }
+  }
+  if(!vars.length) return {hoy, saldoUsdHoy, gAnual:null, nota:'faltan meses', n:serie.length};
+  const mediana = arr => {
+    const a=arr.slice().sort((x,y)=>x-y), i=Math.floor(a.length/2);
+    return a.length%2 ? a[i] : (a[i-1]+a[i])/2;
+  };
+  const gReal  = mediana(vars);
+  const gCrudo = crudos.length ? mediana(crudos) : gReal;
+  // Aporte: total depositado en la ventana entre los meses de la ventana.
+  // Promedio y no mediana: un flujo es dinero, no una tasa.
+  const aporte = flujos.length
+    ? flujos.reduce((a,b)=>a+b,0)/flujos.length : 0;
+  const ajustado = conFlujo>0 && conFlujo===vars.length;
+
+  // simula: el rendimiento compone, el aporte suma
+  const proyectar = (g, ap) => {
     let v=hoy, s=saldoUsdHoy, m=0;
-    while(v < s && m < 360){ v*=(1+g); s=Math.max(s-amort,0); m++; }
+    while(v < s && m < 360){ v = v*(1+g) + ap; s=Math.max(s-amort,0); m++; }
     if(m>=360) return null;
     const f=new Date(); f.setMonth(f.getMonth()+m);
     return {meses:m, fecha:f};
   };
 
-  // Escenario base: se capa a 12%/mes porque sostener mas dos anios
-  // no tiene precedente. El ritmo real se conserva y se muestra aparte.
+  // El techo del 12%/mes queda como guarda: si la apreciacion medida
+  // lo supera, no se proyecta mas alto que eso.
   const TECHO = 0.12;
   const capado = gReal > TECHO;
   const gBase = capado ? TECHO : gReal;
 
-  const base = proyectar(gBase);
-  const real = capado ? proyectar(gReal) : null;
+  const base = proyectar(gBase, aporte);          // como vas
+  const solo = proyectar(gBase, 0);               // si dejas de aportar
+  const real = capado ? proyectar(gReal, aporte) : null;
 
   return {
-    hoy, saldoUsdHoy, muestras:vars.length,
+    hoy, saldoUsdHoy, muestras:vars.length, ajustado, conFlujo,
     gMensual: gBase, gAnual: Math.pow(1+gBase,12)-1,
     gMensualReal: gReal, gAnualReal: Math.pow(1+gReal,12)-1,
-    capado,
+    gCrudo, gCrudoAnual: Math.pow(1+gCrudo,12)-1,
+    aporte, capado,
     meses: base?base.meses:null, fecha: base?base.fecha:null,
-    aTiempo: base ? base.fecha<=OBJETIVO_FECHA : false,
-    fechaReal: real?real.fecha:null,
-    aTiempoReal: real ? real.fecha<=OBJETIVO_FECHA : null
+    mesesSolo: solo?solo.meses:null, fechaSolo: solo?solo.fecha:null,
+    fechaReal: real?real.fecha:null, mesesReal: real?real.meses:null
   };
 }
 function renderRitmo(){
@@ -1543,10 +1581,15 @@ function renderRitmo(){
   }
   const MESR=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
   const fTxt = r.fecha ? MESR[r.fecha.getMonth()]+' '+r.fecha.getFullYear() : 'no alcanza';
+  const fSolo = r.fechaSolo ? MESR[r.fechaSolo.getMonth()]+' '+r.fechaSolo.getFullYear() : 'no alcanza';
   const col = !r.fecha ? '#eda100' : '#3db8f5';
+  const fmA = v => '$'+Math.round(v).toLocaleString('en-US');
   let msg;
-  if(!r.fecha) msg='Al ritmo base no cubre el saldo dentro del horizonte simulado. Es lo que da la mediana de los meses registrados, no un veredicto.';
-  else msg='Al ritmo base alcanza el saldo en '+r.meses+' mes'+(r.meses===1?'':'es')+'. Estimación sobre '+(r.muestras||0)+' meses de historial: el objetivo no tiene fecha y cada corte mueve este número.';
+  if(!r.fecha) msg='Ni con el aporte alcanza el saldo dentro del horizonte simulado. Es lo que dan los meses registrados, no un veredicto.';
+  else msg='Aportando '+fmA(r.aporte)+' al mes alcanza el saldo en '+r.meses+' mes'+(r.meses===1?'':'es')+'. '
+    +(r.mesesSolo!=null
+      ? 'Si dejas de aportar, '+r.mesesSolo+' meses: '+(r.mesesSolo-r.meses)+' meses los paga tu aporte, no el mercado.'
+      : 'Sin aportar no alcanza: el aporte es el motor, no el rendimiento.');
   const fReal = r.fechaReal ? MESR[r.fechaReal.getMonth()]+' '+r.fechaReal.getFullYear() : null;
   const card=(lbl,val,sub,c,bg)=>'<div style="background:'+(bg||'var(--s2)')+';border-radius:6px;padding:8px 10px'
     +(bg?';border:1px solid rgba(237,161,0,.3)':'')+'">'
@@ -1556,8 +1599,12 @@ function renderRitmo(){
 
   box.innerHTML = HDR
     +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">'
-    +card('Ritmo conservador','+'+(r.gAnual*100).toFixed(0)+'% / año',(r.gMensual*100).toFixed(1)+'% mensual','#34d07a')
+    +card('Apreciación','+'+(r.gAnual*100).toFixed(0)+'% / año',(r.gMensual*100).toFixed(1)+'% mensual · sin aportes','#34d07a')
+    +card('Aporte',fmA(r.aporte),'promedio mensual','#9f7aea')
+    +'</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">'
     +card('Cubriría el saldo en',fTxt,r.meses!=null?r.meses+' meses':'fuera de horizonte',col)
+    +card('Si dejas de aportar',fSolo,r.mesesSolo!=null?r.mesesSolo+' meses':'no alcanza','#eda100')
     +'</div>'
     +(r.capado
       ? '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">'
@@ -1567,9 +1614,13 @@ function renderRitmo(){
       : '')
     +'<div style="font-size:10px;color:var(--mu);line-height:1.6">'+msg+'</div>'
     +'<div style="font-size:9px;color:var(--mu2);margin-top:6px;line-height:1.5">'
-    +'Mediana de '+(r.muestras||0)+' meses'
-    +(r.capado?' · base capada a 12%/mes, tu ritmo real arriba':'')
-    +' · el saldo baja ~Q5,200 de capital por cuota.</div>'
+    +'Mediana de '+(r.muestras||0)+' meses, ajustada por aportes (Dietz). '
+    +(r.ajustado
+      ? 'Sin ajustar daría '+(r.gCrudo*100).toFixed(1)+'%/mes: la diferencia es dinero que metiste, no rendimiento. '
+      : '⚠ Faltan registros de capital en algunos meses: ese tramo va sin ajustar y queda inflado. ')
+    +'El rendimiento compone, el aporte suma lineal.'
+    +(r.capado?' Base capada a 12%/mes.':'')
+    +' El saldo baja ~Q5,200 de capital por cuota.</div>'
     +'</div>';
 }
 
@@ -2245,26 +2296,38 @@ tr.tot td{font-weight:700;border-top:2px solid #e5e7eb;border-bottom:none;backgr
     const MES2=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
     const fTxt = ritmo.fecha ? (MES2[ritmo.fecha.getMonth()]+' '+ritmo.fecha.getFullYear()) : 'no alcanza';
     const col = ritmo.fecha ? '#075985' : '#d97706';
+    const fSolo = ritmo.fechaSolo ? (MES2[ritmo.fechaSolo.getMonth()]+' '+ritmo.fechaSolo.getFullYear()) : null;
     let msg;
-    if(!ritmo.fecha) msg='Al ritmo base el portafolio no cubre el saldo dentro de 30 años de simulación. '
-      +'No es un veredicto: es lo que da la mediana de los meses registrados hasta hoy.';
+    if(!ritmo.fecha) msg='Ni sosteniendo el aporte el portafolio cubre el saldo dentro de 30 años de simulación. '
+      +'No es un veredicto: es lo que dan los meses registrados hasta hoy.';
     else{
       const mm=ritmo.meses;
-      msg='Al ritmo base, el portafolio alcanza el saldo en '+mm+' mes'+(mm===1?'':'es')+' ('+fTxt+'). '
-        +'Es una proyección aritmética sobre '+(ritmo.muestras||0)+' meses de historial, no una fecha comprometida: '
-        +'el objetivo es cancelar lo antes posible y cada mes nuevo mueve este número.';
+      msg='Sosteniendo un aporte de '+fu(ritmo.aporte)+' al mes, el portafolio alcanza el saldo en '
+        +mm+' mes'+(mm===1?'':'es')+' ('+fTxt+'). '
+        +(ritmo.mesesSolo!=null
+          ? 'Si dejas de aportar y solo rinde: '+ritmo.mesesSolo+' meses ('+fSolo+'). '
+            +'Esos '+(ritmo.mesesSolo-mm)+' meses de diferencia los paga tu aporte, no el mercado — '
+            +'ahí está el verdadero motor del plan.'
+          : 'Sin el aporte no alcanza dentro del horizonte: el motor es lo que depositas, no lo que rinde.');
     }
     const fReal = ritmo.fechaReal ? (MES2[ritmo.fechaReal.getMonth()]+' '+ritmo.fechaReal.getFullYear()) : null;
 
     bloqueRitmo='<div class="sec"><div class="st"><span>Ritmo observado</span>'
       +'<span class="n">estimación · el objetivo no tiene fecha</span></div>'
       +'<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px">'
-      +'<div class="kpi"><div class="kl">Ritmo conservador</div>'
+      +'<div class="kpi"><div class="kl">Apreciación observada</div>'
       +'<div class="kv up">+'+(ritmo.gAnual*100).toFixed(0)+'% / año</div>'
-      +'<div class="kd mu">'+(ritmo.gMensual*100).toFixed(1)+'% mensual</div></div>'
+      +'<div class="kd mu">'+(ritmo.gMensual*100).toFixed(1)+'% mensual · sin aportes</div></div>'
+      +'<div class="kpi"><div class="kl">Aporte mensual</div>'
+      +'<div class="kv" style="color:#6d28d9">'+fu(ritmo.aporte)+'</div>'
+      +'<div class="kd mu">promedio de la ventana</div></div></div>'
+      +'<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:8px">'
       +'<div class="kpi"><div class="kl">Cubriría el saldo en</div>'
       +'<div class="kv" style="color:'+col+'">'+fTxt+'</div>'
-      +'<div class="kd mu">'+(ritmo.meses!=null?ritmo.meses+' meses al ritmo base':'fuera de horizonte')+'</div></div></div>'
+      +'<div class="kd mu">'+(ritmo.meses!=null?ritmo.meses+' meses · con aporte':'fuera de horizonte')+'</div></div>'
+      +'<div class="kpi"><div class="kl">Si dejas de aportar</div>'
+      +'<div class="kv" style="color:#b45309">'+(fSolo||'no alcanza')+'</div>'
+      +'<div class="kd mu">'+(ritmo.mesesSolo!=null?ritmo.mesesSolo+' meses · solo rendimiento':'fuera de horizonte')+'</div></div></div>'
       +(ritmo.capado
         ? '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:8px">'
           +'<div class="kpi" style="border-color:#fcd34d;background:#fffbeb"><div class="kl">Tu ritmo real</div>'
@@ -2275,12 +2338,17 @@ tr.tot td{font-weight:700;border-top:2px solid #e5e7eb;border-bottom:none;backgr
           +'<div class="kd mu">ritmo real sin capar</div></div></div>'
         : '')
       +'<div class="al al-a" style="margin-top:9px;margin-bottom:0">'+msg+'</div>'
-      +'<div class="nt">Ritmo = mediana de las variaciones mensuales sobre '+(ritmo.muestras||0)+' meses. '
-      +(ritmo.capado
-        ? 'El escenario base capa el crecimiento a 12% mensual porque sostener mas dos anios no tiene precedente; '
-          +'arriba se muestra tu ritmo real por si el ciclo lo permite.'
-        : 'Se usa la mediana y no el promedio para que un mes extraordinario no arrastre la proyeccion.')
-      +' El saldo baja ~Q5,200 de capital por cuota.</div></div>';
+      +'<div class="nt">La apreciación es la mediana de '+(ritmo.muestras||0)+' meses ajustada por aportes '
+      +'(Dietz modificado: r = (V₁−V₀−flujo) ÷ (V₀+flujo/2)), así un depósito no se cuenta como rendimiento. '
+      +(ritmo.ajustado
+        ? 'Sin ese ajuste la mediana sería '+(ritmo.gCrudo*100).toFixed(1)+'%/mes en vez de '
+          +(ritmo.gMensualReal*100).toFixed(1)+'%: la diferencia es capital que aportaste. '
+        : '<b>Atención:</b> algunos meses no tienen capital registrado, así que ese tramo va sin ajustar y queda inflado. ')
+      +'La proyección trata cada motor como es: el rendimiento compone, el aporte suma lineal. '
+      +'Se usa la mediana y no el promedio para que un mes extraordinario no arrastre el resultado. '
+      +(ritmo.capado?'La base está capada a 12% mensual. ':'')
+      +'El aporte proyectado es el promedio de la ventana y asume que lo sostienes: eso depende de tu presupuesto, no del mercado. '
+      +'El saldo baja ~Q5,200 de capital por cuota.</div></div>';
   } else {
     bloqueRitmo='<div class="sec"><div class="st"><span>Ritmo observado</span>'
       +'<span class="n">requiere 3 meses de registros</span></div>'
@@ -2449,7 +2517,7 @@ tr.tot td{font-weight:700;border-top:2px solid #e5e7eb;border-bottom:none;backgr
    +'</div>'
 
    +'<div style="font-size:9px;color:#a0aec0;margin-top:10px;text-align:center;line-height:1.6">'
-   +'Capital histórico desplegado: '+fu(capHist.invertido||0)+' · recuperado '+((capHist.pctRecuperado||0).toFixed(1))+'%<br>'
+   +'Capital histórico desplegado: '+fu(capHist.capitalTotal||0)+' · recuperado '+((capHist.pctRecuperado||0).toFixed(1))+'%<br>'
    +'Estado no realizado · valores al momento de generación · documento personal</div>'
    +'<div class="foot">Página 2 de 2 · Hacia dónde va</div></div>'
 

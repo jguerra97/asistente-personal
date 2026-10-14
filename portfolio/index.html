@@ -368,7 +368,8 @@ td:first-child{text-align:left;}
 
 
 <div class="summ">
-  <div class="sc"><label>Valor Total</label><div class="sv" id="sv">—</div><div class="ss" id="sb">—</div></div>
+  <div class="sc"><label>Valor Total</label><div class="sv" id="sv">—</div><div class="ss" id="sb">—</div>
+    <div class="ss" id="sv-split" style="margin-top:3px"></div></div>
   <div class="sc"><label>Total Invertido</label><div class="sv" id="sc2">—</div><div class="ss">costo de entrada</div></div>
   <div class="sc"><label>P&L Total</label><div class="sv" id="spnl">—</div><div class="ss" id="spp">—</div></div>
   <div class="sc"><label>Cambio 24h</label><div class="sv" id="s24">—</div><div class="ss">activos live</div></div>
@@ -464,6 +465,13 @@ td:first-child{text-align:left;}
   <div class="lt">Broker Assets <span>Precio manual</span></div>
 </div>
 <div class="broker-grid" id="broker-grid"></div>
+
+<!-- APALANCADAS · NO SPOT -->
+<div class="sec" id="apal-sec" style="display:none">
+  <div class="ld" style="background:#e84142;box-shadow:0 0 6px #e84142"></div>
+  <div class="lt">Apalancadas <span>no spot · fuera de todos los totales</span></div>
+</div>
+<div id="apal-grid"></div>
 
 <!-- META $88K (cripto + MSTR para reducir cuota hipoteca) -->
 <div class="sec">
@@ -653,7 +661,7 @@ td:first-child{text-align:left;}
 </script>
 
 <div class="foot">
-  HYPE, ONDO, AKT, MORPHO vía CoinGecko · MSTR/BTC precio manual<br>
+  HYPE, ONDO, RENDER, PYTH vía CoinGecko · MSTR/BTC precio manual<br>
   ✏ Cantidad y precio de entrada editables · Guardado automático en este navegador
 </div>
 </div>
@@ -723,9 +731,8 @@ const L1=[
   {id:'ondo-finance',tick:'ONDO',name:'Ondo Finance',  col:'#818cf8',ico:'O',qty:5945.44,    entry:0.2572, strat:'hold',sl:'PAUSADO · overhang CEX'},
 ];
 const L2=[
-  {id:'akash-network',  tick:'AKT',   name:'Akash Network',    col:'#10b981',ico:'A',qty:2046.43, entry:0.4718, target:3.50,  price:0.4632},
-  {id:'morpho',         tick:'MORPHO',name:'Morpho Protocol',  col:'#9d7ff0',ico:'M',qty:533.85,  entry:2.26,   target:5.00,  price:1.922,
-   contractFallback:{platform:'ethereum',address:'0x58d97b57bb95320f9a05dc918aef65434969c2b2'}},
+  {id:'render-token',   tick:'RENDER',name:'Render Network',   col:'#ff4d4d',ico:'R',qty:1844.66, entry:2.06,   target:10.00, price:2.06,
+   note:'Cómputo GPU descentralizado · reemplazó AKT 14oct2026 · uso verificable y creciente: 79.7M frames históricos, subred Salad con 60,000 máquinas activas en 180+ países (abr2026), uso +87% interanual en 2025 · 80.4% del supply circulando · mcap $1.04B · pico histórico de mcap ~$5.2B'},
   {id:'pyth-network',tick:'PYTH',name:'Pyth Network (PYTH)',col:'#7c3aed',ico:'🔮',qty:7143, entry:0.042, target:5.00, price:0.042,
    note:'Oráculo de datos financieros · "el LINK de Solana" · reemplazó FET 30jul · infra de datos de baja latencia · suelo profundo (ATH $1.15 mar2024, -96%) · patrón Render'},
 ];
@@ -742,6 +749,19 @@ const L3=[
 const BROKER=[
   {tick:'MSTR',name:'MicroStrategy (Schwab)',col:'#e8a020',ico:'M',qty:18.46, entry:172.10, price:166.43,   strat:'exit', sl:'Hold · triggers documentados',  note:'18.46 acc · prom $172.10 · no compra sin triggers (mNAV >1.2x · breakout $205 · BTC >$90K)'},
   {tick:'BTC', id:'bitcoin', name:'Bitcoin (Lava+DCA)', col:'#f7931a',ico:'₿',qty:0.10438,entry:34000,  price:81093,   strat:'dca',  sl:'DCA perpetuo',   note:'Colchón LF · DCA $50/sem · entrada promedio ~$34K'},
+];
+
+// ── APALANCADAS · NO SPOT · solo registro ──────────────────────
+// No entran en ningún agregado del portafolio: ni valor, ni realizable,
+// ni cobertura, ni concentración. Es colateral en un exchange, no un token
+// en tu wallet. Se muestra aparte para no mezclar dos cosas distintas.
+const APALANCADAS=[
+  {tick:'AVAX', id:'avalanche-2', name:'Avalanche', col:'#e84142', ico:'A',
+   venue:'BloFin', tipo:'perpetuo USDT', lado:'long', margen:'aislado',
+   colateral:600, lev:2, entry:9.88, liq:4.987, qty:121.6,
+   fundingPeriodo:0.0075,   // % por período de 8h [DATO 14-oct-2026]
+   abierta:'14 oct 2026', tier:null,
+   note:'Sin tier · corre. Piso del ciclo 2026 $5.71, queda 14.5% arriba de la liquidación. Vigilar $6.50 (evaluar refuerzo de margen) y $13.11 (ahí un 3x tendría el colchón que este 2x tiene hoy).'},
 ];
 
 const fm=(n,d=2)=>n==null?'—':'$'+n.toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
@@ -1019,6 +1039,73 @@ function renderGrowth(_tot){
 
 // ── META VISUAL PANEL ───────────────────────────────────────────
 
+function renderApalancadas(){
+  const sec=document.getElementById('apal-sec'), box=document.getElementById('apal-grid');
+  if(!box) return;
+  if(!APALANCADAS.length){ if(sec) sec.style.display='none'; box.innerHTML=''; return; }
+  if(sec) sec.style.display='';
+  box.innerHTML = APALANCADAS.map(a=>{
+    const notional = a.colateral * a.lev;
+    const px       = precioDe(a.tick);
+    const liquidada= px!=null && px<=a.liq;
+    const pnlCrudo = px!=null ? (px - a.entry) * a.qty : null;
+    // una vez liquidada la perdida se detiene en el colateral: no se debe mas
+    const pnl      = pnlCrudo==null ? null : (liquidada ? -a.colateral : pnlCrudo);
+    const eq       = pnl!=null ? Math.max(a.colateral + pnl, 0) : null;
+    const caida    = px!=null ? (a.liq/px - 1) * 100 : null;
+    const apEf     = (eq!=null && eq>0) ? (a.qty*px)/eq : null;
+    const fAnual   = a.fundingPeriodo/100 * 3 * 365;
+    const fAno     = notional * fAnual;
+    const col      = pnl==null ? 'var(--mu)' : (pnl>=0 ? 'var(--gr)' : 'var(--rd)');
+    const aviso    = liquidada
+      ? '<div style="margin-top:8px;padding:8px 10px;background:rgba(242,92,92,.12);border:1px solid rgba(242,92,92,.35);border-radius:6px;font-family:\'DM Mono\',monospace;font-size:10px;color:var(--rd);font-weight:700">⚠ El precio cruzó la liquidación. Verificá en '+a.venue+' y borrá la posición de APALANCADAS si ya cerró.</div>'
+      : '';
+    const cel=(lbl,val,c)=>'<div style="background:var(--s2);border-radius:6px;padding:8px;text-align:center">'
+      +'<div style="font-family:\'DM Mono\',monospace;font-size:8px;color:var(--mu);text-transform:uppercase;margin-bottom:3px">'+lbl+'</div>'
+      +'<div style="font-family:\'DM Mono\',monospace;font-size:12px;font-weight:800;color:'+(c||'var(--tx)')+'">'+val+'</div></div>';
+    return '<div style="background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:14px 16px;margin-bottom:12px">'
+      +'<div style="display:flex;align-items:center;gap:9px;margin-bottom:4px">'
+        +'<div class="ai" style="background:'+a.col+'22;color:'+a.col+';border:1px solid '+a.col+'44;width:27px;height:27px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700">'+a.ico+'</div>'
+        +'<div><div style="font-weight:700;font-size:13px">'+a.tick+' '+a.lev+'x <span style="font-size:10px;color:var(--mu);font-weight:400">'+a.lado+'</span></div>'
+        +'<div style="font-family:\'DM Mono\',monospace;font-size:9px;color:var(--mu)">'+a.venue+' · '+a.tipo+' · margen '+a.margen+'</div></div>'
+        +'<div style="margin-left:auto;text-align:right">'
+          +'<div style="font-family:\'DM Mono\',monospace;font-size:14px;font-weight:800;color:'+col+'">'+(pnl==null?'—':(pnl>=0?'+':'')+fm(pnl))+'</div>'
+          +'<div style="font-family:\'DM Mono\',monospace;font-size:9px;color:var(--mu)">P&L no realizado</div>'
+        +'</div>'
+      +'</div>'
+      +'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:10px 0">'
+        +cel('Colateral', fm(a.colateral,0))
+        +cel('Notional',  fm(notional,0))
+        +cel('Equity',    eq==null?'—':fm(eq,0), col)
+      +'</div>'
+      +'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">'
+        +cel('Entrada',       fm(a.entry,2))
+        +cel('Precio',        px==null?'—':fm(px,2))
+        +cel('Liquidación',   fm(a.liq,3), 'var(--rd)')
+        +cel('Caída a liq',   caida==null?'—':caida.toFixed(1)+'%', 'var(--rd)')
+      +'</div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px">'
+        +cel('Apal. efectivo', apEf==null?'—':apEf.toFixed(2)+'x')
+        +cel('Funding/año',    fm(fAno,0)+' · '+(fAno/a.colateral*100).toFixed(1)+'% del colateral')
+      +'</div>'
+      +aviso
+      +(a.note?'<div style="margin-top:10px;font-size:10px;color:var(--mu2);line-height:1.5">'+a.note+'</div>':'')
+      +'<div style="margin-top:8px;font-family:\'DM Mono\',monospace;font-size:9px;color:var(--mu);border-top:1px solid var(--bd);padding-top:7px">'
+        +'Abierta '+a.abierta+' · NO cuenta en valor, realizable, cobertura ni concentración'
+      +'</div>'
+    +'</div>';
+  }).join('');
+}
+
+// precio vivo si el ticker ya existe en el libro; si no, el de la propia posición
+function precioDe(tick){
+  const all=[...L1,...L2,...L3,...BROKER];
+  const h=all.find(x=>x.tick===tick);
+  if(h && h.price) return h.price;
+  const a=APALANCADAS.find(x=>x.tick===tick);
+  return a ? (a.precioManual||a.entry) : null;
+}
+
 function renderBroker(){
   document.getElementById('broker-grid').innerHTML=BROKER.map(a=>{
     const val=a.price*a.qty,cst=a.entry*a.qty,pnl=val-cst,pp=(pnl/cst)*100;
@@ -1187,7 +1274,7 @@ async function load(){
   rb.classList.add('busy');sp.classList.add('go');
   document.getElementById('ts').textContent='Actualizando precios...';
   applyS();
-  const cgIds=['hyperliquid','ondo-finance','akash-network','morpho','pyth-network','lcx','popcat','plasma','bitcoin'];
+  const cgIds=['hyperliquid','ondo-finance','render-token','pyth-network','lcx','popcat','plasma','bitcoin','avalanche-2'];
   const px=await fetchCG(cgIds);
   if(Object.keys(px).length===0){
     document.getElementById('ts').textContent='⚠ Sin conexión a CoinGecko — usando precios guardados';
@@ -1235,6 +1322,28 @@ async function load(){
     m3+=mkCard(a,price,chg,true);
   });
   tot+=totAsim; cst+=cstAsim;
+
+  // ── APALANCADAS · rubro propio que SI suma al total global ────────
+  // Entra el EQUITY (colateral + P&L no realizado), que es lo que vale
+  // la posicion si la cerras hoy. El notional es exposicion, no valor.
+  let apalEq=0, apalCst=0;
+  APALANCADAS.forEach(a=>{
+    const p = a.id ? px[a.id] : null;
+    if(p?.usd){
+      a.precioManual = p.usd;
+      const chg = p.usd_24h_change;
+      if(chg!=null){ const pv = p.usd/(1+chg/100); c24 += (p.usd-pv)*a.qty; }
+    }
+    const precio = a.precioManual || a.entry;
+    const eq = Math.max(a.colateral + (precio - a.entry)*a.qty, 0);  // liquidado = 0
+    apalEq  += eq;
+    apalCst += a.colateral;
+  });
+  window.__apalEquity = apalEq;
+  window.__apalCosto  = apalCst;
+  window.__spotValor  = tot;
+  tot += apalEq; cst += apalCst;
+
   const tb3=document.getElementById('tb3'); if(tb3) tb3.innerHTML=h3;
   const cl3=document.getElementById('cl3'); if(cl3) cl3.innerHTML=m3;
   renderSplit(totCore,cstCore,totAsim,cstAsim);
@@ -1248,10 +1357,19 @@ async function load(){
     const _btcVal=_btc?(_btc.price||0)*_btc.qty:0;
     window.__realizable = tot - _btcVal*0.90;
   }
-  renderBroker();renderGoal(tot);
+  renderBroker();try{renderApalancadas();}catch(e){}renderGoal(tot);
   const pnl=tot-cst,pp=(pnl/cst)*100;
   const btcPx=BROKER.find(a=>a.tick==='BTC')?.price;
   document.getElementById('sv').textContent=fm(tot);
+  {
+    const sp=document.getElementById('sv-split');
+    if(sp){
+      const ae=window.__apalEquity||0;
+      sp.innerHTML = ae>0
+        ? 'spot '+fm(window.__spotValor||0,0)+' <span style="color:#e84142">+ apalancado '+fm(ae,0)+'</span>'
+        : '';
+    }
+  }
   document.getElementById('sb').textContent=btcPx&&tot>0?(tot/btcPx).toFixed(6)+' BTC':'—';
   document.getElementById('sc2').textContent=fm(cst);
   const spnl=document.getElementById('spnl');
@@ -2273,8 +2391,7 @@ function setDistView(v){
 const ACC_META_COLORS = {
   'HYPE':   {label:'tokens', color:'#3db8f5'},
   'ONDO':   {label:'tokens', color:'#818cf8'},
-  'AKT':    {label:'tokens', color:'#10b981'},
-  'MORPHO': {label:'tokens', color:'#9d7ff0'},
+  'RENDER': {label:'tokens', color:'#ff4d4d'},
   'MSTR':   {label:'acciones', color:'#e8a020'},
   'PYTH': {label:'tokens', color:'#7c3aed'},
 };
@@ -2291,8 +2408,9 @@ function getMetaObjetivo(){
 const TRANCHES_DEFAULT = {
   'HYPE':   { t1:{pct:10,px:150.00},  t2:{pct:25,px:200.00}, t3:{pct:30,px:350.00}, trailing:{pct:35,px:500.00}, moon:null   },
   'ONDO':   { t1:{pct:5,px:0.75},    t2:{pct:20,px:1.20},   t3:{pct:35,px:2.00},   trailing:{pct:40,px:5.00},   moon:null   },
-  'AKT':    { t1: {pct:15, px:1.50},   t2: {pct:10, px:3.00},   t3: {pct:40, px:5.50},   trailing: {pct:35, px:8.00},   moon: null   },
-  'MORPHO': { t1: {pct:15, px:3.50},   t2: {pct:10, px:6.00},   t3: {pct:45, px:10.00},  trailing: {pct:30, px:15.00},  moon: null   },
+  // RENDER: vende 85% en cuatro niveles · el 15% restante corre sin techo.
+  // mcap requerido: $4=2.07B · $6=3.11B · $10=5.18B (su propio pico) · $16=8.28B
+  'RENDER': { t1: {pct:15, px:4.00},   t2: {pct:20, px:6.00},   t3: {pct:30, px:10.00},  trailing: {pct:20, px:16.00},  moon: null   },
   'MSTR':   { t1: {pct:20, px:200.0},  t2: {pct:25, px:350.0},  t3: {pct:30, px:500.0},  trailing: {pct:25, px:750.00}, moon: null   },
   'PYTH': { t1: {pct:15, px:0.10},  t2: {pct:20, px:0.30},   t3: {pct:30, px:0.80},   trailing: {pct:20, px:2.50}, moon: {pct:15, px:5.00} },
   'LCX':    { t1: {pct:20, px:0.496},  t2: {pct:45, px:1.190},  t3: {pct:35, px:1.240},  trailing: null, moon: null },
@@ -2461,13 +2579,16 @@ function refrescarTodo(){
   try{ updateProySummary(); }catch(e){}
   try{ renderHipoteca(); renderRitmo(); renderTiers(); restaurarTab(); }catch(e){}
   try{ renderGoalTokens(); }catch(e){}
+  try{ renderApalancadas(); }catch(e){}
 }
 // Limpieza oct-2026: THETA y TAI salieron del portafolio. Se borran sus restos
 // del almacenamiento para que no queden colgados ni reaparezcan en una restauración.
+// 14-oct-2026: MORPHO y AKT vendidos. MORPHO por 76.4% de supply sin emitir;
+// AKT por contracción de red (GPUs -57.5% QoQ, ingreso -45% QoQ). Mismo tratamiento.
 (function(){
   try{
     const d=ldS(); let n=0;
-    ['THETA','TAI'].forEach(t=>{ if(d[t]){ delete d[t]; n++; } });
+    ['THETA','TAI','MORPHO','AKT'].forEach(t=>{ if(d[t]){ delete d[t]; n++; } });
     if(n) localStorage.setItem(LS, JSON.stringify(d));
   }catch(e){}
   try{
@@ -2985,6 +3106,7 @@ try{ renderHipoteca(); renderRitmo(); }catch(e){}
 // restaurar la pestaña guardada: el script en línea ya la mostró, esto dispara
 // los render que esa pestaña necesita y deja _tabActual sincronizado.
 try{ restaurarTab(); }catch(e){}
+try{ renderApalancadas(); }catch(e){}
 load();
 </script>
 </body>

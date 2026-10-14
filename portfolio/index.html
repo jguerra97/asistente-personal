@@ -1457,6 +1457,38 @@ function onHipChange(val){
 // Usa los snapshots reales del portafolio para estimar crecimiento anual,
 // proyecta cuando el valor cubriria el saldo, y compara con la fecha objetivo.
 const OBJETIVO_FECHA = new Date(2028, 11, 31);  // dic 2028
+
+/* ── CAPITAL APORTADO CONFIRMADO POR MES ────────────────────────
+   Clave 'AAAA-M' con mes base 0. Son los cortes que JP confirmo.
+   Existe porque los snapshots viejos se guardaron sin el campo de
+   capital, y sin capital no hay forma de separar deposito de
+   rendimiento: el ritmo sale inflado. Lo usan la grafica y el
+   relleno de abajo, para que no haya dos versiones del dato.
+   [DATO · JP · cortes may-ago 2026] */
+const CAPITAL_CONFIRMADO = {'2026-4':14379,'2026-5':16085,'2026-6':18023,'2026-7':18525};
+
+/* Relleno de una sola vez: escribe el capital confirmado en los
+   snapshots que no lo traen. No sobrescribe nada ya registrado y
+   es idempotente, asi que correr dos veces no cambia nada. */
+function rellenarCapitalSnapshots(){
+  try{
+    const d = ldS();
+    const snaps = Array.isArray(d.snapshots) ? d.snapshots : [];
+    if(!snaps.length) return 0;
+    let tocados = 0;
+    snaps.forEach(sn => {
+      if(sn.c != null) return;
+      const f = new Date(sn.t);
+      const k = f.getFullYear()+'-'+f.getMonth();
+      if(CAPITAL_CONFIRMADO[k] != null){ sn.c = CAPITAL_CONFIRMADO[k]; tocados++; }
+    });
+    if(tocados){
+      const full = ldS(); full.snapshots = snaps;
+      localStorage.setItem(LS, JSON.stringify(full));
+    }
+    return tocados;
+  }catch(e){ return 0; }
+}
 function calcRitmo(){
   let snaps=[];
   try{ const d=ldS(); snaps=Array.isArray(d.snapshots)?d.snapshots:[]; }catch(e){}
@@ -1599,7 +1631,9 @@ function renderRitmo(){
 
   box.innerHTML = HDR
     +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">'
-    +card('Apreciación','+'+(r.gAnual*100).toFixed(0)+'% / año',(r.gMensual*100).toFixed(1)+'% mensual · sin aportes','#34d07a')
+    +card('Apreciación','+'+(r.gAnual*100).toFixed(0)+'% / año',
+          (r.gMensual*100).toFixed(1)+'% mensual · '+(r.ajustado?'sin aportes':'⚠ sin ajustar'),
+          r.ajustado?'#34d07a':'#eda100', r.ajustado?null:'rgba(237,161,0,.07)')
     +card('Aporte',fmA(r.aporte),'promedio mensual','#9f7aea')
     +'</div>'
     +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">'
@@ -2074,8 +2108,8 @@ function descargarResumen(){
   // un punto por mes, el último de cada uno
   const porMes={};
   snaps.forEach(s=>{ const d=new Date(s.t); porMes[d.getFullYear()+'-'+d.getMonth()]=s; });
-  // capital aportado confirmado · may–ago 2026
-  const CAP_HIST={'2026-4':14379,'2026-5':16085,'2026-6':18023,'2026-7':18525};
+  // capital aportado confirmado · un solo dueno: CAPITAL_CONFIRMADO
+  const CAP_HIST=CAPITAL_CONFIRMADO;
   Object.keys(porMes).forEach(k=>{ if(CAP_HIST[k]!=null) porMes[k]={...porMes[k], c:CAP_HIST[k]}; });
   const serie=Object.keys(porMes).map(k=>porMes[k]).slice(-8);
 
@@ -2296,6 +2330,13 @@ tr.tot td{font-weight:700;border-top:2px solid #e5e7eb;border-bottom:none;backgr
     const MES2=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
     const fTxt = ritmo.fecha ? (MES2[ritmo.fecha.getMonth()]+' '+ritmo.fecha.getFullYear()) : 'no alcanza';
     const col = ritmo.fecha ? '#075985' : '#d97706';
+    const sinFlujo = (ritmo.muestras||0) - (ritmo.conFlujo||0);
+    const aviso = ritmo.ajustado ? '' :
+      '<div class="al al-a" style="margin-top:9px;margin-bottom:0"><b>⚠ Esta cifra está inflada.</b> '
+      +'A '+sinFlujo+' de los '+(ritmo.muestras||0)+' meses les falta el registro de capital, '
+      +'así que en ese tramo tus depósitos se cuentan como rendimiento. '
+      +'Los cortes confirmados de may–ago se rellenan solos la próxima vez que abras el tracker; '
+      +'vuelve a generar el documento y la cifra baja a lo real.</div>';
     const fSolo = ritmo.fechaSolo ? (MES2[ritmo.fechaSolo.getMonth()]+' '+ritmo.fechaSolo.getFullYear()) : null;
     let msg;
     if(!ritmo.fecha) msg='Ni sosteniendo el aporte el portafolio cubre el saldo dentro de 30 años de simulación. '
@@ -2315,9 +2356,12 @@ tr.tot td{font-weight:700;border-top:2px solid #e5e7eb;border-bottom:none;backgr
     bloqueRitmo='<div class="sec"><div class="st"><span>Ritmo observado</span>'
       +'<span class="n">estimación · el objetivo no tiene fecha</span></div>'
       +'<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px">'
-      +'<div class="kpi"><div class="kl">Apreciación observada</div>'
-      +'<div class="kv up">+'+(ritmo.gAnual*100).toFixed(0)+'% / año</div>'
-      +'<div class="kd mu">'+(ritmo.gMensual*100).toFixed(1)+'% mensual · sin aportes</div></div>'
+      +'<div class="kpi"'+(ritmo.ajustado?'':' style="border-color:#fcd34d;background:#fffbeb"')+'>'
+      +'<div class="kl">Apreciación observada</div>'
+      +'<div class="kv'+(ritmo.ajustado?' up':'')+'"'+(ritmo.ajustado?'':' style="color:#b45309"')+'>+'
+      +(ritmo.gAnual*100).toFixed(0)+'% / año</div>'
+      +'<div class="kd mu">'+(ritmo.gMensual*100).toFixed(1)+'% mensual · '
+      +(ritmo.ajustado?'sin aportes':'⚠ SIN AJUSTAR')+'</div></div>'
       +'<div class="kpi"><div class="kl">Aporte mensual</div>'
       +'<div class="kv" style="color:#6d28d9">'+fu(ritmo.aporte)+'</div>'
       +'<div class="kd mu">promedio de la ventana</div></div></div>'
@@ -2337,6 +2381,7 @@ tr.tot td{font-weight:700;border-top:2px solid #e5e7eb;border-bottom:none;backgr
           +'<div class="kv" style="color:#b45309">'+(fReal||'—')+'</div>'
           +'<div class="kd mu">ritmo real sin capar</div></div></div>'
         : '')
+      +aviso
       +'<div class="al al-a" style="margin-top:9px;margin-bottom:0">'+msg+'</div>'
       +'<div class="nt">La apreciación es la mediana de '+(ritmo.muestras||0)+' meses ajustada por aportes '
       +'(Dietz modificado: r = (V₁−V₀−flujo) ÷ (V₀+flujo/2)), así un depósito no se cuenta como rendimiento. '
@@ -2782,6 +2827,7 @@ function refrescarTodo(){
   }catch(e){}
 })();
 cargarTranches();
+try{ rellenarCapitalSnapshots(); }catch(e){}
 try{ pintarSync(); setInterval(pintarSync, 60000); }catch(e){}
 
 // BTC se calcula aparte: solo 10% del holding actual en cycle peak

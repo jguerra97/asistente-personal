@@ -758,10 +758,13 @@ const BROKER=[
 const APALANCADAS=[
   {tick:'AVAX', id:'avalanche-2', name:'Avalanche', col:'#e84142', ico:'A',
    venue:'BloFin', tipo:'perpetuo USDT', lado:'long', margen:'aislado',
-   colateral:600, lev:2, entry:9.88, liq:4.987, qty:121.6,
+   colateral:588.73, lev:2, entry:9.928, liq:4.991, qty:118.6,
    fundingPeriodo:0.0075,   // % por período de 8h [DATO 14-oct-2026]
    abierta:'14 oct 2026', tier:null,
-   note:'Sin tier · corre. Piso del ciclo 2026 $5.71, queda 14.5% arriba de la liquidación. Vigilar $6.50 (evaluar refuerzo de margen) y $13.11 (ahí un 3x tendría el colchón que este 2x tiene hoy).'},
+   // [DATO · captura BloFin 14-oct-2026 15:17] 118.6 AVAX · margen $588.73 · entrada $9.928
+   // · liquidación $4.991 · aislado 2x. Notional $1,177.46 = 2.0000x exacto.
+   // Margen de mantenimiento implícito 0.272%.
+   note:'Sin tier · corre. Piso del ciclo 2026 $5.71, queda 14.4% arriba de la liquidación. Vigilar $6.50 (evaluar refuerzo de margen) y $13.11 (ahí un 3x tendría el colchón que este 2x tiene hoy).'},
 ];
 
 const fm=(n,d=2)=>n==null?'—':'$'+n.toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});

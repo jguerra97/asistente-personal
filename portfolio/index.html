@@ -731,8 +731,8 @@ const L1=[
   {id:'ondo-finance',tick:'ONDO',name:'Ondo Finance',  col:'#818cf8',ico:'O',qty:5945.44,    entry:0.2572, strat:'hold',sl:'PAUSADO · overhang CEX'},
 ];
 const L2=[
-  {id:'render-token',   tick:'RENDER',name:'Render Network',   col:'#ff4d4d',ico:'R',qty:1844.66, entry:2.06,   target:10.00, price:2.06,
-   note:'Cómputo GPU descentralizado · reemplazó AKT 14oct2026 · uso verificable y creciente: 79.7M frames históricos, subred Salad con 60,000 máquinas activas en 180+ países (abr2026), uso +87% interanual en 2025 · 80.4% del supply circulando · mcap $1.04B · pico histórico de mcap ~$5.2B'},
+  {id:'render-token',   tick:'RENDER',name:'Render Network',   col:'#ff4d4d',ico:'R',qty:1980.92, entry:1.93,   target:10.00, price:2.06,
+   note:'Cómputo GPU descentralizado · reemplazó AKT 14oct2026 · uso verificable y creciente: 79.7M frames históricos, subred Salad con 60,000 máquinas activas en 180+ países (abr2026), uso +87% interanual en 2025 · 80.4% del supply circulando · mcap $1.04B · pico histórico de mcap ~$5.2B · [FILL 14-oct-2026] 1,980.92 tokens a $1.93 = $3,823.18'},
   {id:'pyth-network',tick:'PYTH',name:'Pyth Network (PYTH)',col:'#7c3aed',ico:'🔮',qty:7143, entry:0.042, target:5.00, price:0.042,
    note:'Oráculo de datos financieros · "el LINK de Solana" · reemplazó FET 30jul · infra de datos de baja latencia · suelo profundo (ATH $1.15 mar2024, -96%) · patrón Render'},
 ];
@@ -1240,7 +1240,7 @@ async function fetchLlama(ids){
 }
 
 async function fetchCG(ids, attempt=1){
-  const url=`https://api.coingecko.com/api/v3/simple/price?ids=${ids.join(',')}&vs_currencies=usd&include_24hr_change=true`;
+  const url=`https://api.coingecko.com/api/v3/simple/price?ids=${ids.join(',')}&vs_currencies=usd&include_24hr_change=true&include_market_cap=true`;
   const ts=document.getElementById('ts');
   try{
     const r=await fetch(url);
@@ -1342,6 +1342,16 @@ async function load(){
     apalEq  += eq;
     apalCst += a.colateral;
   });
+  // mcap circulante vivo por ticker · insumo del test de mcap requerido
+  // (REGLAS 4.8). Si la fuente es DefiLlama no viene y el test se omite.
+  {
+    const mc={};
+    [...L1,...L2,...L3,...BROKER].forEach(a=>{
+      const p=a.id?px[a.id]:null;
+      if(p && p.usd_market_cap>0) mc[a.tick]=p.usd_market_cap;
+    });
+    window.__mcap=mc;
+  }
   window.__apalEquity = apalEq;
   window.__apalCosto  = apalCst;
   window.__spotValor  = tot;
@@ -1354,11 +1364,15 @@ async function load(){
   document.getElementById('tb2').innerHTML=h2;
   document.getElementById('cl1').innerHTML=m1||'<div style="padding:12px;font-family:\'DM Mono\',monospace;font-size:11px;color:var(--mu)">Sin datos</div>';
   document.getElementById('cl2').innerHTML=m2||'<div style="padding:12px;font-family:\'DM Mono\',monospace;font-size:11px;color:var(--mu)">Sin datos</div>';
-  // realizable = alts al 100% + solo el 10% del BTC
+  // realizable = alts al 100% + apalancado + la fraccion de BTC que
+  // la pestana TIERS marque vendible. Nada hardcodeado.
   {
     const _btc=BROKER.find(a=>a.tick==='BTC');
     const _btcVal=_btc?(_btc.price||0)*_btc.qty:0;
-    window.__realizable = tot - _btcVal*0.90;
+    const _f=btcVendible();
+    window.__btcVendible = _f;
+    window.__btcColchon  = _btcVal*(1-_f);
+    window.__realizable  = tot - window.__btcColchon;
   }
   renderBroker();try{renderApalancadas();}catch(e){}renderGoal(tot);
   const pnl=tot-cst,pp=(pnl/cst)*100;
@@ -1501,7 +1515,7 @@ function renderRitmo(){
   // cabecera siempre visible, aunque aun no haya historial suficiente
   const HDR='<div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--bd)">'
     +'<div style="font-family:\'DM Mono\',monospace;font-size:9px;color:var(--mu);'
-    +'letter-spacing:.08em;text-transform:uppercase;margin-bottom:7px">\u00bfVoy a tiempo?</div>';
+    +'letter-spacing:.08em;text-transform:uppercase;margin-bottom:7px">Ritmo observado</div>';
 
   let nSnaps=0, dias=0;
   try{
@@ -1528,14 +1542,11 @@ function renderRitmo(){
     return;
   }
   const MESR=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
-  const objTxt='dic 2028';
   const fTxt = r.fecha ? MESR[r.fecha.getMonth()]+' '+r.fecha.getFullYear() : 'no alcanza';
-  const col = !r.fecha ? '#e34948' : (r.aTiempo ? '#34d07a' : '#eda100');
+  const col = !r.fecha ? '#eda100' : '#3db8f5';
   let msg;
-  if(!r.fecha) msg='Al ritmo conservador no cubre el saldo en el horizonte.';
-  else if(r.aTiempo) msg='Vas adelantado frente a '+objTxt+' incluso en el escenario conservador.';
-  else { const mm=Math.round((r.fecha-OBJETIVO_FECHA)/(30.44*86400000));
-         msg='En el escenario conservador llegas '+mm+' meses tarde contra '+objTxt+'.'; }
+  if(!r.fecha) msg='Al ritmo base no cubre el saldo dentro del horizonte simulado. Es lo que da la mediana de los meses registrados, no un veredicto.';
+  else msg='Al ritmo base alcanza el saldo en '+r.meses+' mes'+(r.meses===1?'':'es')+'. Estimación sobre '+(r.muestras||0)+' meses de historial: el objetivo no tiene fecha y cada corte mueve este número.';
   const fReal = r.fechaReal ? MESR[r.fechaReal.getMonth()]+' '+r.fechaReal.getFullYear() : null;
   const card=(lbl,val,sub,c,bg)=>'<div style="background:'+(bg||'var(--s2)')+';border-radius:6px;padding:8px 10px'
     +(bg?';border:1px solid rgba(237,161,0,.3)':'')+'">'
@@ -1546,12 +1557,12 @@ function renderRitmo(){
   box.innerHTML = HDR
     +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">'
     +card('Ritmo conservador','+'+(r.gAnual*100).toFixed(0)+'% / año',(r.gMensual*100).toFixed(1)+'% mensual','#34d07a')
-    +card('Cubre el saldo en',fTxt,r.aTiempo?'a tiempo':'tarde',col)
+    +card('Cubriría el saldo en',fTxt,r.meses!=null?r.meses+' meses':'fuera de horizonte',col)
     +'</div>'
     +(r.capado
       ? '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">'
         +card('Tu ritmo real','+'+(r.gAnualReal*100).toFixed(0)+'% / año',(r.gMensualReal*100).toFixed(1)+'% mensual','#eda100','rgba(237,161,0,.07)')
-        +card('Si se sostiene',fReal||'—',r.aTiempoReal?'muy adelantado':'—','#eda100','rgba(237,161,0,.07)')
+        +card('Si se sostiene',fReal||'—','ritmo real sin capar','#eda100','rgba(237,161,0,.07)')
         +'</div>'
       : '')
     +'<div style="font-size:10px;color:var(--mu);line-height:1.6">'+msg+'</div>'
@@ -1946,7 +1957,9 @@ function descargarResumen(){
   const TC = 7.75;
 
   /* ── 1 · CARTERA: realizable vs colchón ─────────────────── */
-  const BTC_VENDIBLE = 0.10;
+  const BTC_VENDIBLE = btcVendible();   // de la pestana TIERS
+  const BTC_PCT_TXT  = (BTC_VENDIBLE*100).toFixed(BTC_VENDIBLE*100%1?1:0)+'%';
+  const BTC_RESTO_TXT= ((1-BTC_VENDIBLE)*100).toFixed((1-BTC_VENDIBLE)*100%1?1:0)+'%';
   let patrimonioTotal=0, operableTot=0, operableCst=0, colchonBtc=0;
   allAssets.forEach(a=>{
     const v=(a.price||0)*a.qty;
@@ -1960,7 +1973,27 @@ function descargarResumen(){
       operableCst += a.entry*a.qty;
     }
   });
+  /* ── 1b · APALANCADAS ────────────────────────────────────────
+     No es spot: es colateral en un exchange. Entra al valor total y
+     a la ganancia total [DECISION JP 14-oct-2026], en rubro propio,
+     y NO entra a la proyeccion porque no tiene tier (REGLAS 4.2).
+     Se cuenta el EQUITY (colateral + P&L no realizado), nunca el
+     notional, que es exposicion y no valor. */
+  let apalTot=0, apalCst=0;
+  const apalRows=(typeof APALANCADAS!=='undefined'?APALANCADAS:[]).map(a=>{
+    const precio=a.precioManual||a.entry;
+    const eq=Math.max(a.colateral+(precio-a.entry)*a.qty,0);
+    apalTot+=eq; apalCst+=a.colateral;
+    return {tick:a.tick, qty:a.qty, px:precio, val:eq, cost:a.colateral,
+            pl:eq-a.colateral,
+            plPct:a.colateral>0?((eq-a.colateral)/a.colateral*100):0,
+            esBtc:false, esAsim:false, esApal:true,
+            lev:a.lev, venue:a.venue, liq:a.liq, lado:a.lado};
+  });
+  patrimonioTotal+=apalTot; operableTot+=apalTot; operableCst+=apalCst;
+
   const tot=operableTot, cst=operableCst;
+  const spotTot=tot-apalTot;
   const pnl=tot-cst;
   const pnlPct=cst>0?(pnl/cst*100):0;
   const mult=cst>0?(tot/cst):0;
@@ -2004,8 +2037,7 @@ function descargarResumen(){
     const px=a.price||0;
     if(!px) return null;
     let ns;
-    if(a.tick==='BTC') ns=[{pct:10,px:130000},{pct:10,px:160000},{pct:10,px:200000},{pct:10,px:250000}];
-    else if(T[a.tick]) ns=niveles(T[a.tick]);
+    if(T[a.tick]) ns=niveles(T[a.tick]);
     else return null;
     const sig=ns.find(n=>n.px>px);
     return {tick:a.tick, px, sig:sig?sig.px:null, pctVenta:sig?sig.pct:null,
@@ -2016,27 +2048,67 @@ function descargarResumen(){
   const masCerca = distancias.find(d=>d.dist!==null);
 
   /* ── 5 · POSICIONES ORDENADAS ───────────────────────────── */
-  const posiciones = allAssets.map(a=>{
+  const posSpot = allAssets.map(a=>{
     const esBtc=a.tick==='BTC';
     const v=(a.price||0)*a.qty*(esBtc?BTC_VENDIBLE:1);
     const c=a.entry*a.qty*(esBtc?BTC_VENDIBLE:1);
     return {tick:a.tick, qty:a.qty, px:a.price||0, val:v, cost:c,
-            pl:v-c, plPct:c>0?((v-c)/c*100):0, peso:tot>0?(v/tot*100):0, esBtc,
+            pl:v-c, plPct:c>0?((v-c)/c*100):0, esBtc, esApal:false,
             esAsim:ASIM.has(a.tick)};
-  }).sort((a,b)=>b.val-a.val);
+  });
+  const posiciones = posSpot.concat(apalRows)
+    .map(p=>Object.assign({}, p, {peso: tot>0?(p.val/tot*100):0}))
+    .sort((a,b)=>b.val-a.val);
 
   /* ── 6 · CONCENTRACIÓN ──────────────────────────────────── */
-  const hhi = posiciones.reduce((s,p)=>s+Math.pow(p.peso,2),0);
-  const top3 = posiciones.slice(0,3).reduce((s,p)=>s+p.peso,0);
+  // Concentracion sobre spot repesado: un perpetuo con liquidacion
+  // no es comparable a una tenencia y distorsiona el indice.
+  const concRows = posiciones.filter(p=>!p.esApal)
+    .map(p=>({tick:p.tick, peso: spotTot>0?(p.val/spotTot*100):0}))
+    .sort((a,b)=>b.peso-a.peso);
+  const hhi = concRows.reduce((s,p)=>s+Math.pow(p.peso,2),0);
+  const top3 = concRows.slice(0,3).reduce((s,p)=>s+p.peso,0);
   const divTxt = hhi<1500?'Alta':hhi<2500?'Moderada':'Concentrada';
   const divCol = hhi<1500?'#059669':hhi<2500?'#d97706':'#dc2626';
 
   /* ── 7 · PROYECCIÓN ORDENADA ────────────────────────────── */
-  const proyRows=(proy.rows||[]).map(r=>({
-    tick:r.tick, avgPx:r.avgPx, valor:r.valor,
-    peso: proy.total>0?(r.valor/proy.total*100):0,
-    mult: (()=>{ const p=posiciones.find(x=>x.tick===r.tick); return p&&p.val>0?(r.valor/p.val):null; })()
-  })).sort((a,b)=>b.valor-a.valor);
+  /* El multiplo se mide SIEMPRE contra el valor inicial invertido
+     [DECISION JP 14-oct-2026]. Contra el valor de hoy el numero se
+     mueve con el mercado sin que cambie nada del plan: miente.
+     Asi la columna significa lo mismo en cada fila y en el total. */
+  const proyRows=(proy.rows||[]).map(r=>{
+    const sp = (typeof sumaPct==='function' && r.t) ? sumaPct(r.t) : 100;
+    const p  = posiciones.find(x=>x.tick===r.tick);
+    return {
+      tick:r.tick,
+      avgPx: sp>0 ? r.avgPx*100/sp : r.avgPx,   // precio promedio real
+      pctVend: sp,                               // % de la posicion que se vende
+      valor:r.valor, costo: p?p.cost:0,
+      peso: proy.total>0?(r.valor/proy.total*100):0,
+      mult: (p && p.cost>0) ? (r.valor/p.cost) : null,
+      // mcap requerido en el nivel mas alto de su escalera (REGLAS 4.8).
+      // No va como columna: solo marca y nota al pie, para no llenar la
+      // tabla de cifras que no se leen mes a mes [DECISION JP 14-oct-2026].
+      mcapReq: (()=>{
+        const mcHoy=(window.__mcap||{})[r.tick];
+        if(!mcHoy || !p || !p.px) return null;
+        const tope=['t1','t2','t3','trailing','moon']
+          .reduce((m,k)=> r.t&&r.t[k] ? Math.max(m,+r.t[k].px||0) : m, 0);
+        if(!tope) return null;
+        const req=mcHoy*(tope/p.px);
+        return {req, tope, veces: req/mcHoy};
+      })()
+    };
+  }).sort((a,b)=>b.valor-a.valor);
+  /* Se marca un nivel cuando pide capitalizacion grande EN ABSOLUTO
+     (>$10B, territorio top-25) Y ADEMAS multiplica por 5 o mas la de
+     hoy. Las dos condiciones juntas: el piso en dolares evita marcar
+     un 5x que en un activo chico son $200M, y el multiplo evita marcar
+     a BTC, donde $5T es 2x y no mercado nuevo que haya que crear. */
+  const MCAP_UMBRAL = 10e9, MCAP_VECES = 5;
+  const esMcapAlto = r => !!(r.mcapReq && r.mcapReq.req>MCAP_UMBRAL && r.mcapReq.veces>=MCAP_VECES);
+  const mcapAlertas = proyRows.filter(esMcapAlto);
+  const fmc = v => v>=1e12 ? '$'+(v/1e12).toFixed(1)+'T' : '$'+(v/1e9).toFixed(1)+'B';
 
   /* ── helpers ── */
   const fu=n=>'$'+Math.round(n).toLocaleString('en-US');
@@ -2172,26 +2244,27 @@ tr.tot td{font-weight:700;border-top:2px solid #e5e7eb;border-bottom:none;backgr
   if(ritmo && ritmo.gAnual!==null){
     const MES2=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
     const fTxt = ritmo.fecha ? (MES2[ritmo.fecha.getMonth()]+' '+ritmo.fecha.getFullYear()) : 'no alcanza';
-    const ok = ritmo.aTiempo;
-    const col = ok ? '#059669' : '#d97706';
+    const col = ritmo.fecha ? '#075985' : '#d97706';
     let msg;
-    if(!ritmo.fecha) msg='Al ritmo actual el portafolio no cubre el saldo dentro del horizonte.';
-    else if(ok) msg='Vas adelantado frente a diciembre 2028 incluso con el escenario conservador.';
+    if(!ritmo.fecha) msg='Al ritmo base el portafolio no cubre el saldo dentro de 30 años de simulación. '
+      +'No es un veredicto: es lo que da la mediana de los meses registrados hasta hoy.';
     else{
-      const m=Math.round((ritmo.fecha-new Date(2028,11,31))/(30.44*86400000));
-      msg='En el escenario conservador llegas '+m+' meses tarde contra diciembre 2028.';
+      const mm=ritmo.meses;
+      msg='Al ritmo base, el portafolio alcanza el saldo en '+mm+' mes'+(mm===1?'':'es')+' ('+fTxt+'). '
+        +'Es una proyección aritmética sobre '+(ritmo.muestras||0)+' meses de historial, no una fecha comprometida: '
+        +'el objetivo es cancelar lo antes posible y cada mes nuevo mueve este número.';
     }
     const fReal = ritmo.fechaReal ? (MES2[ritmo.fechaReal.getMonth()]+' '+ritmo.fechaReal.getFullYear()) : null;
 
-    bloqueRitmo='<div class="sec"><div class="st"><span>¿Voy a tiempo?</span>'
-      +'<span class="n">objetivo: cancelar en dic 2028</span></div>'
+    bloqueRitmo='<div class="sec"><div class="st"><span>Ritmo observado</span>'
+      +'<span class="n">estimación · el objetivo no tiene fecha</span></div>'
       +'<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px">'
       +'<div class="kpi"><div class="kl">Ritmo conservador</div>'
       +'<div class="kv up">+'+(ritmo.gAnual*100).toFixed(0)+'% / año</div>'
       +'<div class="kd mu">'+(ritmo.gMensual*100).toFixed(1)+'% mensual</div></div>'
-      +'<div class="kpi"><div class="kl">Cubre el saldo en</div>'
+      +'<div class="kpi"><div class="kl">Cubriría el saldo en</div>'
       +'<div class="kv" style="color:'+col+'">'+fTxt+'</div>'
-      +'<div class="kd mu">'+(ok?'a tiempo':'tarde')+'</div></div></div>'
+      +'<div class="kd mu">'+(ritmo.meses!=null?ritmo.meses+' meses al ritmo base':'fuera de horizonte')+'</div></div></div>'
       +(ritmo.capado
         ? '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:8px">'
           +'<div class="kpi" style="border-color:#fcd34d;background:#fffbeb"><div class="kl">Tu ritmo real</div>'
@@ -2199,9 +2272,9 @@ tr.tot td{font-weight:700;border-top:2px solid #e5e7eb;border-bottom:none;backgr
           +'<div class="kd mu">'+(ritmo.gMensualReal*100).toFixed(1)+'% mensual</div></div>'
           +'<div class="kpi" style="border-color:#fcd34d;background:#fffbeb"><div class="kl">Si se sostiene</div>'
           +'<div class="kv" style="color:#b45309">'+(fReal||'—')+'</div>'
-          +'<div class="kd mu">'+(ritmo.aTiempoReal?'muy adelantado':'—')+'</div></div></div>'
+          +'<div class="kd mu">ritmo real sin capar</div></div></div>'
         : '')
-      +'<div class="al '+(ok?'al-g':'al-a')+'" style="margin-top:9px;margin-bottom:0">'+msg+'</div>'
+      +'<div class="al al-a" style="margin-top:9px;margin-bottom:0">'+msg+'</div>'
       +'<div class="nt">Ritmo = mediana de las variaciones mensuales sobre '+(ritmo.muestras||0)+' meses. '
       +(ritmo.capado
         ? 'El escenario base capa el crecimiento a 12% mensual porque sostener mas dos anios no tiene precedente; '
@@ -2209,8 +2282,8 @@ tr.tot td{font-weight:700;border-top:2px solid #e5e7eb;border-bottom:none;backgr
         : 'Se usa la mediana y no el promedio para que un mes extraordinario no arrastre la proyeccion.')
       +' El saldo baja ~Q5,200 de capital por cuota.</div></div>';
   } else {
-    bloqueRitmo='<div class="sec"><div class="st"><span>¿Voy a tiempo?</span>'
-      +'<span class="n">requiere 30 días de historial</span></div>'
+    bloqueRitmo='<div class="sec"><div class="st"><span>Ritmo observado</span>'
+      +'<span class="n">requiere 3 meses de registros</span></div>'
       +'<div class="al al-a" style="margin-bottom:0">Aún no hay historial suficiente para estimar el ritmo. '
       +'El tracker guarda un registro cada vez que abres la app con precios actualizados.</div></div>';
   }
@@ -2229,17 +2302,17 @@ tr.tot td{font-weight:700;border-top:2px solid #e5e7eb;border-bottom:none;backgr
    +'<div><span class="big">'+fu(tot)+'</span><span class="big-s">'+fq(tot*TC)+'</span>'
    +'<span class="dl '+(pnl>=0?'dl-up':'dl-dn')+'">'+(pnl>=0?'▲':'▼')+' P&L '+(pnl>=0?'+':'−')+fu(Math.abs(pnl))+' · '+pc(pnlPct)+'</span></div>'
    +'<div style="font-size:10px;opacity:.55;margin-top:6px;font-family:monospace">'
-   +'alts al 100% + 10% del BTC · el 90% restante ('+fu(colchonBtc)+') queda fuera</div></div>'
+   +'alts al 100% + apalancado + '+BTC_PCT_TXT+' del BTC · el '+BTC_RESTO_TXT+' restante ('+fu(colchonBtc)+') queda fuera</div></div>'
 
    +'<div class="kpis">'
    +'<div class="kpi"><div class="kl">Capital</div><div class="kv">'+fu(cst)+'</div>'
-   +'<div class="kd mu">aportado</div></div>'
+   +'<div class="kd mu">aportado'+(apalCst>0?' · incl. '+fu(apalCst)+' colateral':'')+'</div></div>'
    +'<div class="kpi"><div class="kl">Múltiplo</div><div class="kv '+(mult>=1?'up':'dn')+'">'+mult.toFixed(2)+'x</div>'
    +'<div class="kd mu">sobre capital</div></div>'
    +'<div class="kpi"><div class="kl">Cubre del préstamo</div><div class="kv">'+pc(pctHoy)+'</div>'
    +'<div class="kd mu">de '+fu(saldoUsd)+'</div></div>'
    +'<div class="kpi"><div class="kl">Patrimonio cripto</div><div class="kv">'+fu(patrimonioTotal)+'</div>'
-   +'<div class="kd mu">incluye colchón BTC</div></div></div>'
+   +'<div class="kd mu">colchón BTC + apalancado</div></div></div>'
 
    +alertaTier
 
@@ -2254,13 +2327,14 @@ tr.tot td{font-weight:700;border-top:2px solid #e5e7eb;border-bottom:none;backgr
        +'<div class="al al-a" style="margin-bottom:0">Aún no hay suficientes registros mensuales para trazar la evolución.</div></div>')
 
    +'<div class="sec"><div class="st"><span>Posiciones</span>'
-   +'<span class="n">'+posiciones.length+' activos · BTC contado al 10%</span></div>'
+   +'<span class="n">'+posiciones.length+' activos · BTC contado al '+BTC_PCT_TXT+'</span></div>'
    +'<table><thead><tr><th>Activo</th><th class="r">Precio</th><th class="r">Valor</th>'
    +'<th class="r">P&L</th><th class="r">% cartera</th></tr></thead><tbody>'
    +posiciones.map(p=>'<tr><td><b>'+p.tick+'</b>'
      +(p.esAsim?'<span class="tag" style="background:#fff7ed;color:#9a3412;font-size:8px;font-weight:700;padding:1px 6px;border-radius:10px;margin-left:5px">asimétrica</span>':'')
+     +(p.esApal?'<span class="tag" style="background:#fef2f2;color:#991b1b;font-size:8px;font-weight:700;padding:1px 6px;border-radius:10px;margin-left:5px">apalancada</span>':'')
      +'<span class="s2">'+p.qty.toLocaleString('en-US',{maximumFractionDigits:4})
-     +(p.esBtc?' total · 10% operable':'')+'</span></td>'
+     +(p.esBtc?' total · '+BTC_PCT_TXT+' operable':'')+(p.esApal?' · perpetuo '+p.lev+'x · '+p.venue:'')+'</span></td>'
      +'<td class="r mono">'+px(p.px)+'</td>'
      +'<td class="r mono">'+fu(p.val)+'</td>'
      +'<td class="r mono '+(p.plPct>=0?'up':'dn')+'">'+(p.plPct>=0?'+':'')+pc(p.plPct)+'</td>'
@@ -2270,11 +2344,11 @@ tr.tot td{font-weight:700;border-top:2px solid #e5e7eb;border-bottom:none;backgr
    +'<td class="r mono mu">100%</td></tr></tbody></table></div>'
 
    +'<div class="sec"><div class="st"><span>Concentración</span>'
-   +'<span class="n">qué tan repartido está el riesgo</span></div><table><tbody>'
-   +'<tr><td><b>Mayor posición</b><span class="s2">'+(posiciones[0]?posiciones[0].tick:'—')+'</span></td>'
-   +'<td class="r mono" style="font-weight:700">'+pc(posiciones[0]?posiciones[0].peso:0)+'</td>'
-   +'<td style="width:130px">'+bar(posiciones[0]?posiciones[0].peso:0,'#0284c7',7)+'</td></tr>'
-   +'<tr><td><b>Top 3</b><span class="s2">'+posiciones.slice(0,3).map(p=>p.tick).join(' + ')+'</span></td>'
+   +'<span class="n">solo spot · repesado</span></div><table><tbody>'
+   +'<tr><td><b>Mayor posición</b><span class="s2">'+(concRows[0]?concRows[0].tick:'—')+'</span></td>'
+   +'<td class="r mono" style="font-weight:700">'+pc(concRows[0]?concRows[0].peso:0)+'</td>'
+   +'<td style="width:130px">'+bar(concRows[0]?concRows[0].peso:0,'#0284c7',7)+'</td></tr>'
+   +'<tr><td><b>Top 3</b><span class="s2">'+concRows.slice(0,3).map(p=>p.tick).join(' + ')+'</span></td>'
    +'<td class="r mono" style="font-weight:700">'+pc(top3)+'</td>'
    +'<td>'+bar(top3,'#0284c7',7)+'</td></tr>'
    +'<tr><td><b>Diversificación</b><span class="s2">índice HHI '+Math.round(hhi).toLocaleString()+'</span></td>'
@@ -2327,10 +2401,14 @@ tr.tot td{font-weight:700;border-top:2px solid #e5e7eb;border-bottom:none;backgr
    +'<div class="sec"><div class="st"><span>Proyección con venta escalonada</span>'
    +'<span class="n">tokens × precio promedio ponderado</span></div>'
    +'<table><thead><tr><th>Activo</th><th class="r">Precio prom.</th><th class="r">Proyectado</th>'
-   +'<th class="r">Múltiplo</th><th class="r">% del total</th></tr></thead><tbody>'
+   +'<th class="r">Múltiplo s/ costo</th><th class="r">% del total</th></tr></thead><tbody>'
    +proyRows.map(r=>{
       const alto=r.peso>25;
-      return '<tr><td><b>'+r.tick+'</b></td>'
+      const mcAlto = esMcapAlto(r);
+      return '<tr><td><b>'+r.tick+'</b>'
+        +(mcAlto?'<span style="color:#b45309;font-weight:700"> †</span>':'')
+        +'<span class="s2">vende '+r.pctVend.toFixed(0)+'%'
+        +(r.costo>0?' · costo '+fu(r.costo):'')+'</span></td>'
         +'<td class="r mono">'+px(r.avgPx)+'</td>'
         +'<td class="r mono"'+(alto?' style="font-weight:700"':'')+'>'+fu(r.valor)+'</td>'
         +'<td class="r mono '+(r.mult&&r.mult>10?'dn':'')+'">'+(r.mult?r.mult.toFixed(1)+'x':'—')+'</td>'
@@ -2339,12 +2417,34 @@ tr.tot td{font-weight:700;border-top:2px solid #e5e7eb;border-bottom:none;backgr
    +'<tr class="tot"><td>Total proyectado</td><td></td><td class="r mono" style="color:#0c4a6e">'+fu(proy.total)+'</td>'
    +'<td class="r mono">'+(cst>0?(proy.total/cst).toFixed(1)+'x':'—')+'</td><td class="r mono mu">100%</td></tr>'
    +'</tbody></table>'
+   +'<div class="nt">El múltiplo es proyectado ÷ capital invertido en ese activo, nunca contra el precio de hoy: '
+   +'medido contra hoy el número sube y baja con el mercado sin que cambie el plan. '
+   +'Por eso la columna significa lo mismo en cada fila y en el total, y las filas suman al total. '
+   +'«Precio prom.» es el promedio ponderado de los niveles de venta; «vende X%» es cuánto de la posición se liquida '
+   +'— lo que no se vende corre sin techo y no está proyectado aquí.</div>'
+   +(mcapAlertas.length
+     ? '<div class="nt" style="color:#b45309"><b>†</b> Su nivel más alto exige una capitalización de '
+       +'más de $10B y al menos 5× la de hoy: '
+       +mcapAlertas.map(r=>r.tick+' a '+px(r.mcapReq.tope)+' pide '
+           +fmc(r.mcapReq.req)+' ('+r.mcapReq.veces.toFixed(0)+'× su mcap actual)').join(' · ')
+       +'. No dice que no pueda pasar: dice cuánto mercado hay que crear para que pase. '
+       +'Sobre capitalización circulante de hoy, no sobre picos históricos.</div>'
+     : '')
    +(proyRows.length && proyRows[0].peso>25
      ? '<div class="al al-a" style="margin-top:9px;margin-bottom:0"><b>'+proyRows[0].tick
        +' aporta '+pc(proyRows[0].peso)+' de la proyección</b> pesando '
        +pc(posiciones.find(p=>p.tick===proyRows[0].tick)?posiciones.find(p=>p.tick===proyRows[0].tick).peso:0)
        +' de la cartera. Si no cumple su múltiplo, la proyección cae a '
        +fu(proy.total-proyRows[0].valor)+'.</div>'
+     : '')
+   +(apalRows.length
+     ? '<div class="al al-r" style="margin-top:9px;margin-bottom:0">'
+       +'<b>Fuera de esta proyección: '
+       +apalRows.map(a=>a.tick+' '+a.lev+'x '+a.lado).join(' · ')+'.</b> '
+       +'Vale '+fu(apalTot)+' de equity hoy y sí cuenta en el valor total y en el P&amp;L de la página 1, '
+       +'pero no tiene tier: corre sin nivel de salida, así que no hay precio con el que proyectarla. '
+       +'Meterla con un precio supuesto inflaría la cobertura con un número inventado. '
+       +apalRows.map(a=>a.tick+' se liquida en '+px(a.liq)).join(' · ')+'.</div>'
      : '')
    +'</div>'
 
@@ -2451,6 +2551,19 @@ function resetTranches(tick){
 }
 function sumaPct(t){
   return ['t1','t2','t3','trailing','moon'].reduce((s,k)=> s + (t[k] ? (+t[k].pct||0) : 0), 0);
+}
+// ── FRACCION DE BTC VENDIBLE ───────────────────────────────────
+// No se escribe en ningun lado: se lee de la pestana TIERS, que es
+// su unico dueno. Si manana cambias el tier de BTC, el realizable,
+// el colchon, el documento y los textos se mueven solos.
+function btcVendible(){
+  try{
+    if(typeof TRANCHES!=='undefined' && TRANCHES['BTC']){
+      const f = sumaPct(TRANCHES['BTC'])/100;
+      if(f>0 && f<=1) return f;
+    }
+  }catch(e){}
+  return 0.25;  // ultimo recurso si TIERS no cargo [DECISION JP 14-oct-2026]
 }
 function onTierEdit(tick, nivel, campo, val){
   const v = parseFloat(val);

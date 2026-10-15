@@ -301,6 +301,8 @@ body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--tx);min-heig
   </div>
   <div class="io-row"><span id="sync-ts" style="font-family:'DM Mono',monospace;font-size:11px;
     color:var(--mu2);opacity:.9">—</span></div>
+  <div id="banda-sinc" style="display:none;margin:4px 0 0;font-family:'DM Mono',monospace;
+    font-size:10px;letter-spacing:.02em;cursor:help"></div>
   <div class="io-row">
     <button class="io-btn drive-save" onclick="driveSave()">☁ Guardar en Drive</button>
     <button class="io-btn drive-load" onclick="driveLoad()">☁ Cargar desde Drive</button>
@@ -800,6 +802,7 @@ function fechaCorta(ts){
     {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}); }catch(e){ return ''; }
 }
 function pintarSync(){
+  try{ pintarBandaSincBG(); }catch(e){}
   const el=document.getElementById('sync-ts'); if(!el) return;
   const m=leerMeta();
   el.innerHTML = m
@@ -1087,11 +1090,11 @@ function renderPatrimonio(){
   const salHip = saldoHip();
   salHipGlobal = salHip; // exponer para renderMetaAbono
 
-  // Reservas líquidas (TODAS, en Q) — incluye BTC reserva
-  const btcQty=parseFloat(COLS.btcQty)||0;
-  const btcPx=parseFloat(COLS.btcPx)||0;
-  const btcUsd=btcQty*btcPx;
-  const btcQ=btcUsd*tc;
+  // Reservas líquidas (TODAS, en Q) — incluye el colchón de BTC
+  const _bd = btcDesglose();
+  const btcQty=_bd.qty, btcPx=_bd.px;
+  const btcUsd=_bd.btcUsd, colchonUsd=_bd.colchonUsd, btcFuente=_bd.fuente;
+  const btcQ=colchonUsd*tc;   // solo el colchón entra a reservas
   const reservasQ = (COLS.emer||0)+(COLS.bant||0)+(COLS.buf||0)
                   +((COLS.reimb||0)*tc)+((COLS.abiUsd||0)*tc)+btcQ;
   // Cash personal Lulubit (disponible hoy, se cuenta como liquidez)
@@ -1100,8 +1103,13 @@ function renderPatrimonio(){
   // Valores manuales (USD)
   const casaUsd=parseFloat(ST.casaUsd)||210000;
   const portTotalUsd=parseFloat(ST.portafolioUsd)||0;  // incluye TODO el BTC
-  const portSinBtcUsd=Math.max(portTotalUsd-btcUsd,0);  // resto = total − BTC (referencia)
-  const portNegativo = (portTotalUsd>0 && portTotalUsd<btcUsd);
+  /* Lo que queda fuera de reservas: el patrimonio menos el colchón.
+     Con el tracker publicando es exactamente su «realizable», o sea
+     alts al 100% mas la parte vendible del BTC — sin doble conteo y
+     sin que sobre ni falte un dolar entre los dos bloques. */
+  const portSinBtcUsd = Math.max(_bd.realizableUsd, 0);
+  const portNegativo = (_bd.fuente==='manual' && portTotalUsd>0 && portTotalUsd<btcUsd);
+  const btcVendibleUsd = _bd.vendibleUsd;
 
   // Activos (todo en USD)
   const casaU=casaUsd;
@@ -1230,7 +1238,7 @@ function renderPatrimonio(){
           💵 Inmediata <b style="color:var(--ac);font-size:11px">${fqR(liqInmediataQ)}</b> <span style="color:var(--mu2)">· usable hoy</span><br>
           <span style="color:var(--mu2);padding-left:16px;font-size:9px">Monetaria + Lulubit + 40% Bantrab + reembolsos + superávit</span><br>
           📈 Cartera <b style="color:var(--pu);font-size:11px">${fqR(criptoQ)}</b> <span style="color:var(--mu2)">· requiere vender</span><br>
-          <span style="color:var(--mu2);padding-left:16px;font-size:9px">alts 100% + 10% del BTC</span>
+          <span style="color:var(--mu2);padding-left:16px;font-size:9px">alts 100% + ${btcUsd>0?(((btcVendibleUsd/btcUsd)*100).toFixed(0)+'% del BTC'):'BTC'}${btcFuente==='tracker'?' · del tracker':' · BTC a mano'}</span>
         </div>
       </div>
     </div>
@@ -1247,8 +1255,8 @@ function renderPatrimonio(){
         placeholder="valor del portfolio tracker">
       <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu2);margin-top:4px;line-height:1.4">
         ${ST._portFuente==='tracker'
-          ? `<span style="color:var(--gr)">✓ Lo lee del portfolio tracker</span> · publicado ${ST._portTs?new Date(ST._portTs).toLocaleString('es-GT',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'—'}.
-             No hace falta copiarlo: si abres el tracker, este valor se actualiza solo.`
+          ? `<span style="color:var(--gr)">✓ Lo lee del portfolio tracker</span> · publicado ${ST._portTs?new Date(ST._portTs).toLocaleString('es-GT',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}).replace(/\.$/,''):'—'} ·
+             no hace falta copiarlo: si abres el tracker, este valor se actualiza solo.`
           : `<span style="color:var(--go)">⚠ Escrito a mano</span> · el portfolio tracker no ha publicado nada en este navegador.
              Ábrelo una vez y este campo se llena solo.`}<br>
         El BTC ya cuenta en Reservas, así que aquí se resta: se usa solo el resto.</div>
@@ -1602,31 +1610,37 @@ function renderCols(){
   }).join('');
 
   // Card BTC reserva (especial: cantidad + precio = USD = Q)
-  const btcQty = parseFloat(COLS.btcQty)||0;
-  const btcPx  = parseFloat(COLS.btcPx)||0;
-  const btcUsd = btcQty * btcPx;
-  const btcQ   = btcUsd * tc;
+  const _bdc = btcDesglose();
+  const btcQty = _bdc.qty;
+  const btcPx  = _bdc.px;
+  const btcUsd = _bdc.btcUsd;
+  const btcQ   = _bdc.colchonUsd * tc;   // en reservas solo entra el colchón
   const btcOrange = '#f7931a';
   cardsHtml += `<div class="col-card" style="border-color:${btcOrange}33">
     <div class="col-ttl" style="color:${btcOrange}">₿ BTC reserva</div>
     <div class="col-cuenta">🏦 SeedSigner · HODL</div>
-    <div class="col-row"><span class="col-lbl">Cantidad BTC</span></div>
-    <input class="col-inp" type="number" value="${btcQty}" step="0.00000001" min="0"
-      onchange="onColChange('btcQty',this.value)"
-      placeholder="0.10289" style="color:${btcOrange};border-color:${btcOrange}55;margin:4px 0">
+    <div class="col-row"><span class="col-lbl">Cantidad BTC</span>
+      <span style="font-family:'DM Mono',monospace;font-size:8px;color:${_bdc.fuente==='tracker'?'var(--gr)':'var(--go)'}">${_bdc.fuente==='tracker'?'✓ del tracker':'⚠ a mano'}</span></div>
+    <input class="col-inp" type="number" value="${_bdc.fuente==='tracker'?(_bdc.px>0?(_bdc.btcUsd/_bdc.px):btcQty):btcQty}" step="0.00000001" min="0"
+      ${_bdc.fuente==='tracker'?'readonly title="Lo manda el portfolio tracker"':`onchange="onColChange('btcQty',this.value)"`}
+      placeholder="0.10289" style="color:${btcOrange};border-color:${btcOrange}55;margin:4px 0;${_bdc.fuente==='tracker'?'opacity:.75;cursor:not-allowed':''}">
     <div class="col-row" style="margin-top:6px"><span class="col-lbl">Precio BTC (USD)</span>
       <span id="btc-px-status" style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu2)">${btcPxStatusHtml()}</span></div>
     <input class="col-inp" type="number" value="${btcPx}" step="1" min="0" readonly
       title="Se actualiza solo desde CoinGecko"
       placeholder="78670" style="color:${btcOrange};border-color:${btcOrange}55;margin:4px 0">
     <div class="col-row" style="margin-top:8px;border-top:1px solid var(--bd);padding-top:6px">
-      <span class="col-lbl">Valor USD</span>
+      <span class="col-lbl">BTC total</span>
       <span class="col-val" style="color:${btcOrange}">$${btcUsd.toLocaleString('en-US',{maximumFractionDigits:0})}</span>
     </div>
     <div class="col-row">
-      <span class="col-lbl">Equivalente Q</span>
+      <span class="col-lbl">Colch&oacute;n &middot; entra a reservas</span>
       <span class="col-val" style="color:${btcOrange};font-weight:700">${fq(btcQ)}</span>
     </div>
+    ${_bdc.vendibleUsd>0?`<div class="col-row">
+      <span class="col-lbl" style="color:var(--mu2)">Vendible &middot; va a cartera</span>
+      <span class="col-val" style="color:var(--mu2)">$${_bdc.vendibleUsd.toLocaleString('en-US',{maximumFractionDigits:0})} &middot; ${(_bdc.vendibleUsd/_bdc.btcUsd*100).toFixed(0)}%</span>
+    </div>`:''}
   </div>`;
 
   document.getElementById('col-grid').innerHTML = cardsHtml;
@@ -2147,6 +2161,85 @@ function recalc(){
    leen. Es aditivo — no toca ninguna llave existente — y se guarda
    con svS(d,true) para que no cuente como edicion tuya.
    [DECISION JP 14-oct-2026] */
+/* ── LO QUE EL TRACKER DE PORTAFOLIO PUBLICA ─────────────────────
+   El tracker es el dueno del BTC: tiene la cantidad, el precio y el
+   tier que define que parte es colchon y que parte se vende.
+   De su pf_export salen tres numeros:
+     patrimonio  = todo a valor pleno
+     realizable  = patrimonio menos el colchon de BTC (lo vendible)
+     btcUsd      = el BTC completo
+   El colchon (patrimonio - realizable) es la parte que no se toca:
+   esa es la que cuenta como reserva. El resto es cartera operable.
+   Los campos COLS.btcQty/btcPx quedan como respaldo si el tracker no
+   publico nada en este navegador [DECISION JP 14-oct-2026]. */
+function pfExport(){
+  try{
+    const x=JSON.parse(localStorage.getItem('pf_export')||'null');
+    if(x && parseFloat(x.patrimonio)>0) return x;
+  }catch(e){}
+  return null;
+}
+
+/* Desglose unico del BTC y de la cartera. Antes cada seccion
+   recalculaba btcQty*btcPx por su cuenta y una de ellas usaba un
+   10% fijo como parte vendible, cuando el tier real es otro.
+   Ahora todas leen de aqui [DECISION JP 14-oct-2026]. */
+/* ── BANDA DE SINCRONIZACION ──────────────────────────────────────
+   Igual que la del portafolio, para ver de un golpe si el valor del
+   portafolio y el BTC vienen del tracker o de los campos a mano.
+   [DECISION JP 14-oct-2026] */
+const SINC_DIAS_FRESCO = 8;
+function pintarBandaSincBG(){
+  const el=document.getElementById('banda-sinc'); if(!el) return;
+  const x=pfExport();
+  const dias=(x&&x.ts)?(Date.now()-x.ts)/86400000:null;
+  const fmt=t=>new Date(t).toLocaleDateString('es-GT',{day:'2-digit',month:'short'})
+             +' '+new Date(t).toTimeString().slice(0,5);
+  const fu0=v=>'$'+Math.round(v).toLocaleString('en-US');
+  let est,col,corto,largo;
+  if(!x){
+    est='rojo'; col='#e34948';
+    corto='Sin sincronizar \u00b7 datos manuales';
+    largo='El portfolio tracker no ha publicado nada en este navegador: el valor del portafolio y el BTC '
+      +'salen de los campos escritos a mano. Abr\u00ed el tracker una vez y recarg\u00e1 esta p\u00e1gina.';
+  } else if(dias!=null && dias>SINC_DIAS_FRESCO){
+    est='ambar'; col='#eda100';
+    corto='Tracker sin abrir hace '+Math.round(dias)+' d\u00edas';
+    largo='Public\u00f3 el '+fmt(x.ts)+'. El patrimonio y el BTC pueden estar desactualizados \u2014 '
+      +'abr\u00ed el portfolio tracker para refrescarlos.';
+  } else {
+    est='verde'; col='#34d07a';
+    const d=btcDesglose();
+    corto='Sincronizado con el tracker \u00b7 '+fmt(x.ts);
+    largo='Patrimonio '+fu0(d.patrimonioUsd)+' y BTC '+fu0(d.btcUsd)+' vienen del portfolio tracker. '
+      +'El colch\u00f3n ('+fu0(d.colchonUsd)+') cuenta en Reservas; lo vendible ('+fu0(d.vendibleUsd)+') en Cartera.';
+  }
+  el.style.display='block'; el.style.color=col;
+  el.title=largo;
+  el.innerHTML='<span style="font-size:13px;line-height:1">'+(est==='verde'?'\u25cf':'\u25b2')
+    +'</span> '+corto+' <span style="opacity:.5">\u00b7 pasa el cursor para el detalle</span>';
+  el.dataset.estado=est;
+}
+
+function btcDesglose(){
+  const x = pfExport();
+  const qty = parseFloat(COLS.btcQty)||0;
+  const px  = parseFloat(COLS.btcPx)||0;
+  const manual = qty*px;
+  if(x){
+    const pat  = parseFloat(x.patrimonio)||0;
+    const real = parseFloat(x.realizable)||0;
+    const btc  = parseFloat(x.btcUsd)||0;
+    const colchon = Math.max(pat-real, 0);
+    return {fuente:'tracker', qty, px, btcUsd:btc, colchonUsd:colchon,
+            vendibleUsd:Math.max(btc-colchon,0),
+            patrimonioUsd:pat, realizableUsd:real, ts:x.ts||null};
+  }
+  const pt = parseFloat(ST.portafolioUsd)||0;
+  return {fuente:'manual', qty, px, btcUsd:manual, colchonUsd:manual, vendibleUsd:0,
+          patrimonioUsd:pt, realizableUsd:Math.max(pt-manual,0), ts:null};
+}
+
 function publicarExportBdgt(){
   try{
     const saldo = (typeof saldoHip==='function') ? saldoHip() : null;
@@ -2286,10 +2379,10 @@ function descargarResumen(){
   const tc=ST.tc||7.75, tf=FIJOS_TOTAL;
   const ingTotal=ST.q1+ST.q2;
   const excMes=Math.max(ingTotal-tf,0);
-  const btcQty = +(COLS.btcQty||0);
-  const btcPx  = +(COLS.btcPx||0);
-  const btcUsd = btcQty * btcPx;
-  const btcQ   = btcUsd * tc;
+  const _bdr = btcDesglose();
+  const btcQty = _bdr.qty, btcPx = _bdr.px;
+  const btcUsd = _bdr.btcUsd;
+  const btcQ   = _bdr.colchonUsd * tc;
   const totalRes=COLS.emer+COLS.bant+COLS.buf+(COLS.reimb*tc)+((COLS.abiUsd||0)*tc)+btcQ+(parseFloat(ST.reservaLulu)||0); // imp unificado en emer; BTC, Ahorro BI USD y Lulubit sumados al total
   const salHip = saldoHip();
   const mesesPeriodo=getCuotasMeses();
@@ -2908,10 +3001,12 @@ function descargarResumen(){
     // ── PODER DE ABONO ──
     +(()=>{
       const PCT_BANT=0.40;
-      const altsU=Math.max((parseFloat(ST.portafolioUsd)||0)-btcUsd,0);
-      const criptoQ=(altsU+btcUsd*0.10)*tc;
+      const _bda=btcDesglose();
+      const criptoQ=_bda.realizableUsd*tc;
       const fuentes=[
-        {n:'Cripto realizable', v:criptoQ,             c:'alts 100% + BTC 10%'},
+        {n:'Cripto realizable', v:criptoQ,
+         c:'alts 100% + BTC '+(_bda.btcUsd>0?((_bda.vendibleUsd/_bda.btcUsd*100).toFixed(0)+'%'):'0%')
+           +(_bda.fuente==='tracker'?' · del tracker':' · a mano')},
         {n:'Bantrab',           v:COLS.bant*PCT_BANT,  c:'40% maximo'},
         {n:'Ahorro BI · USD',   v:(COLS.abiUsd||0)*tc, c:'100% · superavit'},
         {n:'Reembolsos',        v:(COLS.reimb||0)*tc,  c:'100%'},
@@ -3016,12 +3111,15 @@ function renderMetaAbono(){
   const reembQ      = reembUsd * tc;
 
   const portTotalUsd = parseFloat(ST.portafolioUsd)||0;
-  const btcQty = parseFloat(COLS.btcQty)||0;
-  const btcPx = parseFloat(COLS.btcPx)||0;
-  const btcUsd = btcQty * btcPx;
-  const altsUsd = Math.max(portTotalUsd - btcUsd, 0);
-  const btcVendibleUsd = btcUsd * 0.10;
-  const criptoRealizableUsd = altsUsd + btcVendibleUsd;
+  /* El 10% fijo que habia aqui como parte vendible del BTC no
+     corresponde a ningun tier: el tracker define esa fraccion en su
+     pestana TIERS y publica el resultado ya calculado. */
+  const _bdp = btcDesglose();
+  const btcQty = _bdp.qty, btcPx = _bdp.px;
+  const btcUsd = _bdp.btcUsd;
+  const btcVendibleUsd = _bdp.vendibleUsd;
+  const altsUsd = Math.max(_bdp.realizableUsd - btcVendibleUsd, 0);
+  const criptoRealizableUsd = _bdp.realizableUsd;
   const criptoRealizableQ = criptoRealizableUsd * tc;
 
   const saldoHipQ = (typeof salHipGlobal!=='undefined' && salHipGlobal>0) ? salHipGlobal : HIP.principal;
@@ -3738,7 +3836,7 @@ function takeSnapshot(){
               btcQty: btcQty, btcPx: btcPx, btcQ: btcQ, total: total,
               neto: Math.round(_neto), casa: Math.round(_casaQ), hipoteca: Math.round(_hipQ),
               colchon: Math.round(_colchon), inmediata: Math.round(_inmediata),
-              cartera: Math.round(_portSinBtcQ + btcQ*0.10)};
+              cartera: Math.round(btcDesglose().realizableUsd * tc)};
   if(existing >= 0){
     SNAPSHOTS[existing] = snap;
   } else {

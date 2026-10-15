@@ -346,6 +346,8 @@ td:first-child{text-align:left;}
   <div><h1>PORT<em>FOLIO</em></h1><div class="sub" id="ts">Conectando...</div>
   <div class="sub" id="sync-ts" style="margin-top:3px;font-size:11px;opacity:.85">—</div></div>
 </div>
+<div id="banda-sinc" style="display:none;margin:0 0 9px;font-family:'DM Mono',monospace;
+  font-size:10px;letter-spacing:.02em;cursor:help"></div>
 <div class="io-wrap">
   <div class="io-row">
     <a href="../" class="io-btn home">← Inicio</a>
@@ -720,7 +722,55 @@ function fechaCorta(ts){
   try{ return new Date(ts).toLocaleString('es-GT',
     {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}); }catch(e){ return ''; }
 }
+/* ── BANDA DE SINCRONIZACION ──────────────────────────────────────
+   Para ver de un golpe si los numeros vienen de su dueno o de un
+   respaldo. Verde: el budget publico y esta fresco. Ambar: publico
+   pero hace dias, o falta el aporte del mes. Rojo: no hay nada del
+   budget en este navegador y todo va con respaldos.
+   [DECISION JP 14-oct-2026] */
+const SINC_DIAS_FRESCO = 8;
+function pintarBandaSinc(){
+  const el=document.getElementById('banda-sinc'); if(!el) return;
+  const x=bdgtExport();
+  const dias=(x&&x.ts)?(Date.now()-x.ts)/86400000:null;
+  const fmt=t=>new Date(t).toLocaleDateString('es-GT',{day:'2-digit',month:'short'})
+             +' '+new Date(t).toTimeString().slice(0,5);
+  let faltaAporte=false, mesFalta='';
+  try{ const r=calcRitmo();
+    if(r&&r.sinAporte&&r.sinAporte.length){ faltaAporte=true;
+      const k=r.sinAporte[0], MM=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+      mesFalta=MM[+k.split('-')[1]]; } }catch(e){}
+  let est,col,corto,largo;
+  if(!x){
+    est='rojo'; col='#e34948';
+    corto='Sin sincronizar \u00b7 datos manuales';
+    largo='El budget no ha publicado nada en este navegador: el tipo de cambio, el saldo del pr\u00e9stamo, '
+      +'el capital que amortiza y los aportes van con los respaldos del archivo. Abr\u00ed el budget una vez '
+      +'y volv\u00e9 a cargar esta p\u00e1gina.';
+  } else if(dias!=null && dias>SINC_DIAS_FRESCO){
+    est='ambar'; col='#eda100';
+    corto='Budget sin abrir hace '+Math.round(dias)+' d\u00edas';
+    largo='Public\u00f3 sus n\u00fameros el '+fmt(x.ts)+'. El saldo del pr\u00e9stamo y el capital que '
+      +'amortiza pueden estar desactualizados \u2014 abr\u00ed el budget para refrescarlos.';
+  } else if(faltaAporte){
+    est='ambar'; col='#eda100';
+    corto='Sincronizado \u00b7 falta el aporte de '+mesFalta;
+    largo='Tipo de cambio, saldo y capital vienen del budget (publicado '+fmt(x.ts)+'), pero el aporte de '
+      +mesFalta+' no est\u00e1 registrado en su DCA tracker: ese mes queda fuera del rendimiento medido.';
+  } else {
+    est='verde'; col='#34d07a';
+    corto='Sincronizado con el budget \u00b7 '+fmt(x.ts);
+    largo='Tipo de cambio, saldo del pr\u00e9stamo, capital que amortiza y aportes vienen del budget.';
+  }
+  el.style.display='block'; el.style.color=col;
+  el.title=largo;
+  el.innerHTML='<span style="font-size:13px;line-height:1">'+(est==='verde'?'\u25cf':'\u25b2')
+    +'</span> '+corto+' <span style="opacity:.5">\u00b7 pasa el cursor para el detalle</span>';
+  el.dataset.estado=est;
+}
+
 function pintarSync(){
+  try{ pintarBandaSinc(); }catch(e){}
   const el=document.getElementById('sync-ts'); if(!el) return;
   const m=leerMeta();
   el.innerHTML = m

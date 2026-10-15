@@ -1237,6 +1237,16 @@ function renderPatrimonio(){
   const metaColchonQ = FIJOS_TOTAL*COLCHON_META_MESES;
   const metaBiQ = FIJOS_TOTAL*AHORRO_BI_META_MESES;
 
+  /* Cuanto BTC es cada rebanada. El % sobre el colchon confunde:
+     '20% del colchon' es 15% del BTC total. Se muestran los dos y,
+     sobre todo, la CANTIDAD, que es lo unico que se vende de verdad
+     [DECISION JP 14-oct-2026]. */
+  const btcTotalQ = btcUsd*tc;
+  const btcPct    = q => btcTotalQ>0 ? (q/btcTotalQ*100) : 0;
+  const btcQtyDe  = q => (btcPx>0 && tc>0) ? (q/tc/btcPx) : 0;
+  const btcNota   = q => btcPct(q).toFixed(0)+'% del BTC total \u00b7 '
+                       + btcQtyDe(q).toFixed(5)+' BTC';
+
   /* Fila de balance: etiqueta a la izquierda, USD y Q a la derecha.
      Es la estructura del cuaderno: activos, menos hipoteca, igual
      patrimonio. Una sola tarjeta, sin repetir el total tres veces. */
@@ -1289,9 +1299,9 @@ function renderPatrimonio(){
       <div class="col-ttl" style="color:var(--go)">🏛️ Patrimonio</div>
       <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu2);letter-spacing:.08em;text-transform:uppercase;margin:6px 0 2px">Activos</div>
       ${bal('🏠 Casa','valor de mercado',casaU,'var(--gr)')}
-      ${bal('📈 Cartera inversión', btcFuente!=='tracker' ? 'alts · el BTC va aparte · abre el tracker para el reparto por tiers' : (btcVendibleUsd>0 ? 'alts + '+(btcVendibleUsd/btcUsd*100).toFixed(0)+'% del BTC que vende por tiers' : 'alts · sin BTC vendible en los tiers'), portSinBtcU,'var(--ac)')}
-      ${btcAbonoQ>0?bal('🪙 BTC · colchón variable',(BTC_A_ABONO*100).toFixed(0)+'% del colchón BTC · respalda el abono, no hay que usarlo',btcAbonoQ/tc,'#d97706'):''}
-      ${btcHoldQ>0?bal('🔒 BTC hold','el otro '+((1-BTC_A_ABONO)*100).toFixed(0)+'% · no se vende por decisión',btcHoldQ/tc,'#d97706'):''}
+      ${bal('📈 Cartera inversión', btcFuente!=='tracker' ? 'alts · el BTC va aparte · abre el tracker para el reparto por tiers' : (btcVendibleUsd>0 ? 'alts + BTC de los tiers · '+btcNota(btcVendibleUsd*tc) : 'alts · sin BTC vendible en los tiers'), portSinBtcU,'var(--ac)')}
+      ${btcAbonoQ>0?bal('🪙 BTC · colchón variable', btcNota(btcAbonoQ)+' ('+(BTC_A_ABONO*100).toFixed(0)+'% del colchón) · respalda el abono, no hay que usarlo',btcAbonoQ/tc,'#d97706'):''}
+      ${btcHoldQ>0?bal('🔒 BTC hold', btcNota(btcHoldQ)+' · no se vende por decisión',btcHoldQ/tc,'#d97706'):''}
       ${bal('🏦 Reserva bancaria','Ahorro BI '+fqR(ahorroBiQ)+' + Bantrab '+fqR(bantrabQ),reservaBancariaU,'var(--pu)')}
       ${cashU>0?bal('💵 Cash','Monetaria + Lulubit + reembolsos + superávit USD',cashU,'var(--go)'):''}
       <div class="col-row" style="border-top:1px solid var(--bd2);margin-top:4px;padding-top:8px">
@@ -1325,12 +1335,12 @@ function renderPatrimonio(){
                 ['reembolsos',reembQ],['super&aacute;vit',abiUsdQ]])],
           ['🏠','Para abonar', paraAbonarQ, 'destinado a la hipoteca', 'var(--gr)',
             pz([['Bantrab 40%',bantCasaQ],['excedente del colch&oacute;n',excedenteQ],
-                [(BTC_A_ABONO*100).toFixed(0)+'% del colch&oacute;n BTC',btcAbonoQ]])
+                ['BTC '+btcQtyDe(btcAbonoQ).toFixed(5)+' ('+btcPct(btcAbonoQ).toFixed(0)+'% del total)',btcAbonoQ]])
             + ' &middot; colch&oacute;n variable: est&aacute; si hace falta, no hay que usarlo'],
           ['📈','Inversi&oacute;n', inversionQ, 'requiere vender', '#f5b731',
             pz([['alts',Math.max(criptoQ-btcVendibleUsd*tc,0)],
-                [(btcUsd>0?((btcVendibleUsd/btcUsd*100).toFixed(0)+'% BTC por tiers'):'BTC'),btcVendibleUsd*tc],
-                ['BTC hold',btcHoldQ]])]
+                [(btcUsd>0?('BTC tiers '+btcQtyDe(btcVendibleUsd*tc).toFixed(5)+' ('+btcPct(btcVendibleUsd*tc).toFixed(0)+'%)'):'BTC'),btcVendibleUsd*tc],
+                ['BTC hold '+btcQtyDe(btcHoldQ).toFixed(5)+' ('+btcPct(btcHoldQ).toFixed(0)+'%)',btcHoldQ]])]
         ].filter(c=>c[2]>0);
         const mx=Math.max.apply(null,capas.map(c=>c[2]));
         return capas.map(c=>`<div style="margin:9px 0">

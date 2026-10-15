@@ -1262,34 +1262,11 @@ function renderPatrimonio(){
       <div style="font-family:'DM Mono',monospace;font-size:28px;font-weight:800;color:var(--go);letter-spacing:-1px;margin:6px 0 2px">${fusdR(patNetoU)}</div>
       <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--mu)">${fqR(patNetoQ)}</div>
       <div style="border-top:1px solid var(--bd);margin-top:8px;padding-top:8px;font-family:'DM Mono',monospace;font-size:11px;color:var(--mu);line-height:1.7">
-        <div style="font-size:10px;color:var(--mu2);margin-bottom:7px">
-          activos ${fqR(totalActivosU*tc)} &minus; hipoteca ${fqR(salHip)} = ${fqR(patNetoQ)}
+        <div style="font-size:10.5px;color:var(--mu);line-height:1.8">
+          <span style="color:var(--gr)">${fqR(totalActivosU*tc)}</span> en activos
+          &minus; <span style="color:var(--rd)">${fqR(salHip)}</span> de hipoteca<br>
+          <span style="color:var(--mu2);font-size:9px">el detalle est&aacute; abajo, en Activos y Pasivos</span>
         </div>
-        <div style="font-size:10px;margin-bottom:9px">
-          <span style="color:var(--mu2)">de d&oacute;nde viene tu patrimonio:</span>
-          <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-top:5px">
-            <span>🏠 <b style="color:var(--gr)">Casa menos hipoteca</b></span>
-            <b style="color:var(--tx);font-size:12px;white-space:nowrap">${fqR(casaU*tc - salHip)}</b></div>
-          <div style="color:var(--mu2);padding-left:16px;font-size:9px;line-height:1.5">${fqR(casaU*tc)} de valor &minus; ${fqR(salHip)} que debes &middot; inmovilizado hasta vender o cancelar</div>
-          <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-top:5px">
-            <span>🛟 <b style="color:var(--pu)">Todo lo dem&aacute;s</b></span>
-            <b style="color:var(--tx);font-size:12px;white-space:nowrap">${fqR(liqTotalQ)}</b></div>
-          <div style="color:var(--mu2);padding-left:16px;font-size:9px;line-height:1.5">no tiene deuda encima: es tuyo completo</div>
-        </div>
-        <div style="font-size:10px;color:var(--mu);padding-left:10px;border-left:2px solid var(--pu);line-height:2">
-          <span style="color:var(--mu2)">esos ${fqR(liqTotalQ)}, en cinco capas sin solapamiento ni huecos:</span><br>          🛡️ Colchón <b style="color:var(--go);font-size:11px">${fqR(colchonQ)}</b> <span style="color:var(--mu2)">· cubre fijos si el ingreso falla</span><br>
-          <span style="color:var(--mu2);padding-left:16px;font-size:9px">Ahorro BI + 20% Bantrab${btcLiberaQ>0?` + ${(BTC_LIBERA_COLCHON*100).toFixed(0)}% del colchón de BTC`:''}</span><br>
-          💵 Inmediata <b style="color:var(--ac);font-size:11px">${fqR(liqInmediataQ)}</b> <span style="color:var(--mu2)">· usable hoy</span><br>
-          <span style="color:var(--mu2);padding-left:16px;font-size:9px">Monetaria + Lulubit + 40% Bantrab + reembolsos + superávit</span><br>
-          📈 Cartera <b style="color:var(--pu);font-size:11px">${fqR(criptoQ)}</b> <span style="color:var(--mu2)">· requiere vender</span><br>
-          <span style="color:var(--mu2);padding-left:16px;font-size:9px">alts 100% + ${btcUsd>0?(((btcVendibleUsd/btcUsd)*100).toFixed(0)+'% del BTC'):'BTC'}${btcFuente==='tracker'?' · del tracker':' · BTC a mano'}</span>
-          ${bantCasaQ>0?`<br>🏠 Para abonar <b style="color:var(--gr);font-size:11px">${fqR(bantCasaQ)}</b> <span style="color:var(--mu2)">· ya destinado a la hipoteca</span><br>
-          <span style="color:var(--mu2);padding-left:16px;font-size:9px">40% de Bantrab &middot; l&iacute;quido, pero con destino decidido</span>`:''}
-          ${btcHoldQ>0?`<br>🔒 Hold BTC <b style="color:#f5b731;font-size:11px">${fqR(btcHoldQ)}</b> <span style="color:var(--mu2)">· no se vende por decisi&oacute;n</span><br>
-          <span style="color:var(--mu2);padding-left:16px;font-size:9px">lo que queda del colch&oacute;n tras el ${(BTC_LIBERA_COLCHON*100).toFixed(0)}% que respalda fijos &middot; cuenta en el patrimonio, no en la liquidez</span>`:''}
-        </div>
-        <div style="font-size:10px;color:var(--mu2);margin-top:7px;padding-top:6px;border-top:1px dashed var(--bd)">
-          Disponible para usar ${fqR(liqRealQ)}${btcHoldQ>0?` &middot; hold que no se vende ${fqR(btcHoldQ)}`:''}</div>
       </div>
     </div>
 
@@ -1318,9 +1295,10 @@ function renderPatrimonio(){
       <div class="col-ttl" style="color:var(--gr)">Activos</div>
       ${row('🏠 Casa','valor de mercado',casaU,'var(--gr)')}
       ${row('📈 Portafolio realizable',
-          btcUsd>0
-            ? `alts + ${(btcVendibleUsd/btcUsd*100).toFixed(0)}% del BTC · se vende por tiers`
-            : 'alts · sin BTC registrado',
+          btcFuente!=='tracker'
+            ? 'alts · el BTC va aparte · abre el tracker para el reparto por tiers'
+            : (btcUsd>0 ? `alts + ${(btcVendibleUsd/btcUsd*100).toFixed(0)}% del BTC · se vende por tiers`
+                        : 'alts · sin BTC registrado'),
           portSinBtcU,'var(--ac)')}
       ${btcLiberaQ>0?row('&nbsp;&nbsp;🛡️ BTC que respalda fijos',
           `${(BTC_LIBERA_COLCHON*100).toFixed(0)}% del colchón · entra al colchón operativo`,
@@ -1338,18 +1316,52 @@ function renderPatrimonio(){
       </div>
     </div>
 
-    <!-- Pasivos -->
+    <!-- Pasivos + cierre -->
     <div class="col-card" style="margin-bottom:12px">
       <div class="col-ttl" style="color:var(--rd)">Pasivos</div>
-      ${row('🏦 Hipoteca BI','saldo estimado al mes actual',hipU,'var(--rd)')}
+      ${row('🏦 Hipoteca BI','saldo del motor BI al mes actual',hipU,'var(--rd)')}
+      <div class="col-row" style="border-top:2px solid var(--go)55;margin-top:6px;padding-top:9px">
+        <div><div style="font-family:'DM Mono',monospace;font-size:11px;font-weight:700;color:var(--go)">= Patrimonio neto</div>
+        <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu2);margin-top:2px">activos &minus; hipoteca</div></div>
+        <div style="text-align:right"><div style="font-family:'DM Mono',monospace;font-size:15px;font-weight:800;color:var(--go)">${fusdR(patNetoU)}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu2)">${fqR(patNetoQ)}</div></div>
+      </div>
+    </div>
+
+    <!-- Qué tan disponible está -->
+    <div class="col-card" style="margin-bottom:12px">
+      <div class="col-ttl" style="color:var(--pu)">Qu&eacute; tan disponible est&aacute;</div>
+      <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu2);margin:2px 0 7px">
+        los ${fqR(liqTotalQ)} que no son la casa, por rapidez de acceso</div>
+      ${(()=>{
+        const capas=[
+          ['🛡️','Colch&oacute;n', colchonQ, 'reservado a fijos', 'var(--go)'],
+          ['💵','Inmediata', liqInmediataQ, 'usable hoy', 'var(--ac)'],
+          ['📈','Cartera', criptoQ, 'requiere vender', 'var(--pu)'],
+          ['🏠','Para abonar', bantCasaQ, 'destinado a la hipoteca', 'var(--gr)'],
+          ['🔒','Hold BTC', btcHoldQ, 'no se vende', '#f5b731']
+        ].filter(c=>c[2]>0);
+        const mx=Math.max.apply(null,capas.map(c=>c[2]));
+        return capas.map(c=>`<div style="margin:7px 0">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-family:'DM Mono',monospace;font-size:10.5px">
+            <span style="color:var(--tx)">${c[0]} ${c[1]} <span style="color:var(--mu2);font-size:9px">&middot; ${c[3]}</span></span>
+            <b style="color:${c[4]};white-space:nowrap">${fqR(c[2])}</b></div>
+          <div style="height:4px;background:var(--s2);border-radius:3px;margin-top:3px;overflow:hidden">
+            <div style="height:100%;width:${(c[2]/mx*100).toFixed(1)}%;background:${c[4]};border-radius:3px"></div></div>
+        </div>`).join('');
+      })()}
+      <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu2);margin-top:8px;padding-top:7px;border-top:1px solid var(--bd)">
+        Disponible ${fqR(liqRealQ)} &middot; hold ${fqR(btcHoldQ)} &middot; suman ${fqR(liqTotalQ)}<br>
+        La casa va aparte: ${fqR(casaU*tc)} de valor menos ${fqR(salHip)} de hipoteca = ${fqR(casaU*tc-salHip)} tuyos, inmovilizados.
+      </div>
     </div>
 
     <!-- Composición -->
     <div class="col-card">
-      <div class="col-ttl">Composición del patrimonio</div>
+      <div class="col-ttl">Composici&oacute;n del patrimonio</div>
       <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);line-height:1.7;margin-top:4px">
         Casa: ${totalActivosU>0?(casaU/totalActivosU*100).toFixed(0):0}% de activos<br>
-        Portafolio: ${totalActivosU>0?(portSinBtcU/totalActivosU*100).toFixed(0):0}% · Reservas: ${totalActivosU>0?(reservasU/totalActivosU*100).toFixed(0):0}%<br>
+        Portafolio: ${totalActivosU>0?(portSinBtcU/totalActivosU*100).toFixed(0):0}% &middot; Reservas: ${totalActivosU>0?(reservasU/totalActivosU*100).toFixed(0):0}%<br>
         Apalancamiento: hipoteca = ${totalActivosU>0?(hipU/totalActivosU*100).toFixed(0):0}% de activos
       </div>
     </div>

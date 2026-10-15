@@ -3645,7 +3645,14 @@ const DRIVE_SCOPE     = 'https://www.googleapis.com/auth/drive.appdata';
 const DRIVE_FILENAME  = 'portfolio_gt_data.json';
 let   driveTokenPF    = null;
 // Drive guardaba SOLO pf_v6. Ahora viaja todo: tiers, saldo de hipoteca y capas.
-const SYNC_KEYS = [LS, TR_KEY, HIP_KEY, CAPSTORE];
+/* Llaves que viajan en el respaldo de Drive y en exportar/importar.
+   AMORT_KEY se agrego al crear el campo de amortizacion: sin el, ese
+   dato no cruzaba a otra computadora. 'pf_export' va para que el
+   budget tenga el patrimonio desde el primer arranque en la maquina
+   nueva, con su sello de tiempo a la vista por si quedo viejo.
+   NO incluye pf_sync (es por dispositivo) ni bdgt_v4 (ese lo respalda
+   el budget en su propio archivo de Drive) [DECISION JP 14-oct-2026]. */
+const SYNC_KEYS = [LS, TR_KEY, HIP_KEY, CAPSTORE, AMORT_KEY, 'pf_export'];
 function paqueteLocal(){
   const p = {__v:2, __meta: leerMeta() || {ts:Date.now(), dev:devId()}};
   SYNC_KEYS.forEach(k=>{ const v=localStorage.getItem(k); if(v!==null) p[k]=v; });

@@ -1017,6 +1017,19 @@ function loadSaved(){
   if(d.bacDeudaUsd!=null) ST.bacDeudaUsd=parseFloat(d.bacDeudaUsd)||0;
   if(d.casaUsd!=null)     ST.casaUsd    =parseFloat(d.casaUsd)||210000;
   if(d.portafolioUsd!=null) ST.portafolioUsd=parseFloat(d.portafolioUsd)||0;
+  /* El valor del portafolio lo manda el tracker: el publica su
+     patrimonio en pf_export y aca se usa en lugar del campo escrito
+     a mano. Solo en memoria — el valor guardado NO se sobrescribe,
+     asi que si el tracker no esta en este navegador sigue sirviendo
+     lo que tengas capturado [DECISION JP 14-oct-2026]. */
+  ST._portFuente='manual'; ST._portTs=null;
+  try{
+    const px=JSON.parse(localStorage.getItem('pf_export')||'null');
+    const v=px?parseFloat(px.patrimonio):NaN;
+    if(isFinite(v) && v>0){
+      ST.portafolioUsd=v; ST._portFuente='tracker'; ST._portTs=px.ts||null;
+    }
+  }catch(e){}
   if(d.bamDeuda!=null)    ST.bamDeuda   =parseFloat(d.bamDeuda)||0;
   if(d.cols){
     if(d.cols.emer!=null)COLS.emer=d.cols.emer;
@@ -1233,7 +1246,11 @@ function renderPatrimonio(){
         onchange="onPatChange('portafolioUsd',this.value)" style="color:var(--ac);border-color:var(--ac)44;margin:4px 0"
         placeholder="valor del portfolio tracker">
       <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu2);margin-top:4px;line-height:1.4">
-        Copia el valor total de tu portfolio tracker (incluye tu BTC).
+        ${ST._portFuente==='tracker'
+          ? `<span style="color:var(--gr)">✓ Lo lee del portfolio tracker</span> · publicado ${ST._portTs?new Date(ST._portTs).toLocaleString('es-GT',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'—'}.
+             No hace falta copiarlo: si abres el tracker, este valor se actualiza solo.`
+          : `<span style="color:var(--go)">⚠ Escrito a mano</span> · el portfolio tracker no ha publicado nada en este navegador.
+             Ábrelo una vez y este campo se llena solo.`}<br>
         El BTC ya cuenta en Reservas, así que aquí se resta: se usa solo el resto.</div>
       ${portNegativo?`<div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--rd);margin-top:6px;padding:6px 8px;background:rgba(242,92,92,.1);border-radius:5px">⚠️ El portafolio total (${fusdR(portTotalUsd)}) es menor que tu BTC (${fusdR(btcUsd)}). Revisa que ambos estén actualizados.</div>`:''}
     </div>
@@ -2119,6 +2136,37 @@ function recalc(){
   }
   try{ renderMetaAbono(); }catch(e){}
   try{ if(_fijosOpen) renderFijosList(); }catch(e){}
+  try{ publicarExportBdgt(); }catch(e){}
+}
+
+/* ── EXPORT PARA EL TRACKER DE PORTAFOLIO ─────────────────────────
+   Este archivo es el dueno del tipo de cambio y del motor de la
+   hipoteca (ancla BI rodada por las cuotas marcadas, menos abonos).
+   El tracker de portafolio necesita esos numeros y no debe replicar
+   el motor: se publican aqui, en bdgt_v4.export, y alla solo se
+   leen. Es aditivo — no toca ninguna llave existente — y se guarda
+   con svS(d,true) para que no cuente como edicion tuya.
+   [DECISION JP 14-oct-2026] */
+function publicarExportBdgt(){
+  try{
+    const saldo = (typeof saldoHip==='function') ? saldoHip() : null;
+    if(saldo==null || !isFinite(saldo)) return;
+    // capital del mes = cuota amortizable menos el interes sobre el saldo
+    const capital = HIP.cuotaAm - saldo*HIP.i;
+    const x = {
+      ts: Date.now(),
+      tc: ST.tc,
+      saldoHip: +saldo.toFixed(2),
+      capitalCuota: +Math.max(capital,0).toFixed(2),
+      cuotaTotal: HIP.cuotaTotal,
+      cuotaAm: HIP.cuotaAm
+    };
+    const d = ldS();
+    const antes = d.export ? JSON.stringify({...d.export, ts:0}) : '';
+    if(antes === JSON.stringify({...x, ts:0})) return;   // nada cambio
+    d.export = x;
+    svS(d, true);   // auto: no marca edicion
+  }catch(e){}
 }
 
     // ── HISTORIAL DE INGRESOS ────────────────────────────────────────

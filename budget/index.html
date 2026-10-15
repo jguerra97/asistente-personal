@@ -1561,6 +1561,12 @@ function renderQCasos(r, pago, quincena){
     if((r.invQ2||0)>0) rows.push({lbl:'₿ Exchange · inversión', q:-(r.invQ2||0), c:(r.invRecortada||0)>0?'#f59e0b':'var(--go)'});
     if((r.invRecortada||0)>0) rows.push({lbl:'⚠️ Inversión recortada', q:r.invRecortada||0, c:'#f59e0b'});
     if((r.excedente_bantrab||0)>1){
+      /* Linea de referencia: cuanto sobro ANTES de repartirlo. No mueve
+         dinero (ref:true), solo evita tener que sumar los tres destinos
+         de abajo para saber de cuanto estamos hablando [JP 14-oct-2026]. */
+      const _exc = (r.exc_bi||0)+(r.exc_ban||0)+(r.exc_pers||0);
+      rows.push({lbl:'📊 Excedente del mes', q:_exc, c:'var(--ac)', ref:true,
+                 note:'lo que sobró · se reparte 50/25/25 abajo'});
       rows.push({lbl:'🛡️ Ahorro BI · excedente 50%',  q:r.exc_bi||0,   c:'var(--gr)'});
       rows.push({lbl:'💰 Bantrab · excedente 25%',     q:r.exc_ban||0,  c:'#10b981'});
       rows.push({lbl:'🍽️ Personal · excedente 25%',    q:-(r.exc_pers||0), c:'var(--mu)'});
@@ -1568,6 +1574,16 @@ function renderQCasos(r, pago, quincena){
   }
 
   const rowsHtml = rows.map((row,idx)=>{
+    if(row.ref){
+      // referencia: no mueve dinero, no se tacha, no lleva casilla
+      return `<div class="row" style="background:rgba(61,184,245,.07);border-radius:6px;padding:5px 7px;margin:3px 0">
+        <span class="row-lbl" style="color:${row.c}">${row.lbl}
+          ${row.note?`<span style="display:block;font-size:8.5px;color:var(--mu2);margin-top:1px">${row.note}</span>`:''}</span>
+        <div class="row-val">
+          <div class="row-q" style="color:${row.c}">${fq(row.q)}</div>
+          <div class="row-usd">${fd(row.q)}</div>
+        </div></div>`;
+    }
     if(row.q===0 && row.note){
       return `<div class="row"><span class="row-lbl" style="color:${row.c}">${row.lbl}</span>
         <div class="row-val"><div class="row-q" style="color:${row.c}">${row.note}</div></div></div>`;
@@ -1938,6 +1954,10 @@ function renderResumenMes(ingTotal, tf, excMes, dMes, btcQ, invRestQ, tQ1, tQ2){
     {lbl:'🍽️ Personal (salidas+buffer)',    q:-META_PERSONAL,          c:'var(--mu)'},
     // Subs incluidas dentro de META_PERSONAL — no se muestran por separado
     {lbl:'✈️ Bantrab · ahorro fijo',         q:META_AHORRO,             c:'#9d7ff0'},
+    ...((excBiE+excBanE+excPersE)>1
+      ? [{lbl:'📊 Excedente del mes', q:excBiE+excBanE+excPersE, c:'var(--ac)', ref:true,
+          note:'lo que sobró tras fijos, personal, ahorro e inversión'}]
+      : []),
     {lbl:'🛡️ Ahorro BI · excedente 50%',    q:excBiE,                  c:'var(--gr)'},
     {lbl:'💰 Bantrab · excedente 25%',       q:excBanE,                 c:'#10b981'},
     {lbl:'🍽️ Personal · excedente 25%',      q:-excPersE,               c:'var(--mu)'},
@@ -1949,6 +1969,14 @@ function renderResumenMes(ingTotal, tf, excMes, dMes, btcQ, invRestQ, tQ1, tQ2){
   body.innerHTML=invRecBadgeHTML+rows.map(r=>{
     if(r.sep) return '<div style="border-top:1px solid var(--bd);margin:4px 0"></div>';
     if(r.q===null) return '';
+    if(r.ref){
+      // referencia: no es un movimiento, es el total antes de repartirse
+      return '<div class="row" style="background:rgba(61,184,245,.07);border-radius:6px;padding:5px 7px;margin:3px 0;border-bottom:none">'
+        +'<span class="row-lbl" style="color:'+r.c+'">'+r.lbl
+        +(r.note?'<span style="display:block;font-size:8.5px;color:var(--mu2);margin-top:1px">'+r.note+'</span>':'')+'</span>'
+        +'<div class="row-val"><div class="row-q" style="color:'+r.c+'">'+fq(r.q)+'</div>'
+        +'<div class="row-usd">'+fd(r.q)+'</div></div></div>';
+    }
     return '<div class="row" style="'+(r.bold?'padding:8px 0;':'')+'border-bottom:'+(r.bold?'none':'1px solid var(--bd)')+'">'
       +'<span class="row-lbl" style="'+(r.bold?'font-weight:700;color:var(--tx)':'')+'">'+r.lbl+'</span>'
       +'<div class="row-val">'

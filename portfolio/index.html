@@ -550,6 +550,21 @@ td:first-child{text-align:left;}
         font-weight:700;text-align:right">
     </div>
   </div>
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;
+       margin-top:10px;padding-top:10px;border-top:1px solid var(--bd)">
+    <div>
+      <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--mu);letter-spacing:.06em;text-transform:uppercase">Capital que amortiza la cuota</div>
+      <div style="font-size:9px;color:var(--mu2);margin-top:2px">del estado de cuenta BI &middot; mueve el c&aacute;lculo de cu&aacute;nto falta</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px">
+      <span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--mu)">Q</span>
+      <input id="hip-amort" type="number" step="any" min="0"
+        onchange="onAmortChange(this.value)"
+        style="width:120px;background:var(--s2);border:1px solid var(--bd);border-radius:6px;
+        padding:7px 9px;color:var(--tx);font-family:'DM Mono',monospace;font-size:13px;
+        font-weight:700;text-align:right">
+    </div>
+  </div>
   <div id="hip-cobertura"></div>
   <div id="hip-ritmo"></div>
 </div>
@@ -852,6 +867,24 @@ async function saveSnapshot(totalValue, totalCost){
     const d = ldS();
     let snapshots = Array.isArray(d.snapshots) ? d.snapshots : [];
     const now = Date.now();
+
+    /* GUARDA CONTRA CARGAS PARCIALES. El historial tenia registros
+       con valores falsos: una carga donde los precios no llegaron
+       completos guardaba un valor 15% abajo del real y despues
+       ensuciaba cualquier calculo de rendimiento. Si el registro
+       anterior es reciente y el valor se despega demasiado, no se
+       guarda: un salto asi en pocas horas es un fallo de datos, no
+       un movimiento de mercado. */
+    const ult = snapshots[snapshots.length-1];
+    if(ult && ult.v>0){
+      const horas = (now - ult.t)/3600000;
+      const salto = Math.abs(totalValue/ult.v - 1);
+      if(horas < 8 && salto > 0.12){
+        console.log('Snapshot descartado: '+(salto*100).toFixed(1)+'% en '
+          +horas.toFixed(1)+'h parece carga parcial, no mercado.');
+        return;
+      }
+    }
     const _c = (totalCost && !isNaN(totalCost) && totalCost>0) ? Math.round(totalCost) : null;
     const _reg = _c ? { t: now, v: Math.round(totalValue), c: _c } : { t: now, v: Math.round(totalValue) };
 
@@ -864,8 +897,19 @@ async function saveSnapshot(totalValue, totalCost){
       snapshots.push(_reg);
     }
     if(snapshots.length > SNAP_MAX) snapshots = snapshots.slice(-SNAP_MAX);
+
+    /* CIERRE MENSUAL PERMANENTE. 'snapshots' se purga por cantidad
+       (365), no por tiempo: abriendo el tracker 4 veces al dia la
+       ventana baja a 3 meses y el rendimiento medido perderia meses
+       sin avisar. 'mensuales' guarda un registro por mes, el ultimo
+       de cada uno, y no se purga nunca: 12 al anio.
+       [DECISION JP 14-oct-2026] */
     const full = ldS();
     full.snapshots = snapshots;
+    const men = (full.mensuales && typeof full.mensuales==='object') ? full.mensuales : {};
+    const fx = new Date(now);
+    men[fx.getFullYear()+'-'+fx.getMonth()] = {t: now, v: Math.round(totalValue)};
+    full.mensuales = men;
     localStorage.setItem(LS, JSON.stringify(full));
   } catch(e){ console.log('Snapshot error:', e); }
 }
@@ -1352,6 +1396,27 @@ async function load(){
     });
     window.__mcap=mc;
   }
+  /* EXPORT PARA EL BUDGET. Unico dato que el budget necesita de aca:
+     el valor del portafolio, para su patrimonio. Se publica en su
+     propia llave (pf_export) para no tocar nada de pf_v6, y lleva
+     sello de tiempo para que se note si quedo viejo.
+     El budget solo LEE esto; nunca escribe aqui [DECISION JP]. */
+  try{
+    const _btcX=BROKER.find(a=>a.tick==='BTC');
+    localStorage.setItem('pf_export', JSON.stringify({
+      ts: Date.now(),
+      // en este punto 'tot' es el spot a valor pleno (BTC al 100%),
+      // antes de que se le sume el equity apalancado
+      patrimonio: +(tot + apalEq).toFixed(2),
+      realizable: +(tot + apalEq - ((_btcX?(_btcX.price||0)*_btcX.qty:0)*(1-btcVendible()))).toFixed(2),
+      spot:       +tot.toFixed(2),
+      apalEquity: +apalEq.toFixed(2),
+      btcUsd:     +((_btcX?(_btcX.price||0)*_btcX.qty:0)).toFixed(2),
+      costoTotal: +(cst + apalCst).toFixed(2),
+      dev: (typeof devId==='function'?devId():null)
+    }));
+  }catch(e){}
+
   window.__apalEquity = apalEq;
   window.__apalCosto  = apalCst;
   window.__spotValor  = tot;
@@ -1438,9 +1503,19 @@ async function load(){
 
 // ── COBERTURA DEL PRÉSTAMO ─────────────────────────────────
 const HIP_KEY='pf_hipoteca';
+/* El saldo lo calcula el budget con su motor de la tabla BI (ancla
+   del banco rodada por las cuotas marcadas, menos los abonos). Aca
+   solo se lee. El campo editable queda como respaldo para cuando el
+   budget no esta en este navegador [DECISION JP 14-oct-2026]. */
 function getHipSaldo(){
+  const x=_bx('saldoHip',1,1e9); if(x!=null) return x;
   const v=parseFloat(localStorage.getItem(HIP_KEY));
   return (!isNaN(v)&&v>0)?v:1444318;
+}
+function fuenteSaldo(){
+  if(_bx('saldoHip',1,1e9)!=null) return 'budget';
+  const v=parseFloat(localStorage.getItem(HIP_KEY));
+  return (!isNaN(v)&&v>0)?'manual':'respaldo';
 }
 function onHipChange(val){
   const v=parseFloat(val);
@@ -1467,9 +1542,180 @@ const OBJETIVO_FECHA = new Date(2028, 11, 31);  // dic 2028
    [DATO · JP · cortes may-ago 2026] */
 const CAPITAL_CONFIRMADO = {'2026-4':14379,'2026-5':16085,'2026-6':18023,'2026-7':18525};
 
+/* ── APORTES · LOS LEE DEL BUDGET, NO LOS DUPLICA ────────────────
+   El budget (budget.html) ya tiene su DCA tracker y guarda cada
+   aporte del mes en bdgt_v4.dcaAportes = {'May 2026':{q,usd,tc}}.
+   Los dos archivos viven en el mismo origen, asi que comparten
+   localStorage — igual que ya comparten la llave pf_dev. Entonces
+   aqui no se captura nada: se LEE de alla.
+   Un solo dueno del dato: el budget. Lo que registras en el corte
+   aparece aqui sin copiar nada [DECISION JP 14-oct-2026].
+   La constante de abajo es solo respaldo por si el budget no se ha
+   abierto en este navegador todavia. */
+const BDGT_LS = 'bdgt_v4';
+
+/* ── TIPO DE CAMBIO ───────────────────────────────────────────────
+   Lo manda el budget (bdgt_v4.tc), que es donde lo editas. Estaba
+   escrito a mano como 7.75 en seis lugares de este archivo mientras
+   tus aportes iban al 7.77: una brecha silenciosa si el quetzal se
+   mueve [DECISION JP 14-oct-2026]. */
+/* Lo que el budget publica para que este tracker lo lea. Vive en
+   bdgt_v4.export y lo escribe el budget cada vez que recalcula.
+   Si no existe, cada dato cae a su respaldo local y el bloque de
+   fuentes del documento lo marca con un triangulo. */
+function bdgtExport(){
+  try{
+    const d = JSON.parse(localStorage.getItem(BDGT_LS) || '{}');
+    const x = d.export;
+    if(x && typeof x==='object') return x;
+  }catch(e){}
+  return null;
+}
+function _bx(campo, min, max){
+  const x = bdgtExport();
+  if(!x) return null;
+  const v = parseFloat(x[campo]);
+  return (isFinite(v) && v>=min && v<=max) ? v : null;
+}
+
+const TC_RESPALDO = 7.75;
+function getTC(){
+  const x=_bx('tc',3,20); if(x!=null) return x;
+  try{
+    const d = JSON.parse(localStorage.getItem(BDGT_LS) || '{}');
+    const t = parseFloat(d.tc);
+    if(isFinite(t) && t > 3 && t < 20) return t;
+  }catch(e){}
+  return TC_RESPALDO;
+}
+function fuenteTC(){
+  if(_bx('tc',3,20)!=null) return 'budget';
+  try{
+    const d = JSON.parse(localStorage.getItem(BDGT_LS) || '{}');
+    const t = parseFloat(d.tc);
+    if(isFinite(t) && t > 3 && t < 20) return 'budget';
+  }catch(e){}
+  return 'respaldo';
+}
+
+/* ── CAPITAL QUE AMORTIZA LA CUOTA ───────────────────────────────
+   Quetzales de CAPITAL (no de cuota) que bajan el saldo cada mes.
+   Sale del estado de cuenta de BI y JP lo copia a mano, asi que vive
+   aqui, no en el budget. Editable desde el panel de la hipoteca.
+   Mueve directo el bloque «Cuanto falta», asi que lleva fecha.
+   [DATO · JP · 14-oct-2026] */
+const AMORT_KEY = 'pf_amort_q';
+/* Q4,790.37 = cuota amortizable Q13,518.71 menos el interes del mes
+   (saldo Q1,442,699.61 x 0.60500080%). El Q5,200 que estaba antes
+   sobrestimaba la amortizacion en 8.6%. Sube unos Q29 por mes a
+   medida que el saldo baja, asi que conviene recopiarlo en el corte.
+   El motor de la hipoteca del budget lo calcula exacto.
+   [DATO · tabla BI · estado de cuenta 9-oct-2026] */
+const AMORT_RESPALDO = 4790.37;
+function getAmortQ(){
+  const x=_bx('capitalCuota',1,1e6); if(x!=null) return x;
+  try{ const v=parseFloat(localStorage.getItem(AMORT_KEY)); if(isFinite(v)&&v>0) return v; }catch(e){}
+  return AMORT_RESPALDO;
+}
+function fuenteAmort(){
+  if(_bx('capitalCuota',1,1e6)!=null) return 'budget';
+  try{ const v=parseFloat(localStorage.getItem(AMORT_KEY)); if(isFinite(v)&&v>0) return 'manual'; }catch(e){}
+  return 'respaldo';
+}
+function onAmortChange(val){
+  const v=parseFloat(val);
+  if(isNaN(v)||v<0) return;
+  try{ localStorage.setItem(AMORT_KEY,String(v)); }catch(e){}
+  marcarEdicion();
+  try{ renderHipoteca(); }catch(e){}
+  try{ renderRitmo(); }catch(e){}
+}
+const APORTES_RESPALDO = {
+  '2026-4': 1140.00,   // may 2026 · Q8,857.80 @7.77
+  '2026-5': 1706.21,   // jun 2026 · Q13,257.27 @7.77
+  '2026-6': 1937.99,   // jul 2026 · Q15,058.20 @7.77
+  '2026-7':  501.93,   // ago 2026 · Q3,900.00 @7.77
+  '2026-8': 2000.35,   // sep 2026 · Q15,542.70 @7.77
+};
+const MES_BDGT = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+
+// {aportes:{'AAAA-M':usd}, base:USD|null, fuente:'budget'|'respaldo', detalle:{}}
+function leerAportes(){
+  try{
+    const d = JSON.parse(localStorage.getItem(BDGT_LS) || '{}');
+    const ap = d.dcaAportes || {};
+    const ks = Object.keys(ap);
+    if(ks.length){
+      const out={}, det={};
+      ks.forEach(k=>{
+        const m = MES_BDGT.indexOf(String(k).slice(0,3));
+        const y = parseInt(String(k).slice(-4),10);
+        const usd = parseFloat(ap[k] && ap[k].usd);
+        if(m>=0 && y>0 && isFinite(usd) && usd>0){
+          out[y+'-'+m] = usd;
+          det[y+'-'+m] = {q: parseFloat(ap[k].q)||null, tc: parseFloat(ap[k].tc)||null,
+                          fecha: ap[k].fecha||null, etiqueta:k};
+        }
+      });
+      if(Object.keys(out).length){
+        const base = parseFloat(d.dcaBase);
+        return {aportes:out, base:(isFinite(base)&&base>0)?base:null,
+                fuente:'budget', detalle:det};
+      }
+    }
+  }catch(e){}
+  return {aportes:APORTES_RESPALDO, base:null, fuente:'respaldo', detalle:{}};
+}
+/* La lectura es sincrona y local: no hay red ni sondeo. Se refresca
+   al cargar, antes de cada calculo y cuando el navegador avisa que
+   el budget cambio en otra pestana (evento 'storage').
+   Antes se leia una sola vez al evaluar el script: si editabas el
+   budget con el portafolio abierto, aqui seguia el valor viejo. */
+let _AP = leerAportes();
+let APORTES = _AP.aportes;
+function refrescarAportes(){
+  _AP = leerAportes();
+  APORTES = _AP.aportes;
+  return _AP;
+}
+// Otra pestana del mismo origen escribio: el budget acaba de cambiar.
+try{
+  window.addEventListener('storage', function(e){
+    if(e && (e.key===BDGT_LS || e.key===null)){
+      refrescarAportes();
+      try{ load(); }catch(_){}
+    }
+  });
+}catch(e){}
+
 /* Relleno de una sola vez: escribe el capital confirmado en los
    snapshots que no lo traen. No sobrescribe nada ya registrado y
    es idempotente, asi que correr dos veces no cambia nada. */
+/* Siembra 'mensuales' con el ultimo registro de cada mes que ya
+   exista en 'snapshots'. Idempotente: no sobrescribe un cierre ya
+   guardado, solo rellena los que falten. Corre una vez al cargar,
+   para no perder los meses que hoy solo viven en la lista horaria. */
+function sembrarMensuales(){
+  try{
+    const full = ldS();
+    const snaps = Array.isArray(full.snapshots) ? full.snapshots : [];
+    if(!snaps.length) return 0;
+    const men = (full.mensuales && typeof full.mensuales==='object') ? full.mensuales : {};
+    let nuevos = 0;
+    snaps.slice().sort((a,b)=>a.t-b.t).forEach(sn=>{
+      const f=new Date(sn.t), k=f.getFullYear()+'-'+f.getMonth();
+      // el ultimo de cada mes gana, pero nunca pisa lo ya guardado
+      if(men[k]==null){ men[k]={t:sn.t, v:sn.v}; nuevos++; }
+      else if(men[k].t < sn.t && !men[k].firme){ men[k]={t:sn.t, v:sn.v}; }
+    });
+    if(nuevos || Object.keys(men).length){
+      full.mensuales = men;
+      localStorage.setItem(LS, JSON.stringify(full));
+    }
+    return nuevos;
+  }catch(e){ return 0; }
+}
+
 function rellenarCapitalSnapshots(){
   try{
     const d = ldS();
@@ -1489,93 +1735,78 @@ function rellenarCapitalSnapshots(){
     return tocados;
   }catch(e){ return 0; }
 }
+/* Serie mensual: primero 'mensuales' (permanente), y si falta algun
+   mes se completa con el ultimo registro de ese mes en 'snapshots'.
+   Devuelve [{k:'AAAA-M', t, v}] en orden cronologico. */
+function serieMensual(){
+  const out={};
+  try{
+    const d=ldS();
+    const snaps=Array.isArray(d.snapshots)?d.snapshots:[];
+    snaps.forEach(sn=>{ const f=new Date(sn.t);
+      const k=f.getFullYear()+'-'+f.getMonth();
+      if(!out[k] || out[k].t<sn.t) out[k]={k, t:sn.t, v:sn.v}; });
+    const men=d.mensuales||{};
+    Object.keys(men).forEach(k=>{ if(men[k] && men[k].v>0) out[k]={k, t:men[k].t, v:men[k].v}; });
+  }catch(e){}
+  return Object.keys(out).map(k=>out[k]).sort((a,b)=>a.t-b.t);
+}
+
 function calcRitmo(){
-  let snaps=[];
-  try{ const d=ldS(); snaps=Array.isArray(d.snapshots)?d.snapshots:[]; }catch(e){}
+  refrescarAportes();
+  /* Rendimiento medido, no estimado. Un intervalo mensual solo entra
+     si su mes de cierre tiene un aporte registrado en APORTES: sin el
+     flujo no hay forma de separar deposito de mercado. Dietz
+     modificado por mes, encadenado para el TWR acumulado.
+     [DECISION JP 14-oct-2026] */
+  const serie = serieMensual();
   const hoy = (typeof window.__realizable==='number' && window.__realizable>0)
-    ? window.__realizable : (snaps.length?snaps[snaps.length-1].v:0);
-  const saldoUsdHoy = getHipSaldo()/7.75;
-  const amort = 5200/7.75;
-  if(hoy<=0) return {hoy:0, saldoUsdHoy, gAnual:null, nota:'sin valor'};
+    ? window.__realizable : (serie.length?serie[serie.length-1].v:0);
+  const saldoUsdHoy = getHipSaldo()/getTC();
+  if(hoy<=0 || !serie.length) return {hoy:0, saldoUsdHoy, twr:null, nota:'sin valor'};
+  if(serie.length<2) return {hoy, saldoUsdHoy, twr:null, nota:'faltan meses', n:serie.length};
+  const porMes={}; serie.forEach(x=>{ porMes[x.k]=x; });
+  const claves=serie.map(x=>x.k);
 
-  const porMes={};
-  snaps.forEach(s=>{ const d=new Date(s.t); porMes[d.getFullYear()+'-'+d.getMonth()]=s; });
-  // Se ordena por timestamp, no por la clave: 'AAAA-M' es texto y
-  // '2026-10' (noviembre) ordena antes que '2026-4' en un sort de
-  // strings, lo que desordenaria la serie a partir de noviembre.
-  const serie=Object.keys(porMes).map(k=>porMes[k]).sort((a,b)=>a.t-b.t);
-  if(serie.length<3) return {hoy, saldoUsdHoy, gAnual:null, nota:'faltan meses', n:serie.length};
-
-  /* ── DOS MOTORES, NO UNO ──────────────────────────────────────
-     El valor sube por dos razones distintas: lo que aportas y lo que
-     rinde. Medir valor-contra-valor las confunde y llama rendimiento
-     al deposito. Aqui se separan con Dietz modificado, usando el
-     capital (c) que saveSnapshot ya guarda en cada registro:
-
-         r = (V1 - V0 - flujo) / (V0 + flujo/2)
-
-     Y se proyectan con su propia mecanica: el rendimiento compone,
-     el aporte suma lineal. Tratar un deposito como tasa compuesta
-     infla el resultado mas cuanto mas largo el horizonte.
-     [DECISION JP 14-oct-2026: proyeccion real, no ilusionante] */
-  const vars=[], crudos=[], flujos=[];
-  let conFlujo=0;
-  for(let k=1;k<serie.length;k++){
-    const V0=serie[k-1].v, V1=serie[k].v;
+  const rs=[]; const detalle=[]; const sinAporte=[];
+  let tw=1, aportado=0;
+  for(let i=1;i<claves.length;i++){
+    const k0=claves[i-1], k1=claves[i];
+    const V0=porMes[k0].v, V1=porMes[k1].v;
+    const F=APORTES[k1];
+    if(F==null){ sinAporte.push(k1); continue; }
     if(!(V0>0)) continue;
-    crudos.push(V1/V0-1);
-    const c0=serie[k-1].c, c1=serie[k].c;
-    if(c0!=null && c1!=null){
-      const f=c1-c0;
-      flujos.push(f); conFlujo++;
-      vars.push((V1-V0-f)/(V0+f/2));
-    } else {
-      vars.push(V1/V0-1);   // sin capital registrado no hay como ajustar
-    }
+    const r=(V1-V0-F)/(V0+F/2);
+    rs.push(r); tw*=1+r; aportado+=F;
+    detalle.push({mes:k1, V0, V1, F, r});
   }
-  if(!vars.length) return {hoy, saldoUsdHoy, gAnual:null, nota:'faltan meses', n:serie.length};
-  const mediana = arr => {
-    const a=arr.slice().sort((x,y)=>x-y), i=Math.floor(a.length/2);
-    return a.length%2 ? a[i] : (a[i-1]+a[i])/2;
-  };
-  const gReal  = mediana(vars);
-  const gCrudo = crudos.length ? mediana(crudos) : gReal;
-  // Aporte: total depositado en la ventana entre los meses de la ventana.
-  // Promedio y no mediana: un flujo es dinero, no una tasa.
-  const aporte = flujos.length
-    ? flujos.reduce((a,b)=>a+b,0)/flujos.length : 0;
-  const ajustado = conFlujo>0 && conFlujo===vars.length;
+  if(!rs.length) return {hoy, saldoUsdHoy, twr:null, nota:'sin aportes registrados',
+                         sinAporte, n:claves.length};
 
-  // simula: el rendimiento compone, el aporte suma
+  const gMensual = Math.pow(tw, 1/rs.length) - 1;   // compuesto, no mediana
+  const aporteMes = aportado/rs.length;
   const proyectar = (g, ap) => {
-    let v=hoy, s=saldoUsdHoy, m=0;
-    while(v < s && m < 360){ v = v*(1+g) + ap; s=Math.max(s-amort,0); m++; }
-    if(m>=360) return null;
+    let v=hoy, s=saldoUsdHoy, m=0; const amort=getAmortQ()/getTC();
+    while(v < s && m < 600){ v=v*(1+g)+ap; s=Math.max(s-amort,0); m++; }
+    if(m>=600) return null;
     const f=new Date(); f.setMonth(f.getMonth()+m);
     return {meses:m, fecha:f};
   };
-
-  // El techo del 12%/mes queda como guarda: si la apreciacion medida
-  // lo supera, no se proyecta mas alto que eso.
-  const TECHO = 0.12;
-  const capado = gReal > TECHO;
-  const gBase = capado ? TECHO : gReal;
-
-  const base = proyectar(gBase, aporte);          // como vas
-  const solo = proyectar(gBase, 0);               // si dejas de aportar
-  const real = capado ? proyectar(gReal, aporte) : null;
+  const conAporte = proyectar(gMensual, aporteMes);
+  const sinAp     = proyectar(gMensual, 0);
 
   return {
-    hoy, saldoUsdHoy, muestras:vars.length, ajustado, conFlujo,
-    gMensual: gBase, gAnual: Math.pow(1+gBase,12)-1,
-    gMensualReal: gReal, gAnualReal: Math.pow(1+gReal,12)-1,
-    gCrudo, gCrudoAnual: Math.pow(1+gCrudo,12)-1,
-    aporte, capado,
-    meses: base?base.meses:null, fecha: base?base.fecha:null,
-    mesesSolo: solo?solo.meses:null, fechaSolo: solo?solo.fecha:null,
-    fechaReal: real?real.fecha:null, mesesReal: real?real.meses:null
+    hoy, saldoUsdHoy, meses:rs.length, detalle, sinAporte, aportado,
+    twr: tw-1, gMensual, gAnual: Math.pow(1+gMensual,12)-1,
+    aporteMes,
+    mejorMes: Math.max.apply(null,rs), peorMes: Math.min.apply(null,rs),
+    negativos: rs.filter(r=>r<0).length,
+    mesesCon: conAporte?conAporte.meses:null, fechaCon: conAporte?conAporte.fecha:null,
+    mesesSin: sinAp?sinAp.meses:null, fechaSin: sinAp?sinAp.fecha:null
   };
 }
+
+
 function renderRitmo(){
   const box=document.getElementById('hip-ritmo');
   if(!box) return;
@@ -1607,65 +1838,60 @@ function renderRitmo(){
 
   if(!r){ box.innerHTML=ESPERA('Aun no hay valor de portafolio registrado. El indicador aparece en cuanto el tracker guarde su primer snapshot con precios cargados.'); return; }
 
-  if(r.gAnual===null){
-    box.innerHTML=ESPERA('Se necesitan al menos 3 meses de registros para calcular un ritmo con sentido. Llevas '+(r.n||0)+'.');
+  if(r.twr===null || r.twr===undefined){
+    box.innerHTML=ESPERA('Faltan meses con aporte registrado para medir el rendimiento. '
+      +'Los aportes van en la constante APORTES del archivo, uno por mes.');
     return;
   }
-  const MESR=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
-  const fTxt = r.fecha ? MESR[r.fecha.getMonth()]+' '+r.fecha.getFullYear() : 'no alcanza';
-  const fSolo = r.fechaSolo ? MESR[r.fechaSolo.getMonth()]+' '+r.fechaSolo.getFullYear() : 'no alcanza';
-  const col = !r.fecha ? '#eda100' : '#3db8f5';
-  const fmA = v => '$'+Math.round(v).toLocaleString('en-US');
-  let msg;
-  if(!r.fecha) msg='Ni con el aporte alcanza el saldo dentro del horizonte simulado. Es lo que dan los meses registrados, no un veredicto.';
-  else msg='Aportando '+fmA(r.aporte)+' al mes alcanza el saldo en '+r.meses+' mes'+(r.meses===1?'':'es')+'. '
-    +(r.mesesSolo!=null
-      ? 'Si dejas de aportar, '+r.mesesSolo+' meses: '+(r.mesesSolo-r.meses)+' meses los paga tu aporte, no el mercado.'
-      : 'Sin aportar no alcanza: el aporte es el motor, no el rendimiento.');
-  const fReal = r.fechaReal ? MESR[r.fechaReal.getMonth()]+' '+r.fechaReal.getFullYear() : null;
+  // Sin tasa ni fecha: el historial no la soporta (ver el documento).
+  // Lo que si es un hecho: cuanto debe multiplicarse la cartera.
+  const saldoU = getHipSaldo()/getTC();
+  const realU  = (typeof window.__realizable==='number'&&window.__realizable>0)?window.__realizable:r.hoy;
+  const patU   = (window.__spotValor||0)+(window.__apalEquity||0)+(window.__btcColchon||0);
+  const fmU = v=>'$'+Math.round(v).toLocaleString('en-US');
   const card=(lbl,val,sub,c,bg)=>'<div style="background:'+(bg||'var(--s2)')+';border-radius:6px;padding:8px 10px'
     +(bg?';border:1px solid rgba(237,161,0,.3)':'')+'">'
     +'<div style="font-size:8px;color:var(--mu2);text-transform:uppercase;letter-spacing:.5px">'+lbl+'</div>'
     +'<div style="font-family:\'DM Mono\',monospace;font-size:15px;font-weight:700;color:'+c+'">'+val+'</div>'
     +'<div style="font-size:8px;color:var(--mu2);margin-top:1px">'+sub+'</div></div>';
 
+  const MESR2=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  const fF = f => f ? (MESR2[f.getMonth()]+' '+f.getFullYear()) : 'no alcanza';
   box.innerHTML = HDR
     +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">'
-    +card('Apreciación','+'+(r.gAnual*100).toFixed(0)+'% / año',
-          (r.gMensual*100).toFixed(1)+'% mensual · '+(r.ajustado?'sin aportes':'⚠ sin ajustar'),
-          r.ajustado?'#34d07a':'#eda100', r.ajustado?null:'rgba(237,161,0,.07)')
-    +card('Aporte',fmA(r.aporte),'promedio mensual','#9f7aea')
+    +card('Rendimiento medido', (r.twr>=0?'+':'')+(r.twr*100).toFixed(1)+'%',
+          r.meses+' meses \u00b7 '+(r.gMensual*100).toFixed(2)+'%/mes', r.twr>=0?'#34d07a':'#e34948')
+    +card('Aporte promedio', fmU(r.aporteMes), 'de tu budget', '#9f7aea')
     +'</div>'
     +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">'
-    +card('Cubriría el saldo en',fTxt,r.meses!=null?r.meses+' meses':'fuera de horizonte',col)
-    +card('Si dejas de aportar',fSolo,r.mesesSolo!=null?r.mesesSolo+' meses':'no alcanza','#eda100')
+    +card('Cubre el saldo', fF(r.fechaCon), (r.mesesCon!=null?r.mesesCon+' meses con aporte':'fuera de horizonte'), '#3db8f5')
+    +card('Si dejas de aportar', fF(r.fechaSin), (r.mesesSin!=null?r.mesesSin+' meses':'no alcanza'), '#eda100')
     +'</div>'
-    +(r.capado
-      ? '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">'
-        +card('Tu ritmo real','+'+(r.gAnualReal*100).toFixed(0)+'% / año',(r.gMensualReal*100).toFixed(1)+'% mensual','#eda100','rgba(237,161,0,.07)')
-        +card('Si se sostiene',fReal||'—','ritmo real sin capar','#eda100','rgba(237,161,0,.07)')
-        +'</div>'
-      : '')
-    +'<div style="font-size:10px;color:var(--mu);line-height:1.6">'+msg+'</div>'
+    +'<div style="font-size:10px;color:var(--mu);line-height:1.6">'
+    +'Rendimiento ponderado por tiempo sobre '+r.meses+' meses con aporte registrado: '
+    +(r.gMensual*100).toFixed(2)+'%/mes compuesto. Peor mes '+(r.peorMes*100).toFixed(1)
+    +'%, mejor '+(r.mejorMes*100).toFixed(1)+'%, '+r.negativos+' negativo'+(r.negativos===1?'':'s')+'.</div>'
     +'<div style="font-size:9px;color:var(--mu2);margin-top:6px;line-height:1.5">'
-    +'Mediana de '+(r.muestras||0)+' meses, ajustada por aportes (Dietz). '
-    +(r.ajustado
-      ? 'Sin ajustar daría '+(r.gCrudo*100).toFixed(1)+'%/mes: la diferencia es dinero que metiste, no rendimiento. '
-      : '⚠ Faltan registros de capital en algunos meses: ese tramo va sin ajustar y queda inflado. ')
-    +'El rendimiento compone, el aporte suma lineal.'
-    +(r.capado?' Base capada a 12%/mes.':'')
-    +' El saldo baja ~Q5,200 de capital por cuota.</div>'
+    +'El realizable debe multiplicarse '+(realU>0?(saldoU/realU).toFixed(2):'-')+'x y el patrimonio '
+    +(patU>0?(saldoU/patU).toFixed(2):'-')+'x. '
+    +((r.sinAporte && r.sinAporte.length)
+      ? (r.sinAporte.length+' mes'+(r.sinAporte.length===1?'':'es')+' sin aporte registrado queda fuera del calculo. ')
+      : '')
+    +'El saldo baja Q'+Math.round(getAmortQ()).toLocaleString('es-GT')+' de capital por cuota.</div>'
     +'</div>';
 }
 
+
 function renderHipoteca(){
+  { const a=document.getElementById('hip-amort'); if(a && !a.value) a.value=getAmortQ();
+    const h=document.getElementById('hip-saldo'); if(h) h.value=getHipSaldo(); }
   const box=document.getElementById('hip-cobertura');
   if(!box) return;
   const inp=document.getElementById('hip-saldo');
   const saldoQ=getHipSaldo();
   if(inp && document.activeElement!==inp) inp.value=saldoQ;
 
-  const tc=7.75;
+  const tc=getTC();
   const saldoUsd=saldoQ/tc;
 
   // realizable hoy = mismo criterio del KPI de portada
@@ -1719,14 +1945,25 @@ function svCap(d){ localStorage.setItem(CAPSTORE, JSON.stringify(d)); marcarEdic
 
 function getCapitalHistorico(){
   const d = ldCap();
-  // Capital invertido total ingresado manualmente (viene del budget tracker)
-  const capitalTotal = d.capitalInvertido || 0;
+  /* El capital aportado lo manda el budget: su dcaBase mas la suma de
+     sus aportes. El campo manual de aca quedaba viejo (decia $20,157
+     cuando el real era otro) y generaba una discrepancia permanente
+     en el documento. Ahora solo es respaldo [DECISION JP 14-oct-2026]. */
+  let capitalTotal = 0, fuenteCap = 'manual';
+  try{
+    if(_AP && _AP.base!=null){
+      capitalTotal = _AP.base + Object.keys(APORTES).reduce((x,k)=>x+APORTES[k],0);
+      fuenteCap = _AP.fuente==='budget' ? 'budget' : 'respaldo';
+    }
+  }catch(e){}
+  if(!(capitalTotal>0)) capitalTotal = d.capitalInvertido || 0;
   const trans = d.transacciones || [];
   let ventas = 0;
   trans.forEach(t => { if(t.tipo === 'venta') ventas += t.qty * t.precio; });
   const pctRecuperado = capitalTotal > 0 ? (ventas / capitalTotal) * 100 : 0;
   return {
     capitalTotal,
+    fuenteCap,
     ventas,
     pctRecuperado,
     fechaActualizacion: d.fechaActualizacion || null
@@ -2036,19 +2273,21 @@ function verHistorialTx(tick){
 
 // ── RESUMEN EJECUTIVO PROFESIONAL ───────────────────────────────
 function descargarResumen(){
+  refrescarAportes();   // el budget pudo cambiar desde que cargo la pagina
   const allAssets=[...L1,...L2,...L3,...BROKER];
   const ASIM=new Set(L3.map(a=>a.tick));
   const capHist = getCapitalHistorico();
-  const TC = 7.75;
+  const TC = getTC();
 
   /* ── 1 · CARTERA: realizable vs colchón ─────────────────── */
   const BTC_VENDIBLE = btcVendible();   // de la pestana TIERS
   const BTC_PCT_TXT  = (BTC_VENDIBLE*100).toFixed(BTC_VENDIBLE*100%1?1:0)+'%';
   const BTC_RESTO_TXT= ((1-BTC_VENDIBLE)*100).toFixed((1-BTC_VENDIBLE)*100%1?1:0)+'%';
-  let patrimonioTotal=0, operableTot=0, operableCst=0, colchonBtc=0;
+  let patrimonioTotal=0, costoTotal=0, operableTot=0, operableCst=0, colchonBtc=0;
   allAssets.forEach(a=>{
     const v=(a.price||0)*a.qty;
     patrimonioTotal+=v;
+    costoTotal+=a.entry*a.qty;
     if(a.tick==='BTC'){
       operableTot += v*BTC_VENDIBLE;
       operableCst += a.entry*a.qty*BTC_VENDIBLE;
@@ -2075,7 +2314,17 @@ function descargarResumen(){
             esBtc:false, esAsim:false, esApal:true,
             lev:a.lev, venue:a.venue, liq:a.liq, lado:a.lado};
   });
-  patrimonioTotal+=apalTot; operableTot+=apalTot; operableCst+=apalCst;
+  patrimonioTotal+=apalTot; costoTotal+=apalCst;
+  operableTot+=apalTot; operableCst+=apalCst;
+
+  /* Dos lecturas distintas, cada una con su nombre:
+     - PATRIMONIO: todo a valor pleno. Es el rendimiento de la cartera.
+     - REALIZABLE: patrimonio menos el colchon de BTC que no se vende.
+       Es lo unico que puede financiar el abono.
+     El documento ya no las mezcla [DECISION JP 14-oct-2026]. */
+  const plTotal   = patrimonioTotal - costoTotal;
+  const plTotalPct= costoTotal>0 ? (plTotal/costoTotal*100) : 0;
+  const multTotal = costoTotal>0 ? (patrimonioTotal/costoTotal) : 0;
 
   const tot=operableTot, cst=operableCst;
   const spotTot=tot-apalTot;
@@ -2108,9 +2357,36 @@ function descargarResumen(){
   // un punto por mes, el último de cada uno
   const porMes={};
   snaps.forEach(s=>{ const d=new Date(s.t); porMes[d.getFullYear()+'-'+d.getMonth()]=s; });
-  // capital aportado confirmado · un solo dueno: CAPITAL_CONFIRMADO
-  const CAP_HIST=CAPITAL_CONFIRMADO;
-  Object.keys(porMes).forEach(k=>{ if(CAP_HIST[k]!=null) porMes[k]={...porMes[k], c:CAP_HIST[k]}; });
+  /* La linea gris ahora es CAPITAL APORTADO ACUMULADO, construido
+     sumando APORTES mes a mes. Antes era el campo 'c' del snapshot,
+     que es el costo de las posiciones y baja al rotar con perdida:
+     la brecha contra el valor no era el P&L real. Con esto la brecha
+     SI es el P&L [DECISION JP 14-oct-2026].
+     Un mes posterior al ultimo aporte registrado mantiene el ultimo
+     acumulado y se avisa al pie: no se inventa el dato. */
+  let acumAportes = null, ultMesConAporte = null;
+  {
+    const ks=Object.keys(APORTES).sort((a,b)=>{
+      const [ay,am]=a.split('-').map(Number), [by,bm]=b.split('-').map(Number);
+      return ay-by || am-bm;
+    });
+    // base: el capital inicial que el budget ya guarda (dcaBase);
+    // si no esta, se deriva del primer mes confirmado
+    const k0=ks[0];
+    let acum = (_AP.base!=null) ? _AP.base
+      : ((CAPITAL_CONFIRMADO[k0]!=null) ? CAPITAL_CONFIRMADO[k0]-APORTES[k0] : 0);
+    acumAportes={};
+    ks.forEach(k=>{ acum+=APORTES[k]; acumAportes[k]=acum; ultMesConAporte=k; });
+  }
+  {
+    const orden=Object.keys(porMes).sort((a,b)=>porMes[a].t-porMes[b].t);
+    let ultimo=null;
+    orden.forEach(k=>{
+      if(acumAportes[k]!=null){ ultimo=acumAportes[k]; porMes[k]={...porMes[k], c:ultimo, cFirme:true}; }
+      else if(ultimo!=null){ porMes[k]={...porMes[k], c:ultimo, cFirme:false}; }
+    });
+  }
+  const mesesSinAporte = Object.keys(porMes).filter(k=>porMes[k].c!=null && !porMes[k].cFirme).length;
   const serie=Object.keys(porMes).map(k=>porMes[k]).slice(-8);
 
   /* ── 4 · DISTANCIA AL SIGUIENTE TIER ────────────────────── */
@@ -2133,23 +2409,25 @@ function descargarResumen(){
   const masCerca = distancias.find(d=>d.dist!==null);
 
   /* ── 5 · POSICIONES ORDENADAS ───────────────────────────── */
+  // A valor pleno: la tabla describe la cartera, no el abono.
   const posSpot = allAssets.map(a=>{
-    const esBtc=a.tick==='BTC';
-    const v=(a.price||0)*a.qty*(esBtc?BTC_VENDIBLE:1);
-    const c=a.entry*a.qty*(esBtc?BTC_VENDIBLE:1);
+    const v=(a.price||0)*a.qty, c=a.entry*a.qty;
     return {tick:a.tick, qty:a.qty, px:a.price||0, val:v, cost:c,
-            pl:v-c, plPct:c>0?((v-c)/c*100):0, esBtc, esApal:false,
+            pl:v-c, plPct:c>0?((v-c)/c*100):0, esBtc:a.tick==='BTC', esApal:false,
             esAsim:ASIM.has(a.tick)};
   });
   const posiciones = posSpot.concat(apalRows)
-    .map(p=>Object.assign({}, p, {peso: tot>0?(p.val/tot*100):0}))
+    .map(p=>Object.assign({}, p, {peso: patrimonioTotal>0?(p.val/patrimonioTotal*100):0}))
     .sort((a,b)=>b.val-a.val);
+  const spotPat = patrimonioTotal - apalTot;
+  const mejor = posiciones.filter(p=>p.cost>0).reduce((m,p)=>!m||p.plPct>m.plPct?p:m,null);
+  const peor  = posiciones.filter(p=>p.cost>0).reduce((m,p)=>!m||p.plPct<m.plPct?p:m,null);
 
   /* ── 6 · CONCENTRACIÓN ──────────────────────────────────── */
   // Concentracion sobre spot repesado: un perpetuo con liquidacion
   // no es comparable a una tenencia y distorsiona el indice.
   const concRows = posiciones.filter(p=>!p.esApal)
-    .map(p=>({tick:p.tick, peso: spotTot>0?(p.val/spotTot*100):0}))
+    .map(p=>({tick:p.tick, peso: spotPat>0?(p.val/spotPat*100):0}))
     .sort((a,b)=>b.peso-a.peso);
   const hhi = concRows.reduce((s,p)=>s+Math.pow(p.peso,2),0);
   const top3 = concRows.slice(0,3).reduce((s,p)=>s+p.peso,0);
@@ -2168,7 +2446,7 @@ function descargarResumen(){
       tick:r.tick,
       avgPx: sp>0 ? r.avgPx*100/sp : r.avgPx,   // precio promedio real
       pctVend: sp,                               // % de la posicion que se vende
-      valor:r.valor, costo: p?p.cost:0,
+      valor:r.valor, costo: p?p.cost:0,   // costo pleno del activo
       peso: proy.total>0?(r.valor/proy.total*100):0,
       mult: (p && p.cost>0) ? (r.valor/p.cost) : null,
       // mcap requerido en el nivel mas alto de su escalera (REGLAS 4.8).
@@ -2185,15 +2463,20 @@ function descargarResumen(){
       })()
     };
   }).sort((a,b)=>b.valor-a.valor);
-  /* Se marca un nivel cuando pide capitalizacion grande EN ABSOLUTO
-     (>$10B, territorio top-25) Y ADEMAS multiplica por 5 o mas la de
-     hoy. Las dos condiciones juntas: el piso en dolares evita marcar
-     un 5x que en un activo chico son $200M, y el multiplo evita marcar
-     a BTC, donde $5T es 2x y no mercado nuevo que haya que crear. */
-  const MCAP_UMBRAL = 10e9, MCAP_VECES = 5;
-  const esMcapAlto = r => !!(r.mcapReq && r.mcapReq.req>MCAP_UMBRAL && r.mcapReq.veces>=MCAP_VECES);
-  const mcapAlertas = proyRows.filter(esMcapAlto);
-  const fmc = v => v>=1e12 ? '$'+(v/1e12).toFixed(1)+'T' : '$'+(v/1e9).toFixed(1)+'B';
+  /* Sin dagas. El filtro anterior marcaba a HYPE por 6x y dejaba
+     pasar a POPCAT por 29x, porque el piso de $10B esconde a los
+     activos chicos: justo al reves de lo util. Ahora va una sola
+     linea con el rango y los tres extremos, que es lo que se lee
+     una vez al mes [DECISION JP 14-oct-2026]. */
+  const fmc = v => v>=1e12 ? '$'+(v/1e12).toFixed(2)+'T' : '$'+(v/1e9).toFixed(2)+'B';
+  // Base del multiplo total = suma de los costos de las filas. Antes
+  // dividia por el capital operable, que incluye el colateral de AVAX
+  // (fuera de la proyeccion) y solo 25% del costo de BTC: el total no
+  // era el agregado de las filas.
+  const proyCosto = proyRows.reduce((x,r)=>x+(r.costo||0),0);
+  const mcapOrden = proyRows.filter(r=>r.mcapReq).slice()
+    .sort((a,b)=>b.mcapReq.veces-a.mcapReq.veces);
+  const sinMcap = proyRows.filter(r=>!r.mcapReq).map(r=>r.tick);
 
   /* ── helpers ── */
   const fu=n=>'$'+Math.round(n).toLocaleString('en-US');
@@ -2325,83 +2608,138 @@ tr.tot td{font-weight:700;border-top:2px solid #e5e7eb;border-bottom:none;backgr
   }
 
   /* ── bloque de ritmo ── */
-  let bloqueRitmo='';
-  if(ritmo && ritmo.gAnual!==null){
-    const MES2=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
-    const fTxt = ritmo.fecha ? (MES2[ritmo.fecha.getMonth()]+' '+ritmo.fecha.getFullYear()) : 'no alcanza';
-    const col = ritmo.fecha ? '#075985' : '#d97706';
-    const sinFlujo = (ritmo.muestras||0) - (ritmo.conFlujo||0);
-    const aviso = ritmo.ajustado ? '' :
-      '<div class="al al-a" style="margin-top:9px;margin-bottom:0"><b>⚠ Esta cifra está inflada.</b> '
-      +'A '+sinFlujo+' de los '+(ritmo.muestras||0)+' meses les falta el registro de capital, '
-      +'así que en ese tramo tus depósitos se cuentan como rendimiento. '
-      +'Los cortes confirmados de may–ago se rellenan solos la próxima vez que abras el tracker; '
-      +'vuelve a generar el documento y la cifra baja a lo real.</div>';
-    const fSolo = ritmo.fechaSolo ? (MES2[ritmo.fechaSolo.getMonth()]+' '+ritmo.fechaSolo.getFullYear()) : null;
-    let msg;
-    if(!ritmo.fecha) msg='Ni sosteniendo el aporte el portafolio cubre el saldo dentro de 30 años de simulación. '
-      +'No es un veredicto: es lo que dan los meses registrados hasta hoy.';
-    else{
-      const mm=ritmo.meses;
-      msg='Sosteniendo un aporte de '+fu(ritmo.aporte)+' al mes, el portafolio alcanza el saldo en '
-        +mm+' mes'+(mm===1?'':'es')+' ('+fTxt+'). '
-        +(ritmo.mesesSolo!=null
-          ? 'Si dejas de aportar y solo rinde: '+ritmo.mesesSolo+' meses ('+fSolo+'). '
-            +'Esos '+(ritmo.mesesSolo-mm)+' meses de diferencia los paga tu aporte, no el mercado — '
-            +'ahí está el verdadero motor del plan.'
-          : 'Sin el aporte no alcanza dentro del horizonte: el motor es lo que depositas, no lo que rinde.');
+  /* ── RENDIMIENTO · solo hechos ─────────────────────────────
+     Antes aqui habia una proyeccion a fecha. Se quito: con 5 meses
+     de historial, todos de una fase alcista, no se sostiene. Y el
+     historial tiene dos problemas que lo hacen inservible como tasa:
+       1. El campo de capital del snapshot es el COSTO de lo que
+          tienes hoy, no un registro de aportes. Baja cuando rotas
+          con perdida, sin que salga un quetzal.
+       2. Hay cargas parciales que guardan valores falsos.
+     Con eso, dos metodos razonables dan resultados que difieren por
+     mas del doble. Un numero asi no es una medicion.
+     [DECISION JP 14-oct-2026: datos honestos antes que una fecha] */
+  const diag = (()=>{
+    let snaps=[]; try{ const d=ldS(); snaps=Array.isArray(d.snapshots)?d.snapshots:[]; }catch(e){}
+    let bajas=0, raros=0, tw=1, dias=0, puros=0;
+    for(let i=1;i<snaps.length;i++){
+      const a=snaps[i-1], b=snaps[i];
+      if(a.c!=null && b.c!=null && b.c<a.c) bajas++;
+      if(a.c!=null && b.c!=null && a.c===b.c && a.v>0){
+        tw*=b.v/a.v; dias+=(b.t-a.t)/86400000; puros++;
+      }
     }
-    const fReal = ritmo.fechaReal ? (MES2[ritmo.fechaReal.getMonth()]+' '+ritmo.fechaReal.getFullYear()) : null;
+    for(let i=1;i<snaps.length-1;i++){
+      const a=snaps[i-1].v, b=snaps[i].v, c=snaps[i+1].v;
+      if(a>0&&c>0&&Math.abs(b/a-1)>0.08&&Math.abs(b/c-1)>0.08) raros++;
+    }
+    if(snaps.length<3) return null;
+    const V0=snaps[0].v, V1=snaps[snaps.length-1].v;
+    const C0=snaps[0].c, C1=snaps[snaps.length-1].c;
+    const mA = dias>0 ? tw-1 : null;
+    const mB = (C0!=null&&C1!=null) ? ((V1-V0)-(C1-C0))/((V0+V1)/2) : null;
+    const span=(snaps[snaps.length-1].t-snaps[0].t)/86400000;
+    return {n:snaps.length, bajas, raros, puros, dias, span, mA, mB,
+            factor: (mA!=null&&mB!=null&&mB!==0)?Math.abs(mA/mB):null};
+  })();
 
-    bloqueRitmo='<div class="sec"><div class="st"><span>Ritmo observado</span>'
-      +'<span class="n">estimación · el objetivo no tiene fecha</span></div>'
-      +'<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px">'
-      +'<div class="kpi"'+(ritmo.ajustado?'':' style="border-color:#fcd34d;background:#fffbeb"')+'>'
-      +'<div class="kl">Apreciación observada</div>'
-      +'<div class="kv'+(ritmo.ajustado?' up':'')+'"'+(ritmo.ajustado?'':' style="color:#b45309"')+'>+'
-      +(ritmo.gAnual*100).toFixed(0)+'% / año</div>'
-      +'<div class="kd mu">'+(ritmo.gMensual*100).toFixed(1)+'% mensual · '
-      +(ritmo.ajustado?'sin aportes':'⚠ SIN AJUSTAR')+'</div></div>'
-      +'<div class="kpi"><div class="kl">Aporte mensual</div>'
-      +'<div class="kv" style="color:#6d28d9">'+fu(ritmo.aporte)+'</div>'
-      +'<div class="kd mu">promedio de la ventana</div></div></div>'
-      +'<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:8px">'
-      +'<div class="kpi"><div class="kl">Cubriría el saldo en</div>'
-      +'<div class="kv" style="color:'+col+'">'+fTxt+'</div>'
-      +'<div class="kd mu">'+(ritmo.meses!=null?ritmo.meses+' meses · con aporte':'fuera de horizonte')+'</div></div>'
-      +'<div class="kpi"><div class="kl">Si dejas de aportar</div>'
-      +'<div class="kv" style="color:#b45309">'+(fSolo||'no alcanza')+'</div>'
-      +'<div class="kd mu">'+(ritmo.mesesSolo!=null?ritmo.mesesSolo+' meses · solo rendimiento':'fuera de horizonte')+'</div></div></div>'
-      +(ritmo.capado
-        ? '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:8px">'
-          +'<div class="kpi" style="border-color:#fcd34d;background:#fffbeb"><div class="kl">Tu ritmo real</div>'
-          +'<div class="kv" style="color:#b45309">+'+(ritmo.gAnualReal*100).toFixed(0)+'% / año</div>'
-          +'<div class="kd mu">'+(ritmo.gMensualReal*100).toFixed(1)+'% mensual</div></div>'
-          +'<div class="kpi" style="border-color:#fcd34d;background:#fffbeb"><div class="kl">Si se sostiene</div>'
-          +'<div class="kv" style="color:#b45309">'+(fReal||'—')+'</div>'
-          +'<div class="kd mu">ritmo real sin capar</div></div></div>'
-        : '')
-      +aviso
-      +'<div class="al al-a" style="margin-top:9px;margin-bottom:0">'+msg+'</div>'
-      +'<div class="nt">La apreciación es la mediana de '+(ritmo.muestras||0)+' meses ajustada por aportes '
-      +'(Dietz modificado: r = (V₁−V₀−flujo) ÷ (V₀+flujo/2)), así un depósito no se cuenta como rendimiento. '
-      +(ritmo.ajustado
-        ? 'Sin ese ajuste la mediana sería '+(ritmo.gCrudo*100).toFixed(1)+'%/mes en vez de '
-          +(ritmo.gMensualReal*100).toFixed(1)+'%: la diferencia es capital que aportaste. '
-        : '<b>Atención:</b> algunos meses no tienen capital registrado, así que ese tramo va sin ajustar y queda inflado. ')
-      +'La proyección trata cada motor como es: el rendimiento compone, el aporte suma lineal. '
-      +'Se usa la mediana y no el promedio para que un mes extraordinario no arrastre el resultado. '
-      +(ritmo.capado?'La base está capada a 12% mensual. ':'')
-      +'El aporte proyectado es el promedio de la ventana y asume que lo sostienes: eso depende de tu presupuesto, no del mercado. '
-      +'El saldo baja ~Q5,200 de capital por cuota.</div></div>';
-  } else {
-    bloqueRitmo='<div class="sec"><div class="st"><span>Ritmo observado</span>'
-      +'<span class="n">requiere 3 meses de registros</span></div>'
-      +'<div class="al al-a" style="margin-bottom:0">Aún no hay historial suficiente para estimar el ritmo. '
-      +'El tracker guarda un registro cada vez que abres la app con precios actualizados.</div></div>';
+  const fu0=n=>'$'+Math.round(n).toLocaleString('en-US');
+  let bloqueRend='<div class="sec"><div class="st"><span>Rendimiento</span>'
+    +'<span class="n">realizado y no realizado</span></div>'
+    +'<table><tbody>'
+    +'<tr><td><b>No realizado</b><span class="s2">lo que vale hoy sobre lo que costo</span></td>'
+    +'<td class="r mono" style="font-weight:700;color:'+(plTotal>=0?'#059669':'#dc2626')+'">'
+    +(plTotal>=0?'+':'-')+fu0(Math.abs(plTotal))+'</td>'
+    +'<td class="r mono" style="width:90px">'+(plTotalPct>=0?'+':'')+plTotalPct.toFixed(1)+'%</td></tr>'
+    +'<tr><td><b>Realizado</b><span class="s2">'
+    +((capHist.ventas>0)?'ventas ejecutadas y registradas':'sin ventas registradas en el tracker')+'</span></td>'
+    +'<td class="r mono" style="font-weight:700">'+fu0(capHist.ventas||0)+'</td>'
+    +'<td class="r mono">'+(costoTotal>0?((capHist.ventas||0)/costoTotal*100).toFixed(1):'0.0')+'%</td></tr>'
+    +(mejor?('<tr><td><b>Mejor posicion</b><span class="s2">'+mejor.tick+'</span></td>'
+      +'<td class="r mono">'+fu0(mejor.pl)+'</td>'
+      +'<td class="r mono up">+'+mejor.plPct.toFixed(1)+'%</td></tr>'):'')
+    +(peor?('<tr><td><b>Peor posicion</b><span class="s2">'+peor.tick+'</span></td>'
+      +'<td class="r mono">'+fu0(peor.pl)+'</td>'
+      +'<td class="r mono '+(peor.plPct>=0?'up':'dn')+'">'+(peor.plPct>=0?'+':'')+peor.plPct.toFixed(1)+'%</td></tr>'):'');
+
+  if(ritmo && ritmo.twr!=null){
+    bloqueRend += '<tr style="background:#f0f9ff"><td><b>Rendimiento de mercado</b>'
+      +'<span class="s2">ponderado por tiempo · '+ritmo.meses+' meses con aporte registrado</span></td>'
+      +'<td class="r mono" style="font-weight:700;color:'+(ritmo.twr>=0?'#059669':'#dc2626')+'">'
+      +(ritmo.twr>=0?'+':'')+(ritmo.twr*100).toFixed(1)+'%</td>'
+      +'<td class="r mono">'+(ritmo.gMensual*100).toFixed(2)+'%/mes</td></tr>'
+      +'<tr><td><b>Aporte promedio</b><span class="s2">de tu budget · '+fu(ritmo.aportado)+' en total</span></td>'
+      +'<td class="r mono">'+fu(ritmo.aporteMes)+'</td><td class="r mono mu">al mes</td></tr>';
   }
+  bloqueRend += '</tbody></table>';
+  if(ritmo && ritmo.twr!=null){
+    bloqueRend += '<div class="nt"><b>El rendimiento de mercado está limpio de aportes.</b> '
+      +'Se mide con Dietz modificado mes a mes — r = (V₁−V₀−aporte) ÷ (V₀+aporte/2) — usando el aporte '
+      +'real de tu budget, y se encadena para el acumulado. Así un depósito no se cuenta como ganancia. '
+      +'Peor mes '+(ritmo.peorMes*100).toFixed(1)+'%, mejor '+(ritmo.mejorMes*100).toFixed(1)+'%, '
+      +ritmo.negativos+' negativo'+(ritmo.negativos===1?'':'s')+' de '+ritmo.meses+'. '
+      +(ritmo.sinAporte && ritmo.sinAporte.length
+        ? ('<b>'+ritmo.sinAporte.length+' mes'+(ritmo.sinAporte.length===1?'':'es')
+           +' sin aporte registrado queda fuera</b> — registralo en el corte y entra al cálculo. ')
+        : '')
+      +(diag && diag.raros>0 ? ('El historial tenía '+diag.raros+' '
+         +(diag.raros===1?'registro':'registros')+' de carga parcial; el tracker ya no los guarda. ') : '')
+      +'Cuatro meses son pocos para extrapolar: el número es real, su permanencia no está probada.</div>';
+  } else {
+    bloqueRend += '<div class="nt">Sin meses con aporte registrado no se puede separar depósito de '
+      +'rendimiento. Las cifras de arriba son sobre el costo, no sobre el tiempo.</div>';
+  }
+  // Tabla de aportes: de donde salen los numeros, mes por mes.
+  {
+    const ks=Object.keys(APORTES).sort((a,b)=>{
+      const [ay,am]=a.split('-').map(Number), [by,bm]=b.split('-').map(Number);
+      return ay-by || am-bm;
+    });
+    if(ks.length){
+      const rMes={};
+      if(ritmo && ritmo.detalle) ritmo.detalle.forEach(x=>{ rMes[x.mes]=x.r; });
+      let acum = (_AP.base!=null) ? _AP.base
+        : ((CAPITAL_CONFIRMADO[ks[0]]!=null) ? CAPITAL_CONFIRMADO[ks[0]]-APORTES[ks[0]] : 0);
+      const filas = ks.map(k=>{
+        acum += APORTES[k];
+        const d=_AP.detalle[k]||{};
+        const r=rMes[k];
+        const mm=+k.split('-')[1], yy=k.split('-')[0];
+        return '<tr><td><b>'+MES[mm]+' '+yy+'</b>'
+          +(d.q?('<span class="s2">Q'+Math.round(d.q).toLocaleString('es-GT')
+                 +(d.tc?(' @ '+d.tc.toFixed(2)):'')+'</span>'):'')+'</td>'
+          +'<td class="r mono">+'+fu(APORTES[k])+'</td>'
+          +'<td class="r mono" style="font-weight:600">'+fu(acum)+'</td>'
+          +'<td class="r mono '+(r==null?'mu':(r>=0?'up':'dn'))+'" style="width:80px">'
+          +(r==null?'—':((r>=0?'+':'')+(r*100).toFixed(1)+'%'))+'</td></tr>';
+      }).join('');
+      const pend = (ritmo && ritmo.sinAporte) ? ritmo.sinAporte : [];
+      bloqueRend += '<div class="st" style="margin-top:13px"><span>Aportes</span>'
+        +'<span class="n">'+(_AP.fuente==='budget'
+            ? 'leídos del budget · no se capturan aquí'
+            : '⚠ del respaldo del archivo: abre el budget en este navegador para leer los reales')+'</span></div>'
+        +'<table><thead><tr><th>Mes</th><th class="r">Aporte</th>'
+        +'<th class="r">Capital acumulado</th><th class="r">Rend. del mes</th></tr></thead><tbody>'
+        +filas
+        +pend.map(k=>{
+            const mm=+k.split('-')[1], yy=k.split('-')[0];
+            return '<tr style="background:#fffbeb"><td><b>'+MES[mm]+' '+yy+'</b>'
+              +'<span class="s2">sin registrar en el budget</span></td>'
+              +'<td class="r mono mu">pendiente</td><td class="r mono mu">—</td>'
+              +'<td class="r mono mu">fuera del cálculo</td></tr>';
+          }).join('')
+        +'</tbody></table>'
+        +'<div class="nt">El dueño de este dato es el budget: su DCA tracker guarda cada aporte con su '
+        +'monto en quetzales y el tipo de cambio del mes, y este documento lo lee de ahí. '
+        +'No hay dos listas que mantener — lo que registras en el corte aparece acá solo.'
+        +(pend.length?(' Los meses en amarillo no tienen aporte registrado todavía: hasta que los capture'
+          +' el rendimiento de esos meses no se puede medir.'):'')
+        +'</div>';
+    }
+  }
+  bloqueRend += '</div>';
 
-  /* ── HTML ── */
+
   const out='<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">'
    +'<meta name="viewport" content="width=device-width,initial-scale=1">'
    +'<title>Estado de Resultados · '+fecha+'</title><style>'+CSS+'</style></head><body><div class="doc">'
@@ -2411,21 +2749,23 @@ tr.tot td{font-weight:700;border-top:2px solid #e5e7eb;border-bottom:none;backgr
    +'<div class="top"><h1>Estado de Resultados</h1>'
    +'<div class="sub">Cartera de activos digitales · '+fecha+'</div>'
    +'<div style="font-size:9px;text-transform:uppercase;letter-spacing:.1em;opacity:.55;margin-bottom:4px">'
-   +'Valor realizable · lo que financia el abono</div>'
-   +'<div><span class="big">'+fu(tot)+'</span><span class="big-s">'+fq(tot*TC)+'</span>'
-   +'<span class="dl '+(pnl>=0?'dl-up':'dl-dn')+'">'+(pnl>=0?'▲':'▼')+' P&L '+(pnl>=0?'+':'−')+fu(Math.abs(pnl))+' · '+pc(pnlPct)+'</span></div>'
+   +'Patrimonio total · toda la cartera a valor pleno</div>'
+   +'<div><span class="big">'+fu(patrimonioTotal)+'</span><span class="big-s">'+fq(patrimonioTotal*TC)+'</span>'
+   +'<span class="dl '+(plTotal>=0?'dl-up':'dl-dn')+'">'+(plTotal>=0?'▲':'▼')+' P&L '+(plTotal>=0?'+':'−')+fu(Math.abs(plTotal))+' · '+pc(plTotalPct)+'</span></div>'
    +'<div style="font-size:10px;opacity:.55;margin-top:6px;font-family:monospace">'
-   +'alts al 100% + apalancado + '+BTC_PCT_TXT+' del BTC · el '+BTC_RESTO_TXT+' restante ('+fu(colchonBtc)+') queda fuera</div></div>'
+   +'incluye el colchón de BTC ('+fu(colchonBtc)+') y la posición apalancada ('+fu(apalTot)+')'
+   +' · la página 2 separa lo que financia el abono</div></div>'
 
    +'<div class="kpis">'
-   +'<div class="kpi"><div class="kl">Capital</div><div class="kv">'+fu(cst)+'</div>'
-   +'<div class="kd mu">aportado'+(apalCst>0?' · incl. '+fu(apalCst)+' colateral':'')+'</div></div>'
-   +'<div class="kpi"><div class="kl">Múltiplo</div><div class="kv '+(mult>=1?'up':'dn')+'">'+mult.toFixed(2)+'x</div>'
-   +'<div class="kd mu">sobre capital</div></div>'
-   +'<div class="kpi"><div class="kl">Cubre del préstamo</div><div class="kv">'+pc(pctHoy)+'</div>'
-   +'<div class="kd mu">de '+fu(saldoUsd)+'</div></div>'
-   +'<div class="kpi"><div class="kl">Patrimonio cripto</div><div class="kv">'+fu(patrimonioTotal)+'</div>'
-   +'<div class="kd mu">colchón BTC + apalancado</div></div></div>'
+   +'<div class="kpi"><div class="kl">Capital aportado</div><div class="kv">'+fu(costoTotal)+'</div>'
+   +'<div class="kd mu">'+(apalCst>0?'incl. '+fu(apalCst)+' colateral':'costo de las posiciones')+'</div></div>'
+   +'<div class="kpi"><div class="kl">P&L no realizado</div>'
+   +'<div class="kv '+(plTotal>=0?'up':'dn')+'">'+(plTotal>=0?'+':'−')+fu(Math.abs(plTotal))+'</div>'
+   +'<div class="kd mu">'+pc(plTotalPct)+' sobre capital</div></div>'
+   +'<div class="kpi"><div class="kl">Múltiplo</div><div class="kv '+(multTotal>=1?'up':'dn')+'">'+multTotal.toFixed(2)+'x</div>'
+   +'<div class="kd mu">patrimonio ÷ capital</div></div>'
+   +'<div class="kpi"><div class="kl">Realizable</div><div class="kv">'+fu(tot)+'</div>'
+   +'<div class="kd mu">'+pc(pctHoy)+' del préstamo</div></div></div>'
 
    +alertaTier
 
@@ -2434,27 +2774,35 @@ tr.tot td{font-weight:700;border-top:2px solid #e5e7eb;border-bottom:none;backgr
        +'<span class="n">un punto por mes</span></div>'
        +'<div class="ch">'+svgSerie()
        +'<div class="lg"><span><i style="background:#0284c7"></i>Valor de mercado</span>'
-       +(serie.filter(s=>s.c>0).length>=2?'<span><i style="background:#94a3b8"></i>Capital aportado</span><span style="color:#9ca3af">la brecha es el P&L no realizado</span>':'<span style="color:#9ca3af">el capital se traza desde el próximo registro</span>')
-       +'</div></div></div>'
+       +(serie.filter(s=>s.c>0).length>=2?'<span><i style="background:#94a3b8"></i>Capital aportado</span><span style="color:#9ca3af">la brecha entre las dos líneas es el P&L</span>':'<span style="color:#9ca3af">el capital se traza desde el próximo registro</span>')
+       +'</div></div>'
+       +'<div class="nt">La línea gris son tus aportes acumulados del budget, no el costo de las posiciones: '
+       +'así la brecha contra el valor de mercado es el P&L de verdad. '
+       +(mesesSinAporte>0
+         ? ('<b>El último punto mantiene el acumulado de '+(ultMesConAporte?'cierre anterior':'el mes previo')
+            +' porque falta registrar el aporte del mes</b> — hasta entonces la brecha de ese punto está sobrestimada.')
+         : 'Todos los meses del gráfico tienen su aporte registrado.')
+       +'</div></div>'
      : '<div class="sec"><div class="st"><span>Evolución</span><span class="n">requiere 2 meses de registros</span></div>'
        +'<div class="al al-a" style="margin-bottom:0">Aún no hay suficientes registros mensuales para trazar la evolución.</div></div>')
 
    +'<div class="sec"><div class="st"><span>Posiciones</span>'
-   +'<span class="n">'+posiciones.length+' activos · BTC contado al '+BTC_PCT_TXT+'</span></div>'
+   +'<span class="n">'+posiciones.length+' activos · a valor pleno</span></div>'
    +'<table><thead><tr><th>Activo</th><th class="r">Precio</th><th class="r">Valor</th>'
    +'<th class="r">P&L</th><th class="r">% cartera</th></tr></thead><tbody>'
    +posiciones.map(p=>'<tr><td><b>'+p.tick+'</b>'
      +(p.esAsim?'<span class="tag" style="background:#fff7ed;color:#9a3412;font-size:8px;font-weight:700;padding:1px 6px;border-radius:10px;margin-left:5px">asimétrica</span>':'')
      +(p.esApal?'<span class="tag" style="background:#fef2f2;color:#991b1b;font-size:8px;font-weight:700;padding:1px 6px;border-radius:10px;margin-left:5px">apalancada</span>':'')
      +'<span class="s2">'+p.qty.toLocaleString('en-US',{maximumFractionDigits:4})
-     +(p.esBtc?' total · '+BTC_PCT_TXT+' operable':'')+(p.esApal?' · perpetuo '+p.lev+'x · '+p.venue:'')+'</span></td>'
+     +(p.esBtc?' · colchón: '+BTC_RESTO_TXT+' no se vende':'')+(p.esApal?' · perpetuo '+p.lev+'x · '+p.venue:'')+'</span></td>'
      +'<td class="r mono">'+px(p.px)+'</td>'
      +'<td class="r mono">'+fu(p.val)+'</td>'
      +'<td class="r mono '+(p.plPct>=0?'up':'dn')+'">'+(p.plPct>=0?'+':'')+pc(p.plPct)+'</td>'
      +'<td class="r mono mu">'+pc(p.peso)+'</td></tr>').join('')
-   +'<tr class="tot"><td>Total realizable</td><td></td><td class="r mono">'+fu(tot)+'</td>'
-   +'<td class="r mono '+(pnlPct>=0?'up':'dn')+'">'+(pnlPct>=0?'+':'')+pc(pnlPct)+'</td>'
+   +'<tr class="tot"><td>Patrimonio total</td><td></td><td class="r mono">'+fu(patrimonioTotal)+'</td>'
+   +'<td class="r mono '+(plTotalPct>=0?'up':'dn')+'">'+(plTotalPct>=0?'+':'')+pc(plTotalPct)+'</td>'
    +'<td class="r mono mu">100%</td></tr></tbody></table></div>'
+   +bloqueRend
 
    +'<div class="sec"><div class="st"><span>Concentración</span>'
    +'<span class="n">solo spot · repesado</span></div><table><tbody>'
@@ -2473,19 +2821,74 @@ tr.tot td{font-weight:700;border-top:2px solid #e5e7eb;border-bottom:none;backgr
    /* ══ PÁGINA 2 ══ */
    +'<div class="pg">'
 
-   +'<div class="sec"><div class="st"><span>Cobertura del préstamo</span>'
-   +'<span class="n">saldo '+fq(saldoQ)+' · '+fu(saldoUsd)+'</span></div>'
-   +'<div style="margin-bottom:11px">'
-   +'<div style="display:flex;justify-content:space-between;font-size:11px"><span><b>Cubierto hoy</b>'
-   +' <span style="color:#9ca3af">· valor realizable</span></span>'
-   +'<span class="mono" style="font-weight:700">'+pc(pctHoy)+'</span></div>'
-   +bar(pctHoy,'#0284c7',9)
-   +'<div style="font-size:9px;color:#9ca3af;margin-top:3px">'+fu(tot)+' · faltan '+fu(Math.max(saldoUsd-tot,0))+'</div></div>'
-   +'<div><div style="display:flex;justify-content:space-between;font-size:11px"><span><b>Si ejecutas todos los tranches</b></span>'
-   +'<span class="mono" style="font-weight:700">'+pc(pctProy)+'</span></div>'
-   +bar(pctProy,'#075985',9)
-   +'<div style="font-size:9px;color:#9ca3af;margin-top:3px">'+fu(proy.total)+' proyectado · '
-   +(proy.total>=saldoUsd?'cubre el saldo completo ✅':'brecha '+fu(saldoUsd-proy.total))+'</div></div></div>'
+   +'<div class="sec"><div class="st"><span>Qué puede financiar el abono</span>'
+   +'<span class="n">patrimonio menos el colchón de BTC</span></div>'
+   +'<table><tbody>'
+   +'<tr><td><b>Patrimonio total</b><span class="s2">página 1</span></td>'
+   +'<td class="r mono">'+fu(patrimonioTotal)+'</td><td class="r mono mu" style="width:120px">—</td></tr>'
+   +'<tr><td><b>Colchón de BTC</b><span class="s2">'+BTC_RESTO_TXT+' que no se vende · fuera del abono</span></td>'
+   +'<td class="r mono" style="color:#dc2626">−'+fu(colchonBtc)+'</td><td class="r mono mu">—</td></tr>'
+   +'<tr class="tot"><td>Realizable</td><td class="r mono">'+fu(tot)+'</td>'
+   +'<td class="r mono">'+pc(pctHoy)+' del saldo</td></tr>'
+   +'</tbody></table>'
+   +'<table style="margin-top:11px"><thead><tr><th>Para cubrir el saldo</th><th class="r">Hoy</th>'
+   +'<th class="r">Debe multiplicarse</th></tr></thead><tbody>'
+   +'<tr><td><b>Patrimonio</b></td><td class="r mono">'+fu(patrimonioTotal)+'</td>'
+   +'<td class="r mono" style="font-weight:700">'+(saldoUsd/Math.max(patrimonioTotal,1)).toFixed(2)+'x</td></tr>'
+   +'<tr><td><b>Realizable</b><span class="s2">lo que de verdad se puede vender</span></td>'
+   +'<td class="r mono">'+fu(tot)+'</td>'
+   +'<td class="r mono" style="font-weight:700;color:#0c4a6e">'+(saldoUsd/Math.max(tot,1)).toFixed(2)+'x</td></tr>'
+   +'</tbody></table>'
+   +'<div class="nt">Esto no es una proyección: es la aritmética del saldo de hoy contra la cartera de hoy. '
+   +'Sin supuestos de crecimiento ni fechas. El saldo baja Q'+Math.round(getAmortQ()).toLocaleString('es-GT')+' de capital por cuota, así que el múltiplo '
+   +'exigido cae un poco cada mes por sí solo.</div></div>'
+
+   /* CUANTO FALTA. Antes habia una rejilla de 20 celdas: muchos
+      numeros y ninguna idea. Ahora tres escenarios que se leen de
+      corrido, porque la idea es una: dos motores cierran la brecha,
+      y ninguno solo es rapido [DECISION JP 14-oct-2026]. */
+   +(function(){
+      const amortM = getAmortQ()/TC;
+      const mesesPara=(g,d)=>{
+        let v=tot, sa=saldoUsd, k=0;
+        while(v<sa && k<600){ v=v*(1+g)+d; sa=Math.max(sa-amortM,0); k++; }
+        return k<600?k:null;
+      };
+      if(!ritmo || ritmo.twr==null) return '';
+      const g=ritmo.gMensual, ap=ritmo.aporteMes;
+      const esc=[
+        {t:'Como vas',   s:(g*100).toFixed(2)+'% al mes de mercado + '+fu(ap)+' de aporte', m:mesesPara(g,ap),  pri:true},
+        {t:'Si el mercado se detiene', s:'0% de mercado · solo tu aporte', m:mesesPara(0,ap),  pri:false},
+        {t:'Si dejas de aportar',      s:(g*100).toFixed(2)+'% al mes · sin meter un peso más', m:mesesPara(g,0), pri:false}
+      ];
+      const fFe=m=>{ if(m===null) return '—'; const f=new Date(); f.setMonth(f.getMonth()+m);
+        return MES[f.getMonth()]+' '+f.getFullYear(); };
+      const mx=Math.max.apply(null,esc.map(e=>e.m===null?600:e.m));
+      const fila=e=>'<tr'+(e.pri?' style="background:#f0f9ff"':'')+'>'
+        +'<td><b>'+e.t+'</b><span class="s2">'+e.s+'</span></td>'
+        +'<td class="r mono" style="font-weight:700;font-size:'+(e.pri?'15px':'12px')
+        +';color:'+(e.pri?'#0c4a6e':'#6b7280')+'">'+(e.m===null?'+50 años':(e.m+' meses'))+'</td>'
+        +'<td class="r mono mu" style="width:78px">'+fFe(e.m)+'</td>'
+        +'<td style="width:150px">'+bar((e.m===null?600:e.m)/mx*100, e.pri?'#0284c7':'#cbd5e1', 8)+'</td></tr>';
+      const mitad=mesesPara(g/2,ap);
+      return '<div class="sec"><div class="st"><span>Cuánto falta</span>'
+        +'<span class="n">para que la cartera cubra el saldo</span></div>'
+        +'<div class="al al-g" style="margin-bottom:11px">'
+        +'Dos cosas cierran la brecha: <b>lo que aportas</b> y <b>lo que da el mercado</b>. '
+        +'Ninguna de las dos sola llega rápido.</div>'
+        +'<table><tbody>'+esc.map(fila).join('')+'</tbody></table>'
+        +'<div class="nt">La barra es el tiempo, no el progreso: más corta es mejor. '
+        +'Falta '+fu(Math.max(saldoUsd-tot,0))+' y el saldo baja '+fu(amortM)+' de capital cada mes por la cuota, '
+        +'así que una parte se cierra sola.</div>'
+        +'<div class="nt"><b>Por qué puede fallar.</b> «Como vas» extiende '+ritmo.meses+' meses medidos, '
+        +(ritmo.meses-ritmo.negativos)+' de ellos positivos y '+ritmo.negativos
+        +' de hasta −'+Math.abs(ritmo.peorMes*100).toFixed(0)+'%. '
+        +'No hay en esa muestra un solo tramo de mercado bajista, y los dos ciclos anteriores de cripto '
+        +'borraron entre 70% y 80% desde el pico. Si el ritmo medido se parte a la mitad, '
+        +(mitad!==null?('«Como vas» pasa de '+esc[0].m+' a '+mitad+' meses'):'el plazo se alarga mucho')
+        +'. La fila «si el mercado se detiene» es el piso: lo que tarda si el mercado no aporta nada '
+        +'y solo sigues depositando.</div></div>';
+    })()
 
    +'<div class="sec"><div class="st"><span>Aporte de las asimétricas</span>'
    +'<span class="n">capital dado por perdido · '+fu(costAsim)+' invertidos</span></div>'
@@ -2509,7 +2912,6 @@ tr.tot td{font-weight:700;border-top:2px solid #e5e7eb;border-bottom:none;backgr
      ? 'Es un peso alto para capital que se dio por perdido: si las tres fallan, la proyección real es '+fu(proyCore)+'.'
      : 'Peso moderado dentro del plan.')
    +'</div></div>'
-   +bloqueRitmo
 
    +'<div class="sec"><div class="st"><span>Proyección con venta escalonada</span>'
    +'<span class="n">tokens × precio promedio ponderado</span></div>'
@@ -2517,9 +2919,7 @@ tr.tot td{font-weight:700;border-top:2px solid #e5e7eb;border-bottom:none;backgr
    +'<th class="r">Múltiplo s/ costo</th><th class="r">% del total</th></tr></thead><tbody>'
    +proyRows.map(r=>{
       const alto=r.peso>25;
-      const mcAlto = esMcapAlto(r);
       return '<tr><td><b>'+r.tick+'</b>'
-        +(mcAlto?'<span style="color:#b45309;font-weight:700"> †</span>':'')
         +'<span class="s2">vende '+r.pctVend.toFixed(0)+'%'
         +(r.costo>0?' · costo '+fu(r.costo):'')+'</span></td>'
         +'<td class="r mono">'+px(r.avgPx)+'</td>'
@@ -2528,20 +2928,23 @@ tr.tot td{font-weight:700;border-top:2px solid #e5e7eb;border-bottom:none;backgr
         +'<td class="r mono'+(alto?'" style="color:#dc2626;font-weight:700':' mu')+'">'+pc(r.peso)+'</td></tr>';
     }).join('')
    +'<tr class="tot"><td>Total proyectado</td><td></td><td class="r mono" style="color:#0c4a6e">'+fu(proy.total)+'</td>'
-   +'<td class="r mono">'+(cst>0?(proy.total/cst).toFixed(1)+'x':'—')+'</td><td class="r mono mu">100%</td></tr>'
+   +'<td class="r mono">'+(proyCosto>0?(proy.total/proyCosto).toFixed(1)+'x':'—')+'</td><td class="r mono mu">100%</td></tr>'
    +'</tbody></table>'
    +'<div class="nt">El múltiplo es proyectado ÷ capital invertido en ese activo, nunca contra el precio de hoy: '
    +'medido contra hoy el número sube y baja con el mercado sin que cambie el plan. '
    +'Por eso la columna significa lo mismo en cada fila y en el total, y las filas suman al total. '
    +'«Precio prom.» es el promedio ponderado de los niveles de venta; «vende X%» es cuánto de la posición se liquida '
    +'— lo que no se vende corre sin techo y no está proyectado aquí.</div>'
-   +(mcapAlertas.length
-     ? '<div class="nt" style="color:#b45309"><b>†</b> Su nivel más alto exige una capitalización de '
-       +'más de $10B y al menos 5× la de hoy: '
-       +mcapAlertas.map(r=>r.tick+' a '+px(r.mcapReq.tope)+' pide '
-           +fmc(r.mcapReq.req)+' ('+r.mcapReq.veces.toFixed(0)+'× su mcap actual)').join(' · ')
-       +'. No dice que no pueda pasar: dice cuánto mercado hay que crear para que pase. '
-       +'Sobre capitalización circulante de hoy, no sobre picos históricos.</div>'
+   +(mcapOrden.length
+     ? '<div class="nt" style="color:#b45309"><b>Cuánto mercado hay que crear.</b> Para que el nivel más alto '
+       +'de cada escalera se toque, la capitalización de esos activos debe multiplicarse entre '
+       +'<b>'+mcapOrden[mcapOrden.length-1].mcapReq.veces.toFixed(1)+'×</b> ('
+       +mcapOrden[mcapOrden.length-1].tick+') y <b>'+mcapOrden[0].mcapReq.veces.toFixed(1)+'×</b> ('
+       +mcapOrden[0].tick+'). Los tres más exigentes: '
+       +mcapOrden.slice(0,3).map(r=>r.tick+' a '+px(r.mcapReq.tope)+' pide '+fmc(r.mcapReq.req)
+           +' vs '+fmc(r.mcapReq.req/r.mcapReq.veces)+' hoy').join(' · ')
+       +'. Sobre capitalización circulante de hoy, no sobre picos históricos'
+       +(sinMcap.length?('; '+sinMcap.join(', ')+' queda fuera del test por no ser token'):'')+'.</div>'
      : '')
    +(proyRows.length && proyRows[0].peso>25
      ? '<div class="al al-a" style="margin-top:9px;margin-bottom:0"><b>'+proyRows[0].tick
@@ -2561,8 +2964,95 @@ tr.tot td{font-weight:700;border-top:2px solid #e5e7eb;border-bottom:none;backgr
      : '')
    +'</div>'
 
+   +(function(){
+      /* FUENTES. Existe para poder comprobar de un vistazo que los
+         datos vienen de donde deben y estan frescos, sin abrir la
+         consola [DECISION JP 14-oct-2026]. */
+      const fh = t => { if(!t) return '—'; const d=new Date(t);
+        return d.toLocaleDateString('es-GT',{day:'2-digit',month:'short'})
+          +' '+d.toTimeString().slice(0,5); };
+      let ultAporte=null, nAportes=0;
+      Object.keys(_AP.detalle||{}).forEach(k=>{ nAportes++;
+        const f=_AP.detalle[k].fecha?Date.parse(_AP.detalle[k].fecha):null;
+        if(f && (!ultAporte || f>ultAporte)) ultAporte=f; });
+      let ultPrecio=null;
+      allAssets.forEach(a=>{ const t=a.priceTs?+a.priceTs:null;
+        if(t && (!ultPrecio || t>ultPrecio)) ultPrecio=t; });
+      let nMens=0;
+      try{ nMens=Object.keys((ldS().mensuales)||{}).length; }catch(e){}
+      const ok = v => v
+        ? '<span style="color:#059669;font-weight:700">✓</span>'
+        : '<span style="color:#b45309;font-weight:700">⚠</span>';
+      const fuentes=[
+        {d:'Aportes y capital aportado', f:(_AP.fuente==='budget'?'budget · DCA tracker':'respaldo del archivo'),
+         v:(nAportes+' mes'+(nAportes===1?'':'es')+(ultAporte?(' · último '+fh(ultAporte)):'')), b:_AP.fuente==='budget'},
+        {d:'Tipo de cambio', f:(fuenteTC()==='budget'?'budget':'respaldo del archivo'),
+         v:'Q'+getTC().toFixed(2)+' por dólar', b:fuenteTC()==='budget'},
+        {d:'Saldo de la hipoteca',
+         f:(fuenteSaldo()==='budget'?'budget · motor de la tabla BI'
+            :(fuenteSaldo()==='manual'?'campo manual de este tracker':'respaldo del archivo')),
+         v:fq(saldoQ), b:fuenteSaldo()==='budget'},
+        {d:'Capital que amortiza',
+         f:(fuenteAmort()==='budget'?'budget · cuota menos interés del mes'
+            :(fuenteAmort()==='manual'?'campo manual de este tracker':'respaldo del archivo')),
+         v:fq(getAmortQ())+' por cuota', b:fuenteAmort()==='budget'},
+        {d:'Tiers y % de venta', f:'este tracker · pestaña TIERS',
+         v:Object.keys(T).length+' activos con escalera', b:Object.keys(T).length>0},
+        {d:'Cantidades y entradas', f:'este tracker · tarjetas',
+         v:allAssets.length+' posiciones', b:allAssets.length>0},
+        {d:'Precios', f:(window.__fuentePrecios||'sin fuente en esta carga'),
+         v:(ultPrecio?('actualizados '+fh(ultPrecio)):'usando los guardados'), b:!!window.__fuentePrecios},
+        {d:'Cierres mensuales', f:'este tracker · no se purgan',
+         v:nMens+' mes'+(nMens===1?'':'es')+' guardados', b:nMens>=2},
+        {d:'Posición apalancada', f:'escrita en el archivo · no editable en la app',
+         v:(APALANCADAS.length?APALANCADAS.map(a=>a.tick+' '+a.lev+'x').join(', '):'ninguna'), b:true},
+        {d:'Lo que este tracker publica', f:'pf_export · lo lee el budget para tu patrimonio',
+         v:(function(){ try{ const x=JSON.parse(localStorage.getItem('pf_export')||'null');
+             return x?('patrimonio '+fu(x.patrimonio)+' · '+fh(x.ts)):'nada publicado'; }catch(e){ return '—'; } })(),
+         b:(function(){ try{ return !!JSON.parse(localStorage.getItem('pf_export')||'null'); }catch(e){ return false; } })()}
+      ];
+      const xb = bdgtExport();
+      const bloqueFuentes='<div class="sec"><div class="st"><span>De dónde salen los datos</span>'
+        +'<span class="n">para comprobar que todo está sincronizado</span></div>'
+        +'<table><thead><tr><th style="width:18px"></th><th>Dato</th><th>Fuente</th>'
+        +'<th class="r">Estado</th></tr></thead><tbody>'
+        +fuentes.map(x=>'<tr><td>'+ok(x.b)+'</td><td><b>'+x.d+'</b></td>'
+          +'<td class="mono" style="font-size:10px">'+x.f+'</td>'
+          +'<td class="r mono" style="font-size:10px">'+x.v+'</td></tr>').join('')
+        +'</tbody></table>'
+        +'<div class="nt">Un ⚠ no es un error: dice que ese dato salió del respaldo y no de su dueño. '
+        +'Pasa si abres este tracker en un navegador donde nunca abriste el budget — los dos comparten '
+        +'almacenamiento, pero cada navegador tiene el suyo. '
+        +'Los precios muestran ⚠ cuando la carga usó los guardados en vez de pedirlos en vivo. '
+        +(xb && xb.ts ? ('El budget publicó sus números el '+fh(xb.ts)+'; si esa fecha quedó vieja, '
+            +'ábrelo una vez y se actualiza.') : 'El budget no ha publicado nada en este navegador todavía.')
+        +'</div></div>';
+      const ps=[];
+      if(capHist.fuenteCap==='manual' && (capHist.capitalTotal||0)>0)
+        ps.push('El capital sale del campo manual de este tracker ('+fu(capHist.capitalTotal)
+          +', al '+(capHist.fechaActualizacion||'?')+') y no del budget. '
+          +'Abre el budget en este navegador y el dato se lee de allá solo.');
+      if(!(capHist.capitalTotal>0))
+        ps.push('Falta el capital aportado: ni el budget ni el campo manual lo tienen.');
+      if(ritmo && ritmo.sinAporte && ritmo.sinAporte.length)
+        ps.push('Falta registrar el aporte de '+ritmo.sinAporte.map(k=>{
+            const mm=+k.split('-')[1]; return MES[mm]+' '+k.split('-')[0]; }).join(', ')
+          +' en el DCA tracker del budget: ese mes queda fuera del rendimiento medido.');
+      if(apalTot>0)
+        ps.push('El P&L de la posición apalancada no descuenta el funding pagado: al ritmo de hoy son unos '
+          +fu(APALANCADAS.reduce((x,a)=>x+a.colateral*a.lev*(a.fundingPeriodo/100)*3*30.44,0))+' al mes.');
+      if(!ps.length) return bloqueFuentes;
+      return bloqueFuentes
+        +'<div class="sec"><div class="st"><span>Pendientes y advertencias</span>'
+        +'<span class="n">lo que este documento no puede cerrar</span></div>'
+        +'<div class="al al-a" style="margin-bottom:0"><ul style="margin:0 0 0 14px;padding:0">'
+        +ps.map(t=>'<li style="margin-bottom:4px">'+t+'</li>').join('')
+        +'</ul></div></div>';
+    })()
    +'<div style="font-size:9px;color:#a0aec0;margin-top:10px;text-align:center;line-height:1.6">'
-   +'Capital histórico desplegado: '+fu(capHist.capitalTotal||0)+' · recuperado '+((capHist.pctRecuperado||0).toFixed(1))+'%<br>'
+   +'Capital aportado: '+fu(capHist.capitalTotal||0)
+   +' ('+(capHist.fuenteCap==='budget'?'del budget':capHist.fuenteCap)+')'
+   +' · recuperado '+((capHist.pctRecuperado||0).toFixed(1))+'%<br>'
    +'Estado no realizado · valores al momento de generación · documento personal</div>'
    +'<div class="foot">Página 2 de 2 · Hacia dónde va</div></div>'
 
@@ -2618,7 +3108,7 @@ const ACC_META_COLORS = {
 // Editar solo en sesiones de revisión TA con datos nuevos.
 // La meta es cancelar el prestamo: se lee del campo editable y se convierte a USD
 function getMetaObjetivo(){
-  try{ const q=getHipSaldo(); if(q>0) return q/7.75; }catch(e){}
+  try{ const q=getHipSaldo(); if(q>0) return q/getTC(); }catch(e){}
   return 88000;
 }
 const TRANCHES_DEFAULT = {
@@ -2828,6 +3318,7 @@ function refrescarTodo(){
 })();
 cargarTranches();
 try{ rellenarCapitalSnapshots(); }catch(e){}
+try{ sembrarMensuales(); }catch(e){}
 try{ pintarSync(); setInterval(pintarSync, 60000); }catch(e){}
 
 // BTC se calcula aparte: solo 10% del holding actual en cycle peak

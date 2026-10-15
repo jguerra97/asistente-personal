@@ -1232,8 +1232,11 @@ function renderPatrimonio(){
     <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu2)">${fqR(usd*tc)}</div></div>
   </div>`;
 
-  const reservaBancariaU = (ahorroBiQ + bantrabQ)/tc;
-  const cashU = (monetariaQ + luluQ + reembQ + abiUsdQ)/tc;
+  /* Reserva bancaria = todo lo que esta en un banco (no es la capa de
+     liquidez, es de donde viene el dinero). Cash = solo Lulubit, que
+     es lo unico fuera del sistema bancario [DECISION JP 14-oct-2026]. */
+  const reservaBancariaU = (ahorroBiQ + bantrabQ + monetariaQ + reembQ + abiUsdQ)/tc;
+  const cashU = luluQ/tc;
   const metaColchonQ = FIJOS_TOTAL*COLCHON_META_MESES;
   const metaBiQ = FIJOS_TOTAL*AHORRO_BI_META_MESES;
 
@@ -1302,8 +1305,8 @@ function renderPatrimonio(){
       ${bal('📈 Cartera inversión', btcFuente!=='tracker' ? 'alts · el BTC va aparte · abre el tracker para el reparto por tiers' : (btcVendibleUsd>0 ? 'alts + BTC de los tiers · '+btcNota(btcVendibleUsd*tc) : 'alts · sin BTC vendible en los tiers'), portSinBtcU,'var(--ac)')}
       ${btcAbonoQ>0?bal('🪙 BTC · colchón variable', btcNota(btcAbonoQ)+' ('+(BTC_A_ABONO*100).toFixed(0)+'% del colchón) · respalda el abono, no hay que usarlo',btcAbonoQ/tc,'#d97706'):''}
       ${btcHoldQ>0?bal('🔒 BTC hold', btcNota(btcHoldQ)+' · no se vende por decisión',btcHoldQ/tc,'#d97706'):''}
-      ${bal('🏦 Reserva bancaria','Ahorro BI '+fqR(ahorroBiQ)+' + Bantrab '+fqR(bantrabQ),reservaBancariaU,'var(--pu)')}
-      ${cashU>0?bal('💵 Cash','Monetaria + Lulubit + reembolsos + superávit USD',cashU,'var(--go)'):''}
+      ${bal('🏦 Reserva bancaria','Ahorro BI '+fqR(ahorroBiQ)+' + Bantrab '+fqR(bantrabQ)+' + Monetaria '+fqR(monetariaQ)+(reembQ>0?' + reembolsos '+fqR(reembQ):'')+(abiUsdQ>0?' + superávit '+fqR(abiUsdQ):''),reservaBancariaU,'var(--pu)')}
+      ${cashU>0?bal('💵 Cash','Lulubit · lo único fuera del banco',cashU,'var(--go)'):''}
       <div class="col-row" style="border-top:1px solid var(--bd2);margin-top:4px;padding-top:8px">
         <span style="font-family:'DM Mono',monospace;font-size:11px;font-weight:700;color:var(--tx)">Total activos</span>
         <div style="text-align:right"><div style="font-family:'DM Mono',monospace;font-size:12px;font-weight:700;color:var(--gr)">${fusdR(totalActivosU)}</div>
@@ -2713,13 +2716,16 @@ function descargarResumen(){
               +'<td style="'+S.td+'text-align:right;color:'+(col||'#059669')+';font-weight:600;font-variant-numeric:tabular-nums">'+fmS(usd)+'</td>'
               +'<td style="'+S.td+'text-align:right;color:#888;font-variant-numeric:tabular-nums">'+fqS(usd*tc)+'</td></tr>';
             const pctBtcV = btcUsd>0 ? (_bdr.vendibleUsd/btcUsd*100).toFixed(0) : '0';
+            const _bpx = parseFloat(_bdr.px)||0;
+            const bNota = u => (btcUsd>0?(u/btcUsd*100).toFixed(0):'0')+'% del BTC total'
+                             + (_bpx>0 ? ' · '+(u/_bpx).toFixed(5)+' BTC' : '');
             let h='<tr><td style="'+S.td+'font-weight:700;color:#0c4a6e;background:#f8fafc" colspan="4">Activos</td></tr>';
             h+=fila('🏠','Casa','valor de mercado · '+pctA(casaU)+' del total',casaU);
-            h+=fila('📈','Portafolio realizable','alts + '+pctBtcV+'% del BTC · se vende por tiers · '+pctA(portRealU),portRealU);
-            if(btcRespU>0) h+=fila('🛡️','BTC que respalda fijos','20% del colchón · entra al colchón operativo · '+pctA(btcRespU),btcRespU,'#d97706',true);
-            if(btcHoldU>0) h+=fila('🔒','BTC hold','el resto del colchón · no se vende por decisión · '+pctA(btcHoldU),btcHoldU,'#d97706',true);
-            h+=fila('💰','Reservas bancarias','Ahorro BI + Bantrab + Monetaria + reembolsos + superávit · '+pctA(reservasU),reservasU);
-            if(luluU>0) h+=fila('👤','Cash personal','Lulubit · disponible hoy · '+pctA(luluU),luluU);
+            h+=fila('📈','Cartera inversión','alts + BTC de los tiers ('+pctBtcV+'% del total) · '+pctA(portRealU),portRealU);
+            if(btcRespU>0) h+=fila('🪙','BTC · colchón variable',bNota(btcRespU)+' (20% del colchón) · respalda el abono, no hay que usarlo · '+pctA(btcRespU),btcRespU,'#d97706',true);
+            if(btcHoldU>0) h+=fila('🔒','BTC hold',bNota(btcHoldU)+' · no se vende por decisión · '+pctA(btcHoldU),btcHoldU,'#d97706',true);
+            h+=fila('🏦','Reserva bancaria','Ahorro BI + Bantrab + Monetaria + reembolsos + superávit · '+pctA(reservasU),reservasU);
+            if(luluU>0) h+=fila('💵','Cash','Lulubit · lo único fuera del banco · '+pctA(luluU),luluU);
             h+='<tr style="border-top:2px solid #cbd5e1"><td style="'+S.td+'font-weight:700" colspan="2">Total activos</td>'
               +'<td style="'+S.td+'text-align:right;font-weight:700;color:#059669;font-variant-numeric:tabular-nums">'+fu(totalActU)+'</td>'
               +'<td style="'+S.td+'text-align:right;font-weight:700;color:#059669;font-variant-numeric:tabular-nums">'+fqR(totalActU*tc)+'</td></tr>';
@@ -2809,13 +2815,13 @@ function descargarResumen(){
         +'<span style="'+S.sectl+'">Todo lo que tienes fuera de la casa · '+fqR(real+btcHold)+'</span>'
         +'<table style="'+S.tbl+'"><thead><tr><th style="'+S.th+'">Capa</th><th style="'+S.th+'">Qué incluye</th><th style="'+S.th+'">Acceso</th><th style="'+S.th+'">Monto</th></tr></thead><tbody>'
         +'<tr><td style="'+S.td+'font-weight:700;color:#e8a020">🛡️ Colchón fijos</td><td style="'+S.td+'color:#888;font-size:9px">Ahorro BI '+fqR(ahorroBi)+' + 20% Bantrab '+fqR(bantColchon)+(excedente>0?(' − '+fqR(excedente)+' de excedente'):'')+'</td><td style="'+S.td+'color:#888">reservado a fijos</td><td style="'+S.td+'text-align:right;font-weight:700">'+fqR(colchon)+'</td></tr>'
-        +'<tr><td style="'+S.td+'font-weight:700;color:#059669">💵 Inmediata</td><td style="'+S.td+'color:#888;font-size:9px">Monetaria '+fqR(mon)+' + Lulubit '+fqR(lulu)+' + 40% Bantrab '+fqR(bantLiquida)+' + reemb '+fqR(reemb)+' + superávit '+fqR(abiUsd)+'</td><td style="'+S.td+'color:#888">hoy</td><td style="'+S.td+'text-align:right;font-weight:700">'+fqR(inmediata)+'</td></tr>'
+        +'<tr><td style="'+S.td+'font-weight:700;color:#059669">💵 Disponible</td><td style="'+S.td+'color:#888;font-size:9px">Monetaria '+fqR(mon)+' + Lulubit '+fqR(lulu)+' + 40% Bantrab '+fqR(bantLiquida)+' + reemb '+fqR(reemb)+' + superávit '+fqR(abiUsd)+'</td><td style="'+S.td+'color:#888">hoy</td><td style="'+S.td+'text-align:right;font-weight:700">'+fqR(inmediata)+'</td></tr>'
         +'<tr><td style="'+S.td+'font-weight:700;color:#3182ce">📈 Cartera</td><td style="'+S.td+'color:#888;font-size:9px">alts '+fqR(Math.max(cripto-_bdi.vendibleUsd*tc,0))+(_bdi.vendibleUsd>0?(' + '+(_bdi.vendibleUsd/_bdi.btcUsd*100).toFixed(0)+'% del BTC '+fqR(_bdi.vendibleUsd*tc)):'')+'</td><td style="'+S.td+'color:#888">requiere vender</td><td style="'+S.td+'text-align:right;font-weight:700">'+fqR(cripto)+'</td></tr>'
-        +(abonar>0?'<tr><td style="'+S.td+'font-weight:700;color:#059669">🏠 Para abonar</td><td style="'+S.td+'color:#888;font-size:9px">Bantrab 40% '+fqR(bantCasa)+(excedente>0?(' + excedente '+fqR(excedente)):'')+(btcAbono>0?(' + 20% colchón BTC '+fqR(btcAbono)):'')+' · colchón variable, no hay que usarlo</td><td style="'+S.td+'color:#888">destinado a la casa</td><td style="'+S.td+'text-align:right;font-weight:700">'+fqR(abonar)+'</td></tr>':'')
+        +(abonar>0?'<tr><td style="'+S.td+'font-weight:700;color:#059669">🏠 Para abonar</td><td style="'+S.td+'color:#888;font-size:9px">Bantrab 40% '+fqR(bantCasa)+(excedente>0?(' + excedente '+fqR(excedente)):'')+(btcAbono>0?(' + colchón BTC '+((_bdi.px>0&&tc>0)?((btcAbono/tc/_bdi.px).toFixed(5)+' BTC '):'')+fqR(btcAbono)):'')+' · colchón variable, no hay que usarlo</td><td style="'+S.td+'color:#888">destinado a la casa</td><td style="'+S.td+'text-align:right;font-weight:700">'+fqR(abonar)+'</td></tr>':'')
         +(btcHold>0?'<tr><td style="'+S.td+'font-weight:700;color:#d97706">🔒 Hold BTC</td><td style="'+S.td+'color:#888;font-size:9px">colchón de BTC '+fqR(btcQ)+' − '+fqR(btcAbono)+' del colchón variable</td><td style="'+S.td+'color:#888">no se vende</td><td style="'+S.td+'text-align:right;font-weight:700">'+fqR(btcHold)+'</td></tr>':'')
         +'<tr style="border-top:2px solid #cbd5e1"><td style="'+S.td+'font-weight:700" colspan="2">TOTAL FUERA DE LA CASA</td><td style="'+S.td+'color:#888;font-size:9px">disponible '+fqR(real)+(btcHold>0?' · hold '+fqR(btcHold):'')+'</td><td style="'+S.td+'text-align:right;font-weight:700;color:#0c4a6e">'+fqR(real+btcHold)+'</td></tr>'
         +'</tbody></table>'
-        +'<div style="font-size:9px;color:#a0aec0;margin-top:8px;line-height:1.5">Real es todo tu dinero movible. Las capas muestran qué tan rápido accedes a cada parte: operable hoy, inmediata sin vender, invertida requiere liquidar.</div>'
+        +'<div style="font-size:9px;color:#a0aec0;margin-top:8px;line-height:1.5">El colchón de fijos es solo efectivo bancario. Lo que pase de '+COLCHON_META_MESES+' meses pasa solo a Para abonar, junto con el 40% de Bantrab y el 20% del colchón de BTC — ese BTC está si hace falta, no hay que usarlo.</div>'
       +'</div>';
     })()
 
@@ -3177,56 +3183,79 @@ function descargarResumen(){
         +'Faltan <b>'+fqR(cargosRestantesHip(salHip))+'</b> de cargos si no abonas nada. Un abono va 100% a capital y mata esos cargos de una vez.'
       +'</div>'
 
-    // ── PODER DE ABONO ──
+    // ── PODER DE ABONO · tres niveles ──
+    /* Antes era una sola cifra (Q200,891) que mezclaba lo que esta
+       destinado al abono con el techo teorico de liquidarlo todo, y
+       dejaba fuera el 20% del colchon de BTC que existe justamente
+       para respaldar el abono. Ademas calculaba los meses que quedan
+       sumando el 40% libre de Bantrab, que no es colchon: daba 3.1m
+       contra los 2.8m de la pestana. Tres niveles, un solo colchon
+       [DECISION JP 14-oct-2026]. */
     +(()=>{
-      const PCT_BANT=0.40;
       const _bda=btcDesglose();
-      const criptoQ=_bda.realizableUsd*tc;
-      const fuentes=[
-        {n:'Cripto realizable', v:criptoQ,
-         c:'alts 100% + BTC '+(_bda.btcUsd>0?((_bda.vendibleUsd/_bda.btcUsd*100).toFixed(0)+'%'):'0%')
-           +(_bda.fuente==='tracker'?' · del tracker':' · a mano')},
-        {n:'Bantrab',           v:COLS.bant*PCT_BANT,  c:'40% maximo'},
-        {n:'Ahorro BI · USD',   v:(COLS.abiUsd||0)*tc, c:'100% · superavit'},
-        {n:'Reembolsos',        v:(COLS.reimb||0)*tc,  c:'100%'},
-        {n:'Monetaria BI',      v:COLS.buf,            c:'100%'},
-        {n:'Lulubit',           v:parseFloat(ST.reservaLulu)||0, c:'100%'}
-      ].filter(f=>f.v>0);
-      const tot=fuentes.reduce((s,f)=>s+f.v,0);
+      const criptoQ  = _bda.realizableUsd*tc;
+      const btcColVar= _bda.colchonUsd*0.20*tc;      // colchon variable: respalda el abono
+      const btcHoldQ = _bda.colchonUsd*0.80*tc;
+      const bant=COLS.bant||0, bant20=bant*0.20, bant40=bant*0.40;
+      const emer=COLS.emer||0;
+      const excedente = holguraAbono(emer+bant20, tf);
+      const cajaQ = (COLS.buf||0) + (parseFloat(ST.reservaLulu)||0)
+                  + (COLS.reimb||0)*tc + (COLS.abiUsd||0)*tc;
+      const n1 = bant40 + excedente + btcColVar;
+      const n2 = n1 + cajaQ;
+      const n3 = n2 + criptoQ;
+      const colchonQ = emer + bant20;
+      const pct=v=> salHip>0 ? (v/salHip*100).toFixed(1)+'%' : '—';
+      const minOk=v=> v>=HIP.minAbono
+        ? '<span style="color:#059669">llega al mínimo BI</span>'
+        : '<span style="color:#dc2626">bajo el mínimo BI</span>';
+      const nivel=(n,ttl,det,v,col)=>'<tr>'
+        +'<td style="'+S.td+'font-weight:700;color:'+col+'">'+n+' · '+ttl+'</td>'
+        +'<td style="'+S.td+'color:#6b7280;font-size:10px">'+det+'</td>'
+        +'<td style="'+S.td+'text-align:right;font-weight:700;color:'+col+'">'+fqR(v)+'</td>'
+        +'<td style="'+S.td+'text-align:right;color:#6b7280;font-size:10px">'+pct(v)+'</td>'
+        +'<td style="'+S.td+'font-size:9px">'+minOk(v)+'</td></tr>';
       return '<div class="rsec" style="'+S.sec+'">'
-        +'<span style="'+S.sectl+'">Poder de abono · '+(salHip>0?(tot/salHip*100).toFixed(1):'0')+'% del saldo</span>'
+        +'<span style="'+S.sectl+'">Poder de abono · del plan al techo</span>'
         +'<table style="'+S.tbl+'"><thead><tr>'
-          +'<th style="'+S.th+'">Fuente</th><th style="'+S.th+'">Disponible</th><th style="'+S.th+'">Criterio</th>'
+          +'<th style="'+S.th+'">Nivel</th><th style="'+S.th+'">Qué usas</th>'
+          +'<th style="'+S.th+'">Monto</th><th style="'+S.th+'">Del saldo</th><th style="'+S.th+'">Mínimo BI</th>'
           +'</tr></thead><tbody>'
-          +fuentes.map(f=>'<tr><td style="'+S.td+'">'+f.n+'</td>'
-            +'<td style="'+S.td+'font-weight:600">'+fqR(f.v)+'</td>'
-            +'<td style="'+S.td+'color:#6b7280;font-size:10px">'+f.c+'</td></tr>').join('')
-          +'<tr><td style="'+S.td+'font-weight:700">Poder total</td>'
-            +'<td style="'+S.td+'font-weight:700;color:#0c4a6e">'+fqR(tot)+'</td>'
-            +'<td style="'+S.td+'color:#6b7280;font-size:10px">'+fusd(tot)+'</td></tr>'
-          +'<tr><td style="'+S.td+'color:#dc2626">🔒 Ahorro BI en quetzales</td>'
-            +'<td style="'+S.td+'color:#a0aec0">'+fqR(COLS.emer)+'</td>'
-            +'<td style="'+S.td+'color:#dc2626;font-size:10px">excluido · colchon de fijos</td></tr>'
+        +nivel('1','Del plan',
+            'Bantrab 40% '+fqR(bant40)
+            +(excedente>0?' + excedente del colchón '+fqR(excedente):'')
+            +(btcColVar>0?' + BTC colchón variable '+fqR(btcColVar):'')
+            +' · ya está destinado, no rompe nada', n1, '#059669')
+        +nivel('2','+ caja chica',
+            'lo anterior + Monetaria '+fqR(COLS.buf||0)+' + Lulubit '+fqR(parseFloat(ST.reservaLulu)||0)
+            +' + reembolsos '+fqR((COLS.reimb||0)*tc)+' + superávit '+fqR((COLS.abiUsd||0)*tc)
+            +' · deja Bantrab 40% libre intacto', n2, '#e8a020')
+        +nivel('3','Techo · liquidar cartera',
+            'lo anterior + toda la cartera realizable '+fqR(criptoQ)
+            +' · <b>rompe el plan de tiers</b>', n3, '#dc2626')
+        +'<tr><td style="'+S.td+'color:#6b7280" colspan="5" style="padding-top:8px">&nbsp;</td></tr>'
+        +'<tr><td style="'+S.td+'color:#dc2626">🔒 Nunca entra</td>'
+          +'<td style="'+S.td+'color:#6b7280;font-size:10px">Ahorro BI '+fqR(emer)+' + Bantrab 20% '+fqR(bant20)
+          +' (colchón de fijos) + BTC hold '+fqR(btcHoldQ)+'</td>'
+          +'<td style="'+S.td+'text-align:right;color:#a0aec0">'+fqR(colchonQ+btcHoldQ)+'</td>'
+          +'<td style="'+S.td+'" colspan="2"></td></tr>'
         +'</tbody></table>'
-        +(()=>{
-          const bantLibre = (COLS.bant||0)*0.40;      // 40% que NO va al abono
-          const bantColch = (COLS.bant||0)*0.20;      // 20% que refuerza el colchon
-          const quedaQ = (COLS.emer||0) + bantColch + bantLibre;
-          const mesesQueda = tf>0 ? quedaQ/tf : 0;
-          return '<div style="margin-top:9px;padding:10px 12px;background:#ecfdf5;border-left:3px solid #059669;border-radius:4px">'
-            +'<div style="font-size:9px;color:#065f46;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Qué te queda después de abonar todo</div>'
-            +'<table style="width:100%;border-collapse:collapse;font-size:10px;color:#065f46">'
-            +'<tr><td style="padding:3px 0">Ahorro BI · colchon de fijos</td><td style="text-align:right;font-weight:700">'+fqR(COLS.emer||0)+'</td></tr>'
-            +'<tr><td style="padding:3px 0">Bantrab 20% · refuerzo del colchon</td><td style="text-align:right;font-weight:700">'+fqR(bantColch)+'</td></tr>'
-            +'<tr><td style="padding:3px 0">Bantrab 40% · tuyo, de libre uso</td><td style="text-align:right;font-weight:700">'+fqR(bantLibre)+'</td></tr>'
-            +'<tr><td style="padding:5px 0 0;border-top:1px solid #6ee7b7;font-weight:700">Te queda</td>'
-            +'<td style="text-align:right;padding:5px 0 0;border-top:1px solid #6ee7b7;font-weight:700;font-size:12px">'+fqR(quedaQ)+'</td></tr>'
-            +'</table>'
-            +'<div style="font-size:9px;color:#047857;margin-top:6px;line-height:1.6">'
-            +'Equivale a <b>'+mesesQueda.toFixed(1)+' meses</b> de gastos fijos. '
-            +'Aunque ejecutes el abono completo no quedas en cero: el colchon sigue intacto y el 40% de Bantrab sigue siendo tuyo.'
-            +'</div></div>';
-        })()
+        +'<div style="margin-top:9px;padding:10px 12px;background:#ecfdf5;border-left:3px solid #059669;border-radius:4px">'
+          +'<div style="font-size:9px;color:#065f46;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Qué te queda, incluso en el nivel 3</div>'
+          +'<table style="width:100%;border-collapse:collapse;font-size:10px;color:#065f46">'
+          +'<tr><td style="padding:3px 0">🛡️ Colchón de fijos · Ahorro BI + Bantrab 20%</td><td style="text-align:right;font-weight:700">'+fqR(colchonQ)+'</td></tr>'
+          +'<tr><td style="padding:3px 0">💵 Bantrab 40% · libre, no es colchón</td><td style="text-align:right;font-weight:700">'+fqR(bant40)+'</td></tr>'
+          +'<tr><td style="padding:3px 0">🔒 BTC hold · no se vende por decisión</td><td style="text-align:right;font-weight:700">'+fqR(btcHoldQ)+'</td></tr>'
+          +'</table>'
+          +'<div style="font-size:9px;color:#047857;margin-top:6px;line-height:1.6">'
+          +'El colchón solo son <b>'+(tf>0?(colchonQ/tf).toFixed(1):'0')+' meses</b> de fijos — el mismo número de la pestaña Patrimonio, meta '+COLCHON_META_MESES+'m. '
+          +'El 40% de Bantrab y el hold de BTC siguen siendo tuyos pero no cuentan como colchón.'
+          +'</div></div>'
+        +'<div style="font-size:9px;color:#a0aec0;margin-top:8px;line-height:1.6">'
+        +'El mínimo que recibe BI es '+fqR(HIP.minAbono)+' (12 cuotas) <b>[PENDIENTE · confirmar con el banco]</b>. '
+        +'Si ese dato es correcto, los niveles 1 y 2 no son ejecutables y el único abono posible es el que rompe el plan de tiers. '
+        +'Esa llamada decide todo lo demás.'
+        +'</div>'
       +'</div>';
     })()
     +'</div>'

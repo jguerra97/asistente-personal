@@ -1462,6 +1462,12 @@ async function load(){
       spot:       +tot.toFixed(2),
       apalEquity: +apalEq.toFixed(2),
       btcUsd:     +((_btcX?(_btcX.price||0)*_btcX.qty:0)).toFixed(2),
+      // cantidad y precio explicitos: el budget no debe derivar la
+      // cantidad dividiendo el valor por SU precio, porque su precio
+      // es otro y la division da una cantidad falsa.
+      btcQty:     _btcX ? _btcX.qty : 0,
+      btcPx:      _btcX ? (_btcX.price||0) : 0,
+      btcVendible:+(((_btcX?(_btcX.price||0)*_btcX.qty:0))*btcVendible()).toFixed(2),
       costoTotal: +(cst + apalCst).toFixed(2),
       dev: (typeof devId==='function'?devId():null)
     }));

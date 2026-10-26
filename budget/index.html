@@ -2396,7 +2396,15 @@ function publicarExportBdgt(){
     };
     const d = ldS();
     const antes = d.export ? JSON.stringify({...d.export, ts:0}) : '';
-    if(antes === JSON.stringify({...x, ts:0})) return;   // nada cambio
+    if(antes === JSON.stringify({...x, ts:0})){
+      /* Los numeros no cambiaron, pero esta corrida SI cuenta. El portafolio
+         lee este ts para saber si siguen vigentes, y con el return seco se
+         quedaba congelado en la ultima vez que ALGO cambio: la banda decia
+         "Budget sin abrir hace N dias" aunque lo abrieras a diario. Se
+         refresca solo el sello; el bloque no se reescribe. */
+      if(d.export){ d.export.ts = x.ts; svS(d, true); }
+      return;
+    }
     d.export = x;
     svS(d, true);   // auto: no marca edicion
   }catch(e){}

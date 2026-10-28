@@ -314,7 +314,10 @@ body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--tx);min-heig
 <div class="resumen">
   <div class="rc"><label>Ingreso del mes</label><div class="rv g" id="r-ing">—</div><div class="rs" id="r-ing-usd">—</div></div>
   <div class="rc"><label>Ahorro BI total</label><div class="rv r" id="r-fij">—</div><div class="rs" id="r-fij-pct">—</div></div>
-  <div class="rc"><label>Excedente</label><div class="rv p" id="r-exc">—</div><div class="rs" id="r-exc-usd">—</div></div>
+  <div class="rc"><label>Excedente <span id="exc-modo-chip" onclick="toggleModoAbono()"
+    style="font-family:'DM Mono',monospace;font-size:8px;padding:2px 6px;border-radius:4px;
+    border:1px solid var(--bd2);cursor:pointer;margin-left:5px;text-transform:none;
+    letter-spacing:0;-webkit-tap-highlight-color:transparent;user-select:none">—</span></label><div class="rv p" id="r-exc">—</div><div class="rs" id="r-exc-usd">—</div></div>
   <div class="rc"><label>Inversión cripto</label><div class="rv o" id="r-inv">—</div><div class="rs" id="r-inv-sub">DCA BTC $200 · Q1,492/mes · buffer sale del excedente</div></div>
 </div>
 
@@ -1396,13 +1399,41 @@ const META_PERSONAL  = 3500.00;
 const META_AHORRO    = 2000.00;
 const META_INVERSION = 1492.00;
 
-// Reparto del excedente [DECISIÓN 29 sep 2026 · indefinido hasta que cambie el contexto]
-// 50% Ahorro BI (colchón de fijos) · 25% Bantrab · 25% Personal
-const EXC_SPLIT = {bi:0.50, ban:0.25, pers:0.25};
+// Reparto del excedente · DOS MODOS [DECISIÓN JP 27-oct-2026]
+//   ABONO ON   45% Ahorro BI · 20% Bantrab · 25% ABONO · 10% Personal
+//   ABONO OFF  50% Ahorro BI · 25% Bantrab · 25% Personal  [29 sep 2026]
+// El dinero del abono espera en Monetaria BI (tránsito, lee 0% al colchón)
+// hasta que haya visita al banco. El 40% "abonar" de Bantrab sigue siendo
+// el pulmón de largo plazo; este reparto no lo toca.
+const EXC_SPLIT_ABONO = {bi:0.45, ban:0.20, pers:0.10, abono:0.25};
+const EXC_SPLIT_BASE  = {bi:0.50, ban:0.25, pers:0.25, abono:0.00};
+function modoAbono(){
+  try{ const d=JSON.parse(localStorage.getItem(LS)||'{}');
+       return d.modoAbono!==false; }catch(e){ return true; }
+}
+function splitVigente(){ return modoAbono() ? EXC_SPLIT_ABONO : EXC_SPLIT_BASE; }
+const pctTxt = v => Math.round(v*100)+'%';
 function repartirExcedente(exc){
   const e = Math.max(exc||0, 0);
-  const bi  = e*EXC_SPLIT.bi, ban = e*EXC_SPLIT.ban;
-  return {bi, ban, pers: e - bi - ban};
+  const S = splitVigente();
+  const bi = e*S.bi, ban = e*S.ban, abono = e*S.abono;
+  return {bi, ban, abono, pers: e - bi - ban - abono};
+}
+function toggleModoAbono(){
+  const d = ldS(); d.modoAbono = !modoAbono(); svS(d);
+  pintarModoAbono(); recalc();
+}
+function pintarModoAbono(){
+  const el = document.getElementById('exc-modo-chip');
+  if(!el) return;
+  const on = modoAbono();
+  el.textContent = on ? 'abono 25%' : 'sin abono';
+  el.style.background  = on ? 'rgba(232,121,160,.14)' : 'rgba(90,106,130,.14)';
+  el.style.color       = on ? 'var(--pk)' : 'var(--mu)';
+  el.style.borderColor = on ? 'rgba(232,121,160,.35)' : 'var(--bd2)';
+  el.title = on
+    ? 'Reparto 45/20/25/10 — el 25% se aparta para abonar. Toca para apagar.'
+    : 'Reparto 50/25/25 original. Toca para apartar 25% al abono.';
 }
 
 // Legacy (mantenido para compatibilidad con renderQ antiguo)
@@ -1485,7 +1516,7 @@ function distribuirQ2(pagoQ2, _luluQ1, _subsMovidasQ1){
   return {fijQ2: fijQ2_out, exc, ban_fijo, ban_extra, ban, inv, personal40,
           subs, lulu, caso, subsPend, luluPend,
           persQ2, ahoQ2, invQ2, excedente_bantrab,
-          exc_bi: rep.bi, exc_ban: rep.ban, exc_pers: rep.pers,
+          exc_bi: rep.bi, exc_ban: rep.ban, exc_pers: rep.pers, exc_abono: rep.abono,
           invRecortada: Math.max(invMeta - invQ2, 0)};
 }
 
@@ -1523,7 +1554,7 @@ function renderQCasos(r, pago, quincena){
   };
   const casoDescQ2 = {
     A: 'diferencias completadas · inversión ajustada',
-    B: 'diferencias completadas · excedente repartido 50/25/25'
+    B: 'diferencias completadas · excedente repartido según el modo'
   };
   const casoDesc = (quincena===1 ? casoDescQ1 : casoDescQ2)[r.caso] || '';
 
@@ -1552,12 +1583,15 @@ function renderQCasos(r, pago, quincena){
       /* Linea de referencia: cuanto sobro ANTES de repartirlo. No mueve
          dinero (ref:true), solo evita tener que sumar los tres destinos
          de abajo para saber de cuanto estamos hablando [JP 14-oct-2026]. */
-      const _exc = (r.exc_bi||0)+(r.exc_ban||0)+(r.exc_pers||0);
+      const _S = splitVigente();
+      const _exc = (r.exc_bi||0)+(r.exc_ban||0)+(r.exc_pers||0)+(r.exc_abono||0);
       rows.push({lbl:'📊 Excedente del mes', q:_exc, c:'var(--ac)', ref:true,
-                 note:'lo que sobró · se reparte 50/25/25 abajo'});
-      rows.push({lbl:'🛡️ Ahorro BI · excedente 50%',  q:r.exc_bi||0,   c:'var(--gr)'});
-      rows.push({lbl:'💰 Bantrab · excedente 25%',     q:r.exc_ban||0,  c:'#10b981'});
-      rows.push({lbl:'🍽️ Personal · excedente 25%',    q:-(r.exc_pers||0), c:'var(--mu)'});
+                 note:'lo que sobró · se reparte abajo'});
+      rows.push({lbl:'🛡️ Ahorro BI · excedente '+pctTxt(_S.bi),  q:r.exc_bi||0,   c:'var(--gr)'});
+      rows.push({lbl:'💰 Bantrab · excedente '+pctTxt(_S.ban),    q:r.exc_ban||0,  c:'#10b981'});
+      if((r.exc_abono||0)>0)
+        rows.push({lbl:'🏦 Monetaria · ABONO '+pctTxt(_S.abono),  q:r.exc_abono||0, c:'var(--pk)'});
+      rows.push({lbl:'🍽️ Personal · excedente '+pctTxt(_S.pers),  q:-(r.exc_pers||0), c:'var(--mu)'});
     }
   }
 
@@ -1930,7 +1964,9 @@ function renderResumenMes(ingTotal, tf, excMes, dMes, btcQ, invRestQ, tQ1, tQ2){
   const excBiE   = _rQ2early?.exc_bi   || 0;
   const excBanE  = _rQ2early?.exc_ban  || 0;
   const excPersE = _rQ2early?.exc_pers || 0;
-  const sinDistE = Math.max(excMes - (excBiE + excBanE + excPersE), 0);
+  const excAbonoE= _rQ2early?.exc_abono|| 0;
+  const _SM = splitVigente();
+  const sinDistE = Math.max(excMes - (excBiE + excBanE + excPersE + excAbonoE), 0);
 
   const invRecBadgeHTML = invRecMes>0
     ? `<div style="font-family:'DM Mono',monospace;font-size:9px;color:#f59e0b;padding:4px 8px;background:rgba(245,158,11,.1);border-radius:4px;margin-bottom:8px">⚠️ Inversión recortada —Q${Math.round(invRecMes)} · mes corto</div>`
@@ -1942,13 +1978,16 @@ function renderResumenMes(ingTotal, tf, excMes, dMes, btcQ, invRestQ, tQ1, tQ2){
     {lbl:'🍽️ Personal (salidas+buffer)',    q:-META_PERSONAL,          c:'var(--mu)'},
     // Subs incluidas dentro de META_PERSONAL — no se muestran por separado
     {lbl:'✈️ Bantrab · ahorro fijo',         q:META_AHORRO,             c:'#9d7ff0'},
-    ...((excBiE+excBanE+excPersE)>1
-      ? [{lbl:'📊 Excedente del mes', q:excBiE+excBanE+excPersE, c:'var(--ac)', ref:true,
+    ...((excBiE+excBanE+excPersE+excAbonoE)>1
+      ? [{lbl:'📊 Excedente del mes', q:excBiE+excBanE+excPersE+excAbonoE, c:'var(--ac)', ref:true,
           note:'lo que sobró tras fijos, personal, ahorro e inversión'}]
       : []),
-    {lbl:'🛡️ Ahorro BI · excedente 50%',    q:excBiE,                  c:'var(--gr)'},
-    {lbl:'💰 Bantrab · excedente 25%',       q:excBanE,                 c:'#10b981'},
-    {lbl:'🍽️ Personal · excedente 25%',      q:-excPersE,               c:'var(--mu)'},
+    {lbl:'🛡️ Ahorro BI · excedente '+pctTxt(_SM.bi),  q:excBiE,        c:'var(--gr)'},
+    {lbl:'💰 Bantrab · excedente '+pctTxt(_SM.ban),    q:excBanE,       c:'#10b981'},
+    ...(excAbonoE>0
+      ? [{lbl:'🏦 Monetaria · ABONO '+pctTxt(_SM.abono), q:excAbonoE,   c:'var(--pk)'}]
+      : []),
+    {lbl:'🍽️ Personal · excedente '+pctTxt(_SM.pers),  q:-excPersE,     c:'var(--mu)'},
     {lbl:'₿  Exchange · inversión',         q:-(invMesQ||0),           c:invRecMes>0?'#f59e0b':'var(--go)'},
     {lbl:'─',                               q:null,               c:'',          sep:true},
     {lbl:'✅ Sin distribuir (debe ser 0)', q:sinDistE,           c:sinDistE>1?'var(--yw)':'var(--gr)', bold:true},
@@ -2210,9 +2249,10 @@ function recalc(){
     : fq(tf,2)+' (incl. Q500 buffer · Q25 cobros separados)';
   document.getElementById('r-exc').textContent    = tQ1&&tQ2 ? fq(excMes) : '—';
   { const _rp = repartirExcedente(rQ2 ? (rQ2.excedente_bantrab||0) : 0);
-    const _hayExc = (_rp.bi+_rp.ban+_rp.pers) > 1;
+    const _hayExc = (_rp.bi+_rp.ban+_rp.pers+_rp.abono) > 1;
     document.getElementById('r-exc-usd').textContent = !(tQ1&&tQ2) ? ''
-      : _hayExc ? 'BI '+fq(_rp.bi)+' · Bantrab '+fq(_rp.ban)+' · Personal '+fq(_rp.pers)
+      : _hayExc ? 'BI '+fq(_rp.bi)+' · Bant '+fq(_rp.ban)
+                  +(_rp.abono>0 ? ' · Abono '+fq(_rp.abono) : '')+' · Pers '+fq(_rp.pers)
       : 'Sin excedente este mes'; }
   document.getElementById('r-inv').textContent    = tQ1&&tQ2 ? fq(invMesQ) : '—';
   document.getElementById('r-inv-sub').textContent= tQ1&&tQ2
@@ -4255,6 +4295,7 @@ renderPatrimonio();
   if(mi){ const d=ldS(); if(d.metaAbono) mi.value=d.metaAbono; }
   try{ renderMetaAbono(); }catch(e){}
 })();
+pintarModoAbono();
 initTabs();
 // A partir de acá cualquier escritura ya viene de algo que tocaste vos.
 // El margen absorbe lo que llegue tarde (precio de BTC, snapshots del mes).

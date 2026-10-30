@@ -640,7 +640,7 @@ body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--tx);min-heig
       <div style="border-top:1px solid var(--bd);padding-top:10px;">
         <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--mu);margin-bottom:7px">Abonos extra a capital:</div>
         <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--go);margin-bottom:7px;padding:6px 8px;background:rgba(245,183,49,.08);border-left:2px solid var(--go);border-radius:4px;line-height:1.5">
-          Mínimo que recibe BI: 12 cuotas = <b>Q167,515.32</b>. En cualquier momento, en múltiplos de año, sin máximo. Reduce plazo, no cuota.
+          <b>Sin mínimo.</b> BI recibe cualquier monto cuando sea [confirmado 15-oct-2026]. Reduce plazo, no cuota.
         </div>
         <div class="reg-row">
           <input class="reg-inp" id="hip-amt" type="number" placeholder="Q monto" step="100">
@@ -753,7 +753,7 @@ body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--tx);min-heig
           onchange="saveMetaAbono(this.value)">
       </div>
       <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--mu2);margin-top:5px;line-height:1.6">
-        <b style="color:var(--go)">Mínimo BI: Q167,515.32</b> (12 cuotas). Un abono menor no lo recibe el banco.<br>
+        <b style="color:var(--gr)">Sin mínimo de abono</b> [confirmado con BI 15-oct-2026]: cualquier monto, cuando sea.<br>
         Acumulando Q72,132/año se llega al mínimo cada ~2.3 años. Mientras tanto el bote es ahorro, no abono.
       </div>
     </div>
@@ -910,8 +910,14 @@ const HIP = {
   incendio  :     440.90,   // fijo, fuera de la amortización
   cuotaTotal:   13959.61,
   i         : 0.0060500080, // 7.2600% anual · derivado del crecimiento del capital en la tabla BI
-  nTotal    : 179,          // última cuota 15/02/2041
-  minAbono  : 167515.32,    // 12 cuotas · mínimo que recibe BI [DATO · JP 9-oct-2026]
+  nTotal    : 180,          // escritura: 180 meses desde el desembolso [REGLAS §7].
+                            // Antes decia 179 y por eso "7 de 179" parecia cuadrar:
+                            // el saldo de BI corresponde a 8 pagadas + 172 restantes
+                            // = 180 [JP 30-oct-2026].
+  // minAbono ELIMINADO [JP 15-oct-2026]: BI confirmó que se puede abonar
+  // cualquier monto cuando sea. La escritura nunca fijó un mínimo (REGLAS
+  // §7). El Q167,515.32 era falso y bloqueaba dos de los tres niveles del
+  // poder de abono.
   // ANCLA: saldo que el banco reporta antes de la cuota del 15/11/2026.
   // Las cuotas de abr a oct 2026 ya están aplicadas dentro de esta cifra.
   anclaYM   : '2026-11',
@@ -1195,11 +1201,20 @@ function renderPatrimonio(){
   const PROMEDIO_ING = 31568;
   const ambasQuincenas = (ST.q1||0) > 0 && (ST.q2||0) > 0;
   const ingresoMes = ambasQuincenas ? (ST.q1+ST.q2) : PROMEDIO_ING;
+  /* REGLAS §6: el peso hipoteca se mide contra el ingreso PROMEDIO, no
+     contra el mes. Con el mes, octubre (Q38,908) lo pintaba verde al 36%
+     cuando contra el promedio (Q33,283) son 41.9% y va amarillo. El
+     indicador mejoraba por un mes bueno, no porque la hipoteca pesara
+     menos [JP 30-oct-2026]. */
+  const _histIng = (function(){ try{ return (ldS().historial||[]).filter(x=>x&&x.total>0); }catch(e){ return []; } })();
+  const ingresoProm = _histIng.length
+    ? _histIng.reduce((a,x)=>a+x.total,0)/_histIng.length
+    : ingresoMes;
   // 1. Colchón operativo (Ahorro BI + 20% Bantrab) / fijos
   const s1 = colchonQ/fijosMes;
   const s1c = s1<2?'rd':(s1<COLCHON_META_MESES?'go':'gr');
   // 2. Peso hipoteca (cuota / ingreso) — ajustado a realidad
-  const s2 = CUOTA/ingresoMes*100;
+  const s2 = CUOTA/ingresoProm*100;
   const s2c = s2>48?'rd':(s2>40?'go':'gr');
   /* Se quitaron dos indicadores:
      - «Liquidez inmediata» en quetzales: el mismo monto ya esta
@@ -1269,7 +1284,7 @@ function renderPatrimonio(){
       <div class="col-ttl">🚦 Indicadores de salud · decisión a tiempo</div>
       ${semaforo(s1c,'Colchón de fijos',s1.toFixed(1)+' m',
         `${fqR(ahorroBiQ)} Ahorro BI + ${fqR(bantColchonQ)} Bantrab 20% = ${fqR(colchonQ)} ÷ ${fqR(fijosMes)} fijos · verde a ${COLCHON_META_MESES}m (${fqR(metaColchonQ)})`)}
-      ${semaforo(s2c,'Peso hipoteca',s2.toFixed(0)+'%',`${fqR(CUOTA)} cuota ÷ ${fqR(ingresoMes)} ingreso · 🟢<40 🟡40-48 🔴>48`)}
+      ${semaforo(s2c,'Peso hipoteca',s2.toFixed(0)+'%',`${fqR(CUOTA)} cuota ÷ ${fqR(ingresoProm)} ingreso promedio${_histIng.length?' ('+_histIng.length+'m)':''} · 🟢<40 🟡40-48 🔴>48`)}
       ${semaforo(s5c,'Liquidez real total',s5.toFixed(1)+' m',`${fqR(colchonQ)} colchón + ${fqR(liqInmediataQ)} disponible + ${fqR(criptoQ)} cartera + ${fqR(paraAbonarQ)} para abonar = ${fqR(liqRealQ)} ÷ ${fqR(fijosMes)} · >12m`)}
       ${semaforo(s6c,'Excedente disponible',s6.toFixed(0)+'%',`${fqR(Math.max(ingresoMes-fijosMes,0))} libres al mes · sostiene el aporte al portafolio · >30%`)}
       <div style="margin-top:8px;padding:8px 10px;background:rgba(59,130,246,.08);border-left:2px solid var(--ac);border-radius:4px">
@@ -1850,11 +1865,6 @@ function saveAbonosHip(arr){const d=ldS();d.abonosHip=arr;svS(d);}
 function addAbonoHip(){
   const amt=parseFloat(document.getElementById('hip-amt').value)||0;
   if(amt<=0)return;
-  if(amt<HIP.minAbono){
-    if(!confirm('BI no recibe abonos menores al equivalente de 12 cuotas (Q'
-      +HIP.minAbono.toLocaleString('es-GT',{maximumFractionDigits:2})
-      +').\n\n¿Registrarlo de todas formas?')) return;
-  }
   const nota=document.getElementById('hip-nota').value||new Date().toLocaleDateString('es-GT');
   const arr=getAbonosHip();
   arr.push({amt,nota,fecha:new Date().toISOString().slice(0,10)});
@@ -1902,7 +1912,11 @@ function recalcHipSaldo(){
   document.getElementById('hip-lbl-l').textContent='Pagado: '+fq(pagadoTotal)+' ('+pctP.toFixed(1)+'%)';
 
   const lbl=document.getElementById('hip-cuotas-label');
-  if(lbl)lbl.textContent=nCuotasPag+' de '+HIP.nTotal+' cuotas · '+nPag+' marcadas este período';
+  /* El conteo sale del SALDO, no de las casillas: el saldo es el dato del
+     banco y las marcas son tuyas. Antes decia "7 de 179" mientras el saldo
+     correspondia a 8 [JP 30-oct-2026]. */
+  const cuotasDelSaldo = Math.max(HIP.nTotal - mesesRestantes, 0);
+  if(lbl)lbl.textContent=cuotasDelSaldo+' de '+HIP.nTotal+' cuotas · '+nPag+' marcadas este período';
   const flt=document.getElementById('hip-faltan-label');
   if(flt){
     flt.textContent='~'+mesesRestantes+' meses restantes'+(cuotasAhorradas>0?' · ahorras '+cuotasAhorradas+' con abonos':'');
@@ -2571,7 +2585,12 @@ function descargarResumen(){
   const btcQty = _bdr.qty, btcPx = _bdr.px;
   const btcUsd = _bdr.btcUsd;
   const btcQ   = _bdr.colchonUsd * tc;
-  const totalRes=COLS.emer+COLS.bant+COLS.buf+(COLS.reimb*tc)+((COLS.abiUsd||0)*tc)+btcQ+(parseFloat(ST.reservaLulu)||0); // imp unificado en emer; BTC, Ahorro BI USD y Lulubit sumados al total
+  /* RESERVA = efectivo bancario + Lulubit. El BTC NO es reserva
+     [DECISION JP 30-oct-2026]: no paga fijos si el ingreso se corta y su
+     valor depende del precio del dia. Vive en tres renglones del
+     patrimonio: cartera (25% tiers), respaldo de abono (15%) y hold (60%).
+     REGLAS §6 ya lo decia: "BTC LF: no es liquidez". */
+  const totalRes=COLS.emer+COLS.bant+COLS.buf+(COLS.reimb*tc)+((COLS.abiUsd||0)*tc)+(parseFloat(ST.reservaLulu)||0);
   const salHip = saldoHip();
   const mesesPeriodo=getCuotasMeses();
   const pagadas=getCuotasPagadas();
@@ -2705,13 +2724,18 @@ function descargarResumen(){
       +'<p style="'+S.sub+'">Preparado al '+fecha+' · '+mes+'</p>'
       +'<div style="'+S.kpis+'">'
         +(()=>{
+          /* Mismo origen que la tabla de Patrimonio: lo que publica el
+             tracker, no el campo manual. Antes restaba el BTC COMPLETO del
+             portafolio y totalRes solo devolvia el colchon (75%), asi que
+             la portada perdia el 25% de los tiers. Lulubit tambien se
+             contaba dos veces: ya viene dentro de totalRes.
+             [JP 30-oct-2026] */
           const casaU=parseFloat(ST.casaUsd)||210000;
-          const portTotalU=parseFloat(ST.portafolioUsd)||0;
-          const portSinBtcU=Math.max(portTotalU-btcUsd,0);
-          const reservasU=totalRes/tc;
-          const luluU=(parseFloat(ST.reservaLulu)||0)/tc;
+          const portRealU=Math.max(_bdr.realizableUsd,0);   // alts + BTC de los tiers
+          const btcNoVendU=_bdr.colchonUsd;                 // respaldo 15% + hold 60%
+          const reservasU=totalRes/tc;                      // bancario + Lulubit
           const hipU=salHip/tc;
-          const patNetoU=casaU+portSinBtcU+reservasU+luluU-hipU;
+          const patNetoU=casaU+portRealU+btcNoVendU+reservasU-hipU;
           return '<div style="'+S.kpi+';background:rgba(245,166,35,.14)"><span style="'+S.klbl+'">🏛️ Patrimonio neto</span><span style="'+S.kval+'">$'+patNetoU.toLocaleString('en-US',{maximumFractionDigits:0})+'</span><span style="'+S.ksub+'">'+fqR(patNetoU*tc)+'</span></div>';
         })()
         +'<div style="'+S.kpi+'"><span style="'+S.klbl+'">Ingreso promedio</span><span style="'+S.kval+'">'+(avgNorm>0?fqR(avgNorm):'—')+'</span><span style="'+S.ksub+'">'+fusd(avgNorm)+' · '+normales.length+' meses</span></div>'
@@ -2814,7 +2838,9 @@ function descargarResumen(){
       // valores y colores
       const c=(v,r,g)=>v<r?'#dc2626':(v<g?'#e8a020':'#059669'); // rojo/amarillo/verde
       const s1=colchon/fijos, s1c=c(s1,2,COLCHON_META_MESES);
-      const s2=CUOTA/ing*100, s2c=s2>48?'#dc2626':(s2>40?'#e8a020':'#059669');
+      /* REGLAS §6: contra el promedio, no contra el mes [JP 30-oct-2026]. */
+      const ingProm = avgNorm>0 ? avgNorm : ing;
+      const s2=CUOTA/ingProm*100, s2c=s2>48?'#dc2626':(s2>40?'#e8a020':'#059669');
       const s5=real/fijos, s5c=c(s5,5,12);
       const s6=Math.max(ing-fijos,0)/ing*100, s6c=c(s6,15,30);
       const dotC=col=>col==='#dc2626'?'🔴':(col==='#e8a020'?'🟡':'🟢');
@@ -2823,7 +2849,7 @@ function descargarResumen(){
         +'<span style="'+S.sectl+'">Indicadores de salud · ¿cómo estoy?</span>'
         +'<table style="'+S.tbl+'"><tbody>'
         +semRow(s1c,'Colchón de fijos',s1.toFixed(1)+' m',fqR(ahorroBi)+' Ahorro BI + '+fqR(bantColchon)+' Bantrab 20% = '+fqR(colchon)+' ÷ '+fqR(fijos)+' fijos · verde a '+COLCHON_META_MESES+'m ('+fqR(fijos*COLCHON_META_MESES)+')')
-        +semRow(s2c,'Peso hipoteca',s2.toFixed(0)+'%',fqR(CUOTA)+' cuota ÷ '+fqR(ing)+' ingreso · sano <40%')
+        +semRow(s2c,'Peso hipoteca',s2.toFixed(0)+'%',fqR(CUOTA)+' cuota ÷ '+fqR(ingProm)+' ingreso promedio · REGLAS §6 · sano <40%')
         +semRow(s5c,'Liquidez real total',s5.toFixed(1)+' m',fqR(colchon)+' colchón + '+fqR(inmediata)+' disponible + '+fqR(cripto)+' cartera + '+fqR(bantCasa+holgura+btcAbono)+' para abonar = '+fqR(real)+' ÷ '+fqR(fijos)+' · >12m')
         +semRow(s6c,'Excedente disponible',s6.toFixed(0)+'%',fqR(Math.max(ing-fijos,0))+' libres al mes · es lo que sostiene el aporte al portafolio · >30%')
         +'</tbody></table>'
@@ -3041,8 +3067,8 @@ function descargarResumen(){
         +(COLS.reimb>0?'<tr><td style="'+S.td+'">Reembolsos</td><td style="'+S.td+'">USD cash</td><td style="'+S.td+'">$'+COLS.reimb.toFixed(0)+' ('+fqR(COLS.reimb*tc)+')</td>'+dCellUsd('reimb',COLS.reimb)+'<td style="'+S.td+'color:#92400e;font-size:10px">no es ahorro</td></tr>':'')
         +((parseFloat(ST.reservaLulu)||0)>0?'<tr><td style="'+S.td+'">Cash personal</td><td style="'+S.td+'">Lulubit</td><td style="'+S.td+'">'+fqR(parseFloat(ST.reservaLulu)||0)+'</td>'+dCell('lulu',parseFloat(ST.reservaLulu)||0)+'<td style="'+S.td+'">—</td></tr>':'')
         +('<tr><td style="'+S.td+'color:#059669">Ahorro BI · USD (superávit)</td><td style="'+S.td+'">Ahorro BI dólares</td><td style="'+S.td+'color:#059669;font-weight:600">$'+(COLS.abiUsd||0).toFixed(0)+' ('+fqR((COLS.abiUsd||0)*tc)+')</td>'+dCellUsd('abiUsd',COLS.abiUsd||0)+'<td style="'+S.td+'">—</td></tr>')
-        +(btcQty>0?'<tr><td style="'+S.td+'color:#f7931a">₿ BTC reserva</td><td style="'+S.td+'">SeedSigner</td><td style="'+S.td+'color:#f7931a;font-weight:600">₿'+btcQty.toFixed(4)+' · '+fqR(btcQ)+'</td><td style="'+S.td+'color:#a0aec0;font-size:10px">intocable</td><td style="'+S.td+'color:#888">$'+btcUsd.toLocaleString('en-US',{maximumFractionDigits:0})+'</td></tr>':'')
         +'<tr><td style="'+S.td+'font-weight:700" colspan="2">Total reservas</td><td style="'+S.td+'font-weight:700;color:#0c4a6e">'+fqR(totalRes)+'</td><td style="'+S.td+'font-weight:700;color:#0c4a6e" colspan="2">$'+(totalRes/tc).toLocaleString('en-US',{maximumFractionDigits:0})+'</td></tr>'
+        +(btcQty>0?'<tr style="background:#fffbeb"><td style="'+S.td+'color:#f7931a">₿ BTC</td><td style="'+S.td+'">SeedSigner</td><td style="'+S.td+'color:#f7931a;font-weight:600">₿'+btcQty.toFixed(4)+' · '+fqR(btcUsd*tc)+'</td><td style="'+S.td+'color:#92400e;font-size:10px" colspan="2">no es reserva · va en cartera (25%), respaldo de abono (15%) y hold (60%)</td></tr>':'')
       +'</tbody></table>'
       +(snapPrevR?'<div style="font-size:10px;color:#888;margin-top:6px">&Delta; comparado con el cierre anterior'+(snapPrevR.fecha?' ('+snapPrevR.fecha+')':'')+'</div>':'<div style="font-size:10px;color:#888;margin-top:6px">Sin cierre previo guardado para comparar</div>')
     +'</div>'
@@ -3066,7 +3092,7 @@ function descargarResumen(){
           var s = SNAP_M[0];
           return '<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:14px;text-align:center">'
             +'<div style="font-size:11px;color:#666;line-height:1.6">Primer snapshot capturado el '+fmtDateShort(s.date)+'.<br>La grafica de tendencia aparecera con mas snapshots.</div>'
-            +'<div style="margin-top:8px;font-size:18px;font-weight:700;color:#0c4a6e">Q'+s.total.toLocaleString('es-GT',{maximumFractionDigits:0})+'</div>'
+            +'<div style="margin-top:8px;font-size:18px;font-weight:700;color:#0c4a6e">Q'+snapBanc(s).toLocaleString('es-GT',{maximumFractionDigits:0})+'</div>'
             +'</div>';
         }
 
@@ -3076,7 +3102,7 @@ function descargarResumen(){
         const innerW = chartW - padL - padR;
         const innerH = chartH - padT - padB;
 
-        const totals = SNAP_M.map(s => s.total);
+        const totals = SNAP_M.map(s => snapBanc(s));
         const minVal = Math.min.apply(null, totals);
         const maxVal = Math.max.apply(null, totals);
         // Padding visual del eje Y
@@ -3096,7 +3122,7 @@ function descargarResumen(){
 
         SNAP_M.forEach(function(s, i){
           const x = padL + i * stepX;
-          const y = padT + innerH - ((s.total - yMin) / yRange) * innerH;
+          const y = padT + innerH - ((snapBanc(s) - yMin) / yRange) * innerH;
           pathD += (i === 0 ? 'M' : 'L') + x.toFixed(1) + ',' + y.toFixed(1) + ' ';
           pointsHtml += '<circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="3" fill="#0284c7" stroke="#fff" stroke-width="1.5"/>';
           if(showLabels || i === 0 || i === SNAP_M.length - 1 || i % Math.ceil(SNAP_M.length/8) === 0){
@@ -3169,7 +3195,7 @@ function descargarResumen(){
             +'<td style="'+S.td+'">Q'+(s.bant/1000).toFixed(1)+'K'+arr(s.bant, prev?prev.bant:null)+'</td>'
             +'<td style="'+S.td+'">Q'+s.buf.toFixed(0)+arr(s.buf, prev?prev.buf:null)+'</td>'
             +'<td style="'+S.td+'">$'+(s.reimb||0).toFixed(0)+arr(s.reimb||0, prev?(prev.reimb||0):null)+'</td>'
-            +'<td style="'+S.td+'font-weight:700;color:#0c4a6e">Q'+(s.total/1000).toFixed(1)+'K</td>'
+            +'<td style="'+S.td+'font-weight:700;color:#0c4a6e">Q'+(snapBanc(s)/1000).toFixed(1)+'K</td>'
           +'</tr>';
         }).join('');
 
@@ -3219,7 +3245,7 @@ function descargarResumen(){
           +'<span style="'+S.csub+'">'+fusd(salHip)+'</span></div>'
         +'<div style="'+S.card+'"><span style="'+S.clbl+'">Capital pagado</span>'
           +'<span style="'+S.cval+'color:#059669">'+fqR(HIP.principal-salHip)+'</span>'
-          +'<span style="'+S.csub+'">'+((HIP.principal-salHip)/HIP.principal*100).toFixed(1)+'% · '+nPag+' de '+HIP.nTotal+' cuotas</span></div>'
+          +'<span style="'+S.csub+'">'+((HIP.principal-salHip)/HIP.principal*100).toFixed(1)+'% · '+Math.max(HIP.nTotal-mesesRestantesHip(salHip),0)+' de '+HIP.nTotal+' cuotas</span></div>'
         +'<div style="'+S.card+'"><span style="'+S.clbl+'">De la cuota de este mes</span>'
           +'<span style="'+S.cval+'color:#0284c7">'+fqR(capitalDeCuota(salHip))+'</span>'
           +'<span style="'+S.csub+'">a capital · '+((capitalDeCuota(salHip)/HIP.cuotaAm)*100).toFixed(0)+'% de lo que amortiza</span></div>'
@@ -3254,20 +3280,19 @@ function descargarResumen(){
       const n3 = n2 + criptoQ;
       const colchonQ = emer + bant20;
       const pct=v=> salHip>0 ? (v/salHip*100).toFixed(1)+'%' : '—';
-      const minOk=v=> v>=HIP.minAbono
-        ? '<span style="color:#059669">llega al mínimo BI</span>'
-        : '<span style="color:#dc2626">bajo el mínimo BI</span>';
+      /* La columna "Mínimo BI" se eliminó: no existe tal mínimo
+         [confirmado con BI 15-oct-2026]. Mientras estuvo marcaba los
+         niveles 1 y 2 como no ejecutables, que era falso [JP 30-oct]. */
       const nivel=(n,ttl,det,v,col)=>'<tr>'
         +'<td style="'+S.td+'font-weight:700;color:'+col+'">'+n+' · '+ttl+'</td>'
         +'<td style="'+S.td+'color:#6b7280;font-size:10px">'+det+'</td>'
         +'<td style="'+S.td+'text-align:right;font-weight:700;color:'+col+'">'+fqR(v)+'</td>'
-        +'<td style="'+S.td+'text-align:right;color:#6b7280;font-size:10px">'+pct(v)+'</td>'
-        +'<td style="'+S.td+'font-size:9px">'+minOk(v)+'</td></tr>';
+        +'<td style="'+S.td+'text-align:right;color:#6b7280;font-size:10px">'+pct(v)+'</td></tr>';
       return '<div class="rsec" style="'+S.sec+'">'
         +'<span style="'+S.sectl+'">Poder de abono · del plan al techo</span>'
         +'<table style="'+S.tbl+'"><thead><tr>'
           +'<th style="'+S.th+'">Nivel</th><th style="'+S.th+'">Qué usas</th>'
-          +'<th style="'+S.th+'">Monto</th><th style="'+S.th+'">Del saldo</th><th style="'+S.th+'">Mínimo BI</th>'
+          +'<th style="'+S.th+'">Monto</th><th style="'+S.th+'">Del saldo</th>'
           +'</tr></thead><tbody>'
         +nivel('1','Del plan',
             'Bantrab 40% '+fqR(bant40)
@@ -3300,9 +3325,8 @@ function descargarResumen(){
           +'El 40% de Bantrab y el hold de BTC siguen siendo tuyos pero no cuentan como colchón.'
           +'</div></div>'
         +'<div style="font-size:9px;color:#a0aec0;margin-top:8px;line-height:1.6">'
-        +'El mínimo que recibe BI es '+fqR(HIP.minAbono)+' (12 cuotas) <b>[PENDIENTE · confirmar con el banco]</b>. '
-        +'Si ese dato es correcto, los niveles 1 y 2 no son ejecutables y el único abono posible es el que rompe el plan de tiers. '
-        +'Esa llamada decide todo lo demás.'
+        +'<b>No hay mínimo de abono</b> [confirmado con BI 15-oct-2026]: cualquier monto, cuando sea, 100% a capital. '
+        +'La fricción real es la ventanilla — el abono se hace en persona, así que el dinero espera a que haya visita posible.'
         +'</div>'
       +'</div>';
     })()
@@ -4034,6 +4058,15 @@ function reimbAmt(idx, val){
 
 // ── SNAPSHOTS DE RESERVAS ─────────────────────────────────────────
 
+/* Reserva bancaria de un snapshot, con cualquier version.
+   v1 guardaba total CON el BTC adentro; v2 ya no. Al restar btcQ en los
+   v1 las dos series miden lo mismo y la grafica no tiene escalon
+   [JP 30-oct-2026]. */
+function snapBanc(s){
+  if(!s) return 0;
+  return (s.v>=2) ? (+s.total||0) : Math.max((+s.total||0)-(+s.btcQ||0), 0);
+}
+
 function todayISO(){
   var d = new Date();
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
@@ -4073,22 +4106,25 @@ function takeSnapshot(){
   var btcQty = +(COLS.btcQty||0);
   var btcPx  = +(COLS.btcPx||0);
   var tc    = ST.tc || 7.75;
-  var btcQ  = btcQty * btcPx * tc;
-  var total = emer + bant + buf + (reimb * tc) + (abiUsd * tc) + btcQ + lulu;
+  /* v2: RESERVA = efectivo bancario + Lulubit, sin BTC [JP 30-oct-2026].
+     btcQ se sigue guardando aparte para poder releer las series v1, que
+     si lo incluian en total. */
+  var _bds  = btcDesglose();
+  var btcQ  = _bds.btcUsd * tc;
+  var total = emer + bant + buf + (reimb * tc) + (abiUsd * tc) + lulu;
 
   // Si ya hay snapshot del mismo dia, sobrescribe (rate-limit por dia)
   var existing = SNAPSHOTS.findIndex(s => s.date === iso);
   // patrimonio del momento: se calcula aqui para no depender del mes navegado
-  var _portU = parseFloat(ST.portafolioUsd)||0;
-  var _btcU  = btcQty*btcPx;
-  var _portSinBtcQ = Math.max(_portU-_btcU,0)*tc;
+  var _realQ      = Math.max(_bds.realizableUsd,0)*tc;   // alts + BTC de los tiers
+  var _btcNoVendQ = _bds.colchonUsd*tc;                  // respaldo 15% + hold 60%
   var _casaQ = (parseFloat(ST.casaUsd)||210000)*tc;
   var _hipQ  = (typeof salHipGlobal!=='undefined' && salHipGlobal>0) ? salHipGlobal : 0;
-  var _neto  = _casaQ + _portSinBtcQ + total - _hipQ;
+  var _neto  = _casaQ + _realQ + _btcNoVendQ + total - _hipQ;
   var _colchon = emer + bant*0.20;
   var _inmediata = buf + lulu + bant*0.40 + reimb*tc + abiUsd*tc;
 
-  var snap = {date: iso, emer: emer, bant: bant, buf: buf, reimb: reimb, abiUsd: abiUsd, lulu: lulu,
+  var snap = {v: 2, date: iso, emer: emer, bant: bant, buf: buf, reimb: reimb, abiUsd: abiUsd, lulu: lulu,
               btcQty: btcQty, btcPx: btcPx, btcQ: btcQ, total: total,
               neto: Math.round(_neto), casa: Math.round(_casaQ), hipoteca: Math.round(_hipQ),
               colchon: Math.round(_colchon), inmediata: Math.round(_inmediata),
